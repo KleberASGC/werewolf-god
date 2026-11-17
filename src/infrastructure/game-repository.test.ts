@@ -4,6 +4,7 @@ import { describe, it } from "node:test";
 import { createGame } from "../domain/game";
 import {
   endDiscussion,
+  continueAfterSeerResult,
   recordVote,
   resolveNight,
   resolveVoting,
@@ -90,6 +91,8 @@ describe("match persistence", () => {
     match = submitNightCall(match, "bodyguard", { kind: "bodyguard-protect", targetId: "player-5" });
     match = submitNightCall(match, "witch");
     match = submitNightCall(match, "seer", { kind: "seer-investigate", targetId: "player-2" });
+    match = await roundTrip(match);
+    match = continueAfterSeerResult(match);
     match = await roundTrip(match);
     match = resolveNight(match).match;
     match = startDiscussion(match, 1_000);

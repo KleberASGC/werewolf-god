@@ -1,6 +1,8 @@
-# Werewolf God
+# Werewolf Moderator
 
 Assistente web para apoiar mestres durante partidas presenciais de Lobisomem.
+
+A versão exibida no aplicativo vem do campo `version` de `package.json`. Atualize esse campo a cada release antes do deploy. Cada release também tem o codinome **Moonlit Howl**.
 
 ## Status
 

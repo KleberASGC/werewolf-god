@@ -4,7 +4,14 @@ import { afterEach, it } from "node:test";
 import { JSDOM } from "jsdom";
 import { act } from "react";
 import { createGame } from "../domain/game";
-import { deleteGame, getMatch, listGames, saveGame } from "../infrastructure/game-repository";
+import { createMatch } from "../domain/match-setup";
+import {
+  deleteGame,
+  getMatch,
+  listGames,
+  saveGame,
+  saveGameAndMatch,
+} from "../infrastructure/game-repository";
 
 const dom = new JSDOM("<!doctype html><html><body></body></html>", {
   url: "http://localhost/",
@@ -111,7 +118,7 @@ async function createMatchThroughForm(gameName: string): Promise<void> {
     fillInput(`Nome do participante ${index}`, `Jogador ${index}`);
   }
   clickButton(/Sortear papéis e preparar/);
-  await screen.findByRole("heading", { name: "Preparada" });
+  await screen.findByRole("heading", { name: "Preparação" });
   await waitForSavedProgress();
 }
 
@@ -167,6 +174,213 @@ it("allows editing and deleting a game record without match progress", async () 
   clickButton("Excluir partida");
   await screen.findByText("Nenhuma partida por aqui.");
   assert.deepEqual(await listGames(), []);
+});
+
+it("shows the release label and can redraw roles before the match starts", async () => {
+  await renderApp();
+  assert.ok(screen.getByRole("link", { name: /Werewolf Moderator, início/ }));
+  assert.ok(screen.getByText("v1.0.0 · Moonlit Howl"));
+  await createMatchThroughForm("Novo sorteio");
+
+  const game = (await listGames())[0];
+  assert.ok(game);
+  const before = await getMatch(game.id);
+  assert.equal(before?.phase, "prepared");
+  clickButton("Sortear funções novamente");
+  await waitForSavedProgress();
+
+  const redrawn = await getMatch(game.id);
+  assert.equal(redrawn?.phase, "prepared");
+  assert.equal(redrawn?.round, 0);
+  assert.equal(redrawn?.history.length, 0);
+  assert.deepEqual(
+    redrawn?.players.map(({ id, name }) => ({ id, name })),
+    game.players,
+  );
+  assert.deepEqual(
+    redrawn?.players.reduce<Record<string, number>>((counts, player) => {
+      counts[player.role] = (counts[player.role] ?? 0) + 1;
+      return counts;
+    }, {}),
+    { werewolf: 1, bodyguard: 1, witch: 1, seer: 1, villager: 1 },
+  );
+});
+
+it("confirms restarting from an active phase and returns to role distribution", async () => {
+  await renderApp();
+  await createMatchThroughForm("Reinício");
+  const game = (await listGames())[0];
+  assert.ok(game);
+  const rolesBefore = (await getMatch(game.id))?.players.map((player) => player.role).sort();
+
+  clickButton("Iniciar a partida");
+  await screen.findByRole("heading", { name: /Chamar: Lobisomem/ });
+  await waitForSavedProgress();
+
+  const originalConfirm = window.confirm;
+  const confirmations: string[] = [];
+  window.confirm = (message?: string) => {
+    confirmations.push(message ?? "");
+    return false;
+  };
+  try {
+    clickButton("Reiniciar partida");
+    assert.match(confirmations[0], /Reiniciar a partida/);
+    assert.equal((await getMatch(game.id))?.phase, "night");
+
+    window.confirm = () => true;
+    clickButton("Reiniciar partida");
+    await screen.findByRole("heading", { name: "Preparação" });
+    await waitForSavedProgress();
+  } finally {
+    window.confirm = originalConfirm;
+  }
+
+  const restarted = await getMatch(game.id);
+  assert.equal(restarted?.phase, "prepared");
+  assert.equal(restarted?.round, 0);
+  assert.deepEqual(restarted?.history, []);
+  assert.ok(restarted?.players.every((player) => player.status === "alive"));
+  assert.deepEqual(
+    restarted?.players.map((player) => player.role).sort(),
+    rolesBefore,
+  );
+  assert.deepEqual(
+    restarted?.players.map(({ id, name }) => ({ id, name })),
+    game.players,
+  );
+});
+
+it("edits a saved game roster by replacing its prepared match and role draw", async () => {
+  const game = createGame({
+    id: "cadastro-com-progresso",
+    name: "Partida editável",
+    players: Array.from({ length: 5 }, (_, index) => ({
+      id: `edit-player-${index + 1}`,
+      name: `Jogador ${index + 1}`,
+    })),
+    createdAt: "2026-01-01T00:00:00.000Z",
+  });
+  const match = createMatch({
+    id: game.id,
+    name: game.name,
+    players: game.players,
+    roleCounts: { werewolf: 1, bodyguard: 1, witch: 1, seer: 1, villager: 1 },
+    dayDurationMinutes: 5,
+  });
+  await saveGameAndMatch(game, match);
+  await renderApp();
+
+  await screen.findByRole("button", { name: /Partida editável/ });
+  await clickGameAndWaitForDetails(/Partida editável/, "Editar cadastro");
+  clickButton("Editar cadastro");
+  fillInput("Nome do participante editado 1", "Ana");
+  clickButton("Remover participante editado 5");
+  clickLastButton("Adicionar participante");
+  fillInput("Nome do participante editado 5", "Eva");
+  clickButton("Salvar alterações");
+
+  await screen.findByRole("button", { name: /Retomar partida/ });
+  const editedGame = (await listGames())[0];
+  const editedMatch = await getMatch(game.id);
+  assert.deepEqual(editedGame.players.map((player) => player.name), [
+    "Ana",
+    "Jogador 2",
+    "Jogador 3",
+    "Jogador 4",
+    "Eva",
+  ]);
+  assert.equal(editedMatch?.phase, "prepared");
+  assert.deepEqual(editedMatch?.history, []);
+  assert.equal(editedMatch?.players.length, 5);
+  assert.equal(editedMatch?.players.some((player) => player.id === "edit-player-5"), false);
+  assert.deepEqual(
+    editedMatch?.players.map(({ id, name }) => ({ id, name })),
+    editedGame.players,
+  );
+});
+
+it("restarts a finished match with the same players", async () => {
+  const game = createGame({
+    id: "replay-same-roster",
+    name: "Revanche",
+    players: Array.from({ length: 5 }, (_, index) => ({
+      id: `replay-player-${index + 1}`,
+      name: `Jogador ${index + 1}`,
+    })),
+    createdAt: "2026-01-01T00:00:00.000Z",
+  });
+  const prepared = createMatch({
+    id: game.id,
+    name: game.name,
+    players: game.players,
+    roleCounts: { werewolf: 1, bodyguard: 1, witch: 1, seer: 1, villager: 1 },
+    dayDurationMinutes: 5,
+  });
+  await saveGameAndMatch(game, {
+    ...prepared,
+    phase: "finished",
+    winner: "villagers",
+  });
+  await renderApp();
+
+  await screen.findByRole("button", { name: /Revanche/ });
+  await clickGameAndWaitForDetails(/Revanche/, "Retomar partida");
+  clickButton("Retomar partida");
+  await screen.findByRole("heading", { level: 3, name: "Partida encerrada" });
+  clickButton("Jogar novamente");
+
+  await screen.findByRole("heading", { name: "Preparação" });
+  const replay = await getMatch(game.id);
+  assert.equal(replay?.phase, "prepared");
+  assert.deepEqual(replay?.history, []);
+  assert.deepEqual(
+    replay?.players.map(({ id }) => id).sort(),
+    game.players.map(({ id }) => id).sort(),
+  );
+});
+
+it("restarts a finished match after editing its participants", async () => {
+  const game = createGame({
+    id: "replay-edit-roster",
+    name: "Nova mesa",
+    players: Array.from({ length: 5 }, (_, index) => ({
+      id: `replay-edit-player-${index + 1}`,
+      name: `Jogador ${index + 1}`,
+    })),
+    createdAt: "2026-01-01T00:00:00.000Z",
+  });
+  const prepared = createMatch({
+    id: game.id,
+    name: game.name,
+    players: game.players,
+    roleCounts: { werewolf: 1, bodyguard: 1, witch: 1, seer: 1, villager: 1 },
+    dayDurationMinutes: 5,
+  });
+  await saveGameAndMatch(game, {
+    ...prepared,
+    phase: "finished",
+    winner: "villagers",
+  });
+  await renderApp();
+
+  await screen.findByRole("button", { name: /Nova mesa/ });
+  await clickGameAndWaitForDetails(/Nova mesa/, "Retomar partida");
+  clickButton("Retomar partida");
+  await screen.findByRole("heading", { level: 3, name: "Partida encerrada" });
+  clickButton("Jogar novamente e editar participantes");
+  fillInput("Nome do participante editado 1", "Ana");
+  clickLastButton("Adicionar participante");
+  fillInput("Nome do participante editado 6", "Eva");
+  clickButton("Salvar e sortear novamente");
+
+  await screen.findByRole("heading", { name: "Preparação" });
+  const replay = await getMatch(game.id);
+  assert.equal(replay?.phase, "prepared");
+  assert.equal(replay?.players.length, 6);
+  assert.equal(replay?.players.find((player) => player.name === "Ana")?.id, game.players[0].id);
+  assert.equal(replay?.players.some((player) => player.id === "replay-edit-player-6"), false);
+  assert.deepEqual(replay?.history, []);
 });
 
 it("imports a backup from the home screen and refreshes the saved games", async () => {
@@ -234,6 +448,12 @@ it("covers setup, night calls and review, resume, voting, victory, and history",
   await screen.findByRole("heading", { name: /Chamar: Vidente/ });
   const firstInvestigation = chooseRadio("night-target", (input) => !input.disabled);
   clickButton("Registrar chamada e avançar");
+  await screen.findByRole("heading", { level: 3, name: "Resultado da investigação" });
+  assert.ok(screen.getByText(
+    firstInvestigation === werewolf ? "é Lobisomem." : "não é Lobisomem.",
+  ));
+  await waitForSavedProgress();
+  clickButton("Vidente pode dormir novamente");
   await screen.findByRole("heading", { name: "Revisar ações antes de confirmar" });
   await waitForSavedProgress();
 
@@ -241,14 +461,7 @@ it("covers setup, night calls and review, resume, voting, victory, and history",
     row.textContent?.includes(`VidenteInvestigação: ${firstInvestigation}`),
   );
   assert.ok(seerAction);
-  fireEvent.click(seerAction.querySelector("button")!);
-  const revisedInvestigation = chooseRadio(
-    "night-target",
-    (input) => !input.disabled && selectedPlayerName(input) !== firstInvestigation,
-  );
-  clickButton("Salvar correção");
-  await waitForSavedProgress();
-  assert.notEqual(revisedInvestigation, firstInvestigation);
+  assert.equal(seerAction.querySelector("button"), null);
 
   clickButton("Voltar às partidas");
   await screen.findByRole("heading", { name: "Suas partidas" });
@@ -256,7 +469,7 @@ it("covers setup, night calls and review, resume, voting, victory, and history",
   await clickGameAndWaitForDetails(/Noite integrada/, "Retomar partida");
   clickButton("Retomar partida");
   await screen.findByRole("heading", { name: "Confirmação da noite" });
-  assert.ok(screen.getByText(`Investigação: ${revisedInvestigation}`));
+  assert.ok(screen.getByText(`Investigação: ${firstInvestigation}`));
 
   clickButton("Confirmar resolução da noite");
   await screen.findByRole("heading", { name: "Resultado privado da noite" });

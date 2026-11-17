@@ -97,6 +97,12 @@ button {
   letter-spacing: 0.1em;
 }
 
+.brand-copy .release-version {
+  color: var(--green-strong);
+  font-size: 8px;
+  letter-spacing: 0.04em;
+}
+
 .status-pill {
   display: inline-flex;
   align-items: center;
@@ -678,6 +684,13 @@ select:focus-visible {
   margin-bottom: 20px;
 }
 
+.console-heading-actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
 .console-heading h2 {
   margin: 0;
   font-size: clamp(24px, 5vw, 36px);
@@ -1070,8 +1083,12 @@ a:focus-visible {
     flex-direction: column;
   }
 
-  .console-heading .secondary-button {
+  .console-heading-actions {
     width: 100%;
+  }
+
+  .console-heading-actions > button {
+    flex: 1;
     min-height: 48px;
   }
 

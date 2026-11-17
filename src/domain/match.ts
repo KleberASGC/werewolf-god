@@ -4,6 +4,7 @@ export type PlayerStatus = "alive" | "dead" | "exiled";
 export type MatchPhase =
   | "prepared"
   | "night"
+  | "seer-result"
   | "night-resolution"
   | "dawn"
   | "discussion"

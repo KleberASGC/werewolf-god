@@ -1,5 +1,7 @@
 import { useEffect, useRef, useState, type ChangeEvent, type FormEvent } from "react";
+import { version as packageVersion } from "../../package.json";
 import {
+  continueAfterSeerResult,
   endDiscussion,
   pauseDiscussion,
   recordVote,
@@ -48,6 +50,7 @@ const INITIAL_ROLE_COUNTS: Record<RoleId, number> = {
   seer: 1,
   villager: 1,
 };
+const RELEASE_LABEL = `v${packageVersion} · Moonlit Howl`;
 
 function errorMessage(error: unknown): string {
   return error instanceof Error ? error.message : "Ocorreu um erro inesperado.";
@@ -61,6 +64,13 @@ function makeMatch(game: Game, roleCounts: Record<RoleId, number>, dayDurationMi
     roleCounts,
     dayDurationMinutes,
   });
+}
+
+function getRoleCounts(players: MatchPlayer[]): Record<RoleId, number> {
+  return players.reduce<Record<RoleId, number>>((counts, player) => {
+    counts[player.role] += 1;
+    return counts;
+  }, { werewolf: 0, bodyguard: 0, witch: 0, seer: 0, villager: 0 });
 }
 
 function playerName(match: MatchState, playerId: string): string {
@@ -323,14 +333,19 @@ function NightActionForm({
 
 function MasterConsole({
   initialMatch,
+  initialGame,
+  onReplay,
   onExit,
 }: {
   initialMatch: MatchState;
+  initialGame: Game;
+  onReplay: (game: Game, roleCounts: Record<RoleId, number>) => Promise<void>;
   onExit: () => void;
 }) {
   const [match, setMatch] = useState(initialMatch);
   const [error, setError] = useState("");
   const [editingRole, setEditingRole] = useState<NightRole | null>(null);
+  const [editingReplay, setEditingReplay] = useState(false);
   const [voteChoice, setVoteChoice] = useState("");
   const [storageStatus, setStorageStatus] = useState<"saved" | "saving" | "error">("saved");
   const [storageError, setStorageError] = useState("");
@@ -411,6 +426,30 @@ function MasterConsole({
     if (transition((current) => resolveNight(current).match)) setEditingRole(null);
   }
 
+  function handleRestartMatch() {
+    if (!window.confirm(
+      "Reiniciar a partida? O andamento atual será apagado e as funções serão sorteadas novamente.",
+    )) return;
+    transition((current) => createMatch({
+      id: current.id,
+      name: current.name,
+      players: current.players.map(({ id, name }) => ({ id, name })),
+      roleCounts: getRoleCounts(current.players),
+      dayDurationMinutes: current.dayDurationMinutes,
+    }));
+    setEditingRole(null);
+    setVoteChoice("");
+  }
+
+  async function handleReplay(game: Game, roleCounts: Record<RoleId, number>) {
+    setError("");
+    try {
+      await onReplay(game, roleCounts);
+    } catch (replayError: unknown) {
+      setError(errorMessage(replayError));
+    }
+  }
+
   function handleVote(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     const voterId = match.voting?.order[match.voting.nextVoterIndex];
@@ -424,8 +463,9 @@ function MasterConsole({
   }
 
   const phaseLabels: Record<MatchState["phase"], string> = {
-    prepared: "Preparada",
+    prepared: "Preparação",
     night: "Noite",
+    "seer-result": "Resultado da investigação",
     "night-resolution": "Confirmação da noite",
     dawn: "Amanhecer",
     discussion: "Discussão",
@@ -468,13 +508,23 @@ function MasterConsole({
           <p className="eyebrow">{match.name} · NOITE {match.round || 1}</p>
           <h2 id="console-title">{phaseLabels[match.phase]}</h2>
         </div>
-        <button className="secondary-button" disabled={storageStatus === "saving"} onClick={() => {
-          if (storageStatus !== "error" || window.confirm("As últimas alterações não foram salvas. Sair e perdê-las?")) {
-            onExit();
-          }
-        }} type="button">
-          Voltar às partidas
-        </button>
+        <div className="console-heading-actions">
+          <button
+            className="danger-button"
+            disabled={storageStatus !== "saved"}
+            onClick={handleRestartMatch}
+            type="button"
+          >
+            Reiniciar partida
+          </button>
+          <button className="secondary-button" disabled={storageStatus === "saving"} onClick={() => {
+            if (storageStatus !== "error" || window.confirm("As últimas alterações não foram salvas. Sair e perdê-las?")) {
+              onExit();
+            }
+          }} type="button">
+            Voltar às partidas
+          </button>
+        </div>
       </div>
 
       {error && <p className="message error-message" role="alert">{error}</p>}
@@ -493,6 +543,24 @@ function MasterConsole({
           <h3>Distribuição secreta</h3>
           <p>O sorteio é exibido somente nesta tela do mestre. Entregue as cartas físicas aos participantes.</p>
           <PlayerRoster match={match} />
+          <button
+            className="secondary-button"
+            onClick={() => transition((current) => {
+              if (current.phase !== "prepared") {
+                throw new Error("O sorteio só pode ser refeito antes de iniciar a partida.");
+              }
+              return createMatch({
+                id: current.id,
+                name: current.name,
+                players: current.players.map(({ id, name }) => ({ id, name })),
+                roleCounts: getRoleCounts(current.players),
+                dayDurationMinutes: current.dayDurationMinutes,
+              });
+            })}
+            type="button"
+          >
+            Sortear funções novamente
+          </button>
           <button
             className="primary-button"
             onClick={() => transition((current) => startMatch(current))}
@@ -556,6 +624,33 @@ function MasterConsole({
         </section>
       )}
 
+      {match.phase === "seer-result" && match.night && (
+        <section className="phase-panel">
+          <h3>Resultado da investigação</h3>
+          {match.night.actions
+            .filter((record) => record.role === "seer" && record.action.kind === "seer-investigate")
+            .map(({ action }) => {
+              if (action.kind !== "seer-investigate") return null;
+              const target = match.players.find((player) => player.id === action.targetId);
+              if (!target) return <p className="message error-message" key={action.targetId}>Não foi possível localizar a pessoa investigada.</p>;
+              return (
+                <p key={action.targetId}>
+                  <strong>{target.name}</strong>{" "}
+                  {target.role === "werewolf" ? "é Lobisomem." : "não é Lobisomem."}
+                </p>
+              );
+            })}
+          <p>Informe o resultado à Vidente e peça que durma novamente.</p>
+          <button
+            className="primary-button"
+            onClick={() => transition((current) => continueAfterSeerResult(current))}
+            type="button"
+          >
+            Vidente pode dormir novamente
+          </button>
+        </section>
+      )}
+
       {match.phase === "night-resolution" && match.night && (
         <section className="phase-panel">
           <h3>Revisar ações antes de confirmar</h3>
@@ -567,7 +662,9 @@ function MasterConsole({
               {match.night.actions.map(({ role, action }) => (
                 <li key={role}>
                   <span><strong>{ROLE_LABELS[role]}</strong><span>{formatNightAction(match, action)}</span></span>
-                  <button className="text-button" onClick={() => setEditingRole(role)} type="button">Editar</button>
+                  {role !== "seer" && (
+                    <button className="text-button" onClick={() => setEditingRole(role)} type="button">Editar</button>
+                  )}
                 </li>
               ))}
             </ul>
@@ -748,6 +845,29 @@ function MasterConsole({
           </p>
           {latestNight && <p>Eliminados nesta noite: {latestNight.eliminatedPlayerIds.map((id) => playerName(match, id)).join(", ") || "ninguém"}.</p>}
           <PlayerRoster match={match} />
+          {editingReplay ? (
+            <GameEditor
+              game={initialGame}
+              match={match}
+              onCancel={() => setEditingReplay(false)}
+              onSave={(game, roleCounts) => handleReplay(game, roleCounts ?? getRoleCounts(match.players))}
+              restartOnSave
+              submitLabel="Salvar e sortear novamente"
+            />
+          ) : (
+            <div className="button-row">
+              <button
+                className="primary-button"
+                onClick={() => handleReplay(initialGame, getRoleCounts(match.players))}
+                type="button"
+              >
+                Jogar novamente
+              </button>
+              <button className="secondary-button" onClick={() => setEditingReplay(true)} type="button">
+                Jogar novamente e editar participantes
+              </button>
+            </div>
+          )}
         </section>
       )}
 
@@ -825,22 +945,54 @@ function VoteOutcome({ match }: { match: MatchState }) {
 
 function GameEditor({
   game,
+  match,
   onSave,
   onCancel,
+  restartOnSave = false,
+  submitLabel = "Salvar alterações",
 }: {
   game: Game;
-  onSave: (updatedGame: Game) => Promise<void>;
+  match?: MatchState;
+  onSave: (
+    updatedGame: Game,
+    roleCounts?: Record<RoleId, number>,
+    restart?: boolean,
+  ) => Promise<void>;
   onCancel: () => void;
+  restartOnSave?: boolean;
+  submitLabel?: string;
 }) {
   const [name, setName] = useState(game.name);
-  const [playerNames, setPlayerNames] = useState(game.players.map((player) => player.name));
+  const [players, setPlayers] = useState(game.players.map((player) => ({ ...player })));
+  const [roleCounts, setRoleCounts] = useState(
+    match ? getRoleCounts(match.players) : INITIAL_ROLE_COUNTS,
+  );
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
 
   function updatePlayerName(index: number, value: string) {
-    setPlayerNames((current) =>
-      current.map((playerName, currentIndex) => currentIndex === index ? value : playerName),
+    setPlayers((current) =>
+      current.map((player, currentIndex) =>
+        currentIndex === index ? { ...player, name: value } : player,
+      ),
     );
+  }
+
+  function removePlayer(id: string) {
+    setPlayers((current) => current.filter((player) => player.id !== id));
+    if (match) {
+      setRoleCounts((current) => ({
+        ...current,
+        villager: Math.max(0, current.villager - 1),
+      }));
+    }
+  }
+
+  function addPlayer() {
+    setPlayers((current) => [...current, { id: crypto.randomUUID(), name: "" }]);
+    if (match) {
+      setRoleCounts((current) => ({ ...current, villager: current.villager + 1 }));
+    }
   }
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
@@ -848,18 +1000,26 @@ function GameEditor({
     setError("");
 
     try {
+      const rosterChanged = players.length !== game.players.length ||
+        players.some((player) => !game.players.some((savedPlayer) => savedPlayer.id === player.id));
+      const restart = !!match && (restartOnSave || rosterChanged);
+      if (restart && !window.confirm(
+        "Esta ação iniciará uma nova partida com novo sorteio. O progresso atual será substituído. Continuar?",
+      )) return;
+
       const updatedGame = createGame({
         id: game.id,
         name,
-        players: playerNames.map((playerName, index) => ({
-          id: game.players[index]?.id ?? crypto.randomUUID(),
-          name: playerName,
-        })),
+        players,
         createdAt: game.createdAt,
       });
 
       setSaving(true);
-      await onSave({ ...updatedGame, updatedAt: new Date().toISOString() });
+      await onSave(
+        { ...updatedGame, updatedAt: new Date().toISOString() },
+        match ? roleCounts : undefined,
+        restart,
+      );
     } catch (saveError: unknown) {
       setError(errorMessage(saveError));
     } finally {
@@ -879,26 +1039,24 @@ function GameEditor({
       />
       <div className="players-heading">
         <span className="field-label">Participantes</span>
-        <span className="field-hint">{playerNames.length} de 75</span>
+        <span className="field-hint">{players.length} de 75</span>
       </div>
       <div className="player-fields">
-        {playerNames.map((playerName, index) => (
-          <div className="player-field" key={game.players[index]?.id ?? index}>
+        {players.map((player, index) => (
+          <div className="player-field" key={player.id}>
             <span className="player-index" aria-hidden="true">{String(index + 1).padStart(2, "0")}</span>
             <input
               aria-label={`Nome do participante editado ${index + 1}`}
               maxLength={40}
               onChange={(event) => updatePlayerName(index, event.target.value)}
               required
-              value={playerName}
+              value={player.name}
             />
-            {playerNames.length > 1 && (
+            {players.length > 1 && (
               <button
                 aria-label={`Remover participante editado ${index + 1}`}
                 className="remove-player"
-                onClick={() => setPlayerNames((current) =>
-                  current.filter((_, currentIndex) => currentIndex !== index),
-                )}
+                onClick={() => removePlayer(player.id)}
                 type="button"
               >
                 ×
@@ -909,16 +1067,45 @@ function GameEditor({
       </div>
       <button
         className="add-player"
-        disabled={playerNames.length >= 75}
-        onClick={() => setPlayerNames((current) => [...current, ""])}
+        disabled={players.length >= 75}
+        onClick={addPlayer}
         type="button"
       >
         <span aria-hidden="true">+</span> Adicionar participante
       </button>
+      {match && (
+        <div className="setup-options">
+          <p className="detail-label">CARTAS POR FUNÇÃO</p>
+          <p className="field-hint">
+            Ajuste as quantidades para corresponder aos {players.length} participantes.
+          </p>
+          <div className="role-counts">
+            {ROLE_IDS.map((role) => (
+              <label className="role-count" key={role}>
+                <span>{ROLE_LABELS[role]}</span>
+                <input
+                  aria-label={`Quantidade de ${ROLE_LABELS[role]}`}
+                  max={75}
+                  min={0}
+                  onChange={(event) => setRoleCounts((counts) => ({
+                    ...counts,
+                    [role]: Number(event.target.value),
+                  }))}
+                  type="number"
+                  value={roleCounts[role]}
+                />
+              </label>
+            ))}
+          </div>
+          <p className="field-hint">
+            Total: {Object.values(roleCounts).reduce((total, count) => total + count, 0)} cartas.
+          </p>
+        </div>
+      )}
       {error && <p className="message error-message" role="alert">{error}</p>}
       <div className="button-row">
         <button className="primary-button" disabled={saving} type="submit">
-          {saving ? "Salvando..." : "Salvar alterações"}
+          {saving ? "Salvando..." : submitLabel}
         </button>
         <button className="secondary-button" disabled={saving} onClick={onCancel} type="button">
           Cancelar
@@ -1059,15 +1246,63 @@ function App() {
     }
   }
 
-  async function saveEditedGame(updatedGame: Game) {
-    await saveGame(updatedGame);
+  async function saveEditedGame(
+    updatedGame: Game,
+    roleCounts?: Record<RoleId, number>,
+    restart = false,
+  ) {
+    const savedMatch = selectedMatch?.id === updatedGame.id ? selectedMatch : undefined;
+    let updatedMatch: MatchState | undefined;
+    if (savedMatch && restart) {
+      if (!roleCounts) throw new Error("A composição das cartas não foi informada.");
+      updatedMatch = makeMatch(updatedGame, roleCounts, savedMatch.dayDurationMinutes);
+      await saveGameAndMatch(updatedGame, updatedMatch);
+    } else if (savedMatch) {
+      const editedPlayers = new Map(updatedGame.players.map((player) => [player.id, player]));
+      if (savedMatch.players.length !== updatedGame.players.length ||
+          savedMatch.players.some((player) => !editedPlayers.has(player.id))) {
+        throw new Error("A lista de participantes mudou sem reiniciar o progresso.");
+      }
+      updatedMatch = {
+        ...savedMatch,
+        name: updatedGame.name,
+        players: savedMatch.players.map((player) => {
+          const editedPlayer = editedPlayers.get(player.id);
+          if (!editedPlayer) {
+            throw new Error("Um participante da partida não está presente no cadastro atualizado.");
+          }
+          return { ...player, name: editedPlayer.name };
+        }),
+      };
+      await saveGameAndMatch(updatedGame, updatedMatch);
+    } else {
+      await saveGame(updatedGame);
+    }
+
     setGames((currentGames) =>
       currentGames
         .map((game) => game.id === updatedGame.id ? updatedGame : game)
         .sort((left, right) => right.updatedAt.localeCompare(left.updatedAt)),
     );
     setSelectedGame(updatedGame);
+    setSelectedMatch(updatedMatch ?? null);
     setEditingGameId(null);
+  }
+
+  async function saveReplay(game: Game, roleCounts: Record<RoleId, number>) {
+    const duration = activeMatch?.dayDurationMinutes ?? 5;
+    const match = makeMatch(game, roleCounts, duration);
+    await saveGameAndMatch(game, match);
+    setGames((currentGames) =>
+      [
+        game,
+        ...currentGames.filter((savedGame) => savedGame.id !== game.id),
+      ].sort((left, right) => right.updatedAt.localeCompare(left.updatedAt)),
+    );
+    setSelectedGame(game);
+    setSelectedMatch(match);
+    setEditingGameId(null);
+    setActiveMatch(match);
   }
 
   async function removeSelectedGame() {
@@ -1152,20 +1387,36 @@ function App() {
   }
 
   if (activeMatch) {
+    const initialGame = selectedGame?.id === activeMatch.id
+      ? selectedGame
+      : games.find((game) => game.id === activeMatch.id) ?? {
+          id: activeMatch.id,
+          name: activeMatch.name,
+          players: activeMatch.players.map(({ id, name }) => ({ id, name })),
+          createdAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString(),
+        };
     return (
       <div className="app-shell">
         <header className="topbar">
           <div className="brand">
             <span className="brand-mark" aria-hidden="true">W</span>
             <span className="brand-copy">
-              <strong>WEREWOLF GOD</strong>
+              <strong>WEREWOLF MODERATOR</strong>
               <span>ASSISTENTE DO MESTRE</span>
+              <span className="release-version">{RELEASE_LABEL}</span>
             </span>
           </div>
           <span className="status-pill"><span /> TELA PRIVADA</span>
         </header>
         <main>
-          <MasterConsole initialMatch={activeMatch} onExit={() => setActiveMatch(null)} />
+          <MasterConsole
+            key={`${activeMatch.id}-${activeMatch.phase}-${activeMatch.history.length}`}
+            initialGame={initialGame}
+            initialMatch={activeMatch}
+            onExit={() => setActiveMatch(null)}
+            onReplay={saveReplay}
+          />
         </main>
       </div>
     );
@@ -1174,14 +1425,15 @@ function App() {
   return (
     <div className="app-shell">
       <header className="topbar">
-        <a className="brand" href="/" aria-label="Werewolf God, início">
+        <a className="brand" href="/" aria-label="Werewolf Moderator, início">
           <span className="brand-mark" aria-hidden="true">W</span>
           <span className="brand-copy">
-            <strong>WEREWOLF GOD</strong>
+            <strong>WEREWOLF MODERATOR</strong>
             <span>ASSISTENTE DO MESTRE</span>
+            <span className="release-version">{RELEASE_LABEL}</span>
           </span>
         </a>
-        <span className="status-pill"><span /> PRÉ-VERSÃO</span>
+        <span className="status-pill"><span /> VERSÃO ATUAL</span>
       </header>
 
       <main>
@@ -1347,6 +1599,7 @@ function App() {
                     game={selectedGame}
                     onCancel={() => setEditingGameId(null)}
                     onSave={saveEditedGame}
+                    match={selectedMatch ?? undefined}
                   />
                 ) : (
                   <>
@@ -1370,7 +1623,7 @@ function App() {
                           Sortear papéis e preparar esta partida
                         </button>
                       )}
-                      <button className="secondary-button" disabled={saving || loadingMatch || !!matchLoadError || !!selectedMatch} onClick={() => setEditingGameId(selectedGame.id)} type="button">
+                      <button className="secondary-button" disabled={saving || loadingMatch || !!matchLoadError} onClick={() => setEditingGameId(selectedGame.id)} type="button">
                         Editar cadastro
                       </button>
                       <button className="danger-button" disabled={saving} onClick={removeSelectedGame} type="button">
@@ -1379,7 +1632,7 @@ function App() {
                     </div>
                     <p className="detail-note">
                       {selectedMatch
-                        ? "O cadastro não pode ser editado enquanto houver uma partida salva. Exclua a partida para removê-la junto ao cadastro."
+                        ? "Editar somente nomes preserva o progresso. Incluir ou remover participantes substitui o progresso por uma nova partida e sorteio."
                         : "A configuração de cartas e duração acima será usada. O sorteio e a condução ficam nesta tela privada do mestre."}
                     </p>
                   </>

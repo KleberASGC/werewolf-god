@@ -95,7 +95,7 @@ function isMatch(value: unknown): value is MatchState {
   if (!isRecord(value) || value.rulesetId !== RULESET_V1_ID ||
       typeof value.id !== "string" || typeof value.name !== "string" ||
       !Number.isInteger(value.dayDurationMinutes) || !Number.isInteger(value.round) ||
-      !isOneOf(value.phase, ["prepared", "night", "night-resolution", "dawn", "discussion", "voting", "ready-for-night", "finished"]) ||
+      !isOneOf(value.phase, ["prepared", "night", "seer-result", "night-resolution", "dawn", "discussion", "voting", "ready-for-night", "finished"]) ||
       !Array.isArray(value.players) || !value.players.every((player: unknown) =>
         isRecord(player) && typeof player.id === "string" && typeof player.name === "string" &&
         isOneOf(player.role, ROLE_IDS) && isOneOf(player.status, ["alive", "dead", "exiled"]) &&
@@ -121,7 +121,12 @@ function isMatch(value: unknown): value is MatchState {
       !value.voting.votes.every((vote: unknown) => isRecord(vote) && typeof vote.voterId === "string" &&
         isRecord(vote.choice) && (vote.choice.kind === "annul" ||
           (vote.choice.kind === "player" && typeof vote.choice.playerId === "string"))))) return false;
-  if ((value.phase === "night" || value.phase === "night-resolution") && value.night === undefined) return false;
+  if ((value.phase === "night" || value.phase === "seer-result" || value.phase === "night-resolution") && value.night === undefined) return false;
+  if (value.phase === "seer-result" &&
+      (!isRecord(value.night) || !Array.isArray(value.night.actions) ||
+        !value.night.actions.some((record: unknown) =>
+          isRecord(record) && record.role === "seer" && isRecord(record.action) &&
+          record.action.kind === "seer-investigate"))) return false;
   if (value.phase === "discussion" && value.discussion === undefined) return false;
   if (value.phase === "voting" && value.voting === undefined) return false;
   if (value.phase === "finished" && value.winner === undefined) return false;

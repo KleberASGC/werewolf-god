@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 import { createMatch } from "./match-setup";
 import {
+  continueAfterSeerResult,
   endDiscussion,
   pauseDiscussion,
   recordVote,
@@ -65,11 +66,15 @@ function createFixture(roles: RoleId[] = defaultRoles): MatchState {
 function recordNight(
   match: MatchState,
   actions: Partial<Record<NightRole, NightAction>> = {},
+  pauseAfterSeerResult = false,
 ): MatchState {
   let current = startMatch(match);
   const schedule = [...current.night!.schedule];
   for (const role of schedule) {
     current = submitNightCall(current, role, actions[role]);
+  }
+  if (!pauseAfterSeerResult && current.phase === "seer-result") {
+    current = continueAfterSeerResult(current);
   }
   return current;
 }
@@ -157,8 +162,11 @@ describe("night flow and resolution", () => {
       match = submitNightCall(match, role, action[role]);
     }
 
-    assert.equal(match.phase, "night-resolution");
     assert.equal(match.night?.actions.some((record) => record.role === "witch"), false);
+    if (match.phase === "seer-result") {
+      match = continueAfterSeerResult(match);
+    }
+    assert.equal(match.phase, "night-resolution");
   });
 
   it("does not schedule roles absent from the initial composition", () => {
@@ -213,6 +221,24 @@ describe("night flow and resolution", () => {
       kind: "werewolf-attack",
       targetId: "player-4",
     });
+  });
+
+  it("shows the seer result before night review and does not allow revising it", () => {
+    const result = recordNight(createFixture(), {
+      werewolf: { kind: "werewolf-attack", targetId: "player-5" },
+      bodyguard: { kind: "bodyguard-protect", targetId: "player-2" },
+      seer: { kind: "seer-investigate", targetId: "player-1" },
+    }, true);
+
+    assert.equal(result.phase, "seer-result");
+    assert.throws(
+      () => reviseNightAction(result, "seer", {
+        kind: "seer-investigate",
+        targetId: "player-2",
+      }),
+      /não pode ser revisada/,
+    );
+    assert.equal(continueAfterSeerResult(result).phase, "night-resolution");
   });
 
   it("does not allow the guard group to repeat its previous target", () => {

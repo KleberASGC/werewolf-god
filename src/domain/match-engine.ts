@@ -196,13 +196,27 @@ export function submitNightCall(
     : match.night.actions;
   const nextCallIndex = match.night.nextCallIndex + 1;
   const night = { ...match.night, nextCallIndex, actions };
+  const phase = nextCallIndex < match.night.schedule.length
+    ? "night"
+    : action?.kind === "seer-investigate" ? "seer-result" : "night-resolution";
 
   return {
     ...match,
-    phase:
-      nextCallIndex === match.night.schedule.length ? "night-resolution" : "night",
+    phase,
     night,
   };
+}
+
+export function continueAfterSeerResult(match: MatchState): MatchState {
+  if (match.phase !== "seer-result" || !match.night ||
+      match.night.nextCallIndex !== match.night.schedule.length ||
+      !match.night.actions.some(
+        (record) => record.role === "seer" && record.action.kind === "seer-investigate",
+      )) {
+    throw new Error("Não há resultado da Vidente aguardando confirmação.");
+  }
+
+  return { ...match, phase: "night-resolution" };
 }
 
 export function reviseNightAction(
@@ -210,13 +224,15 @@ export function reviseNightAction(
   role: NightRole,
   action?: NightAction,
 ): MatchState {
+  if (role === "seer") {
+    throw new Error("A investigação da Vidente não pode ser revisada.");
+  }
   if (match.phase !== "night-resolution" || !match.night) {
     throw new Error("As ações só podem ser revisadas antes de confirmar a noite.");
   }
   if (!match.night.schedule.includes(role)) {
     throw new Error("A função não faz parte da sequência desta partida.");
   }
-
   const existingIndex = match.night.actions.findIndex((record) => record.role === role);
   if (existingIndex < 0 && !action) {
     throw new Error("Não há ação registrada para remover.");
