@@ -33,6 +33,44 @@ Para executar os testes do domínio:
 npm test
 ```
 
+## Deploy
+
+O site de produção é publicado pelo Cloudflare Pages a partir do repositório
+GitHub. Com a integração Git ativa e `main` definida como branch de produção,
+cada push em `main` — inclusive um merge de pull request — inicia
+automaticamente um novo build e deploy. Não é necessário executar um comando
+manual de publicação.
+
+Branches diferentes de `main` e pull requests podem gerar deploys de preview
+com uma URL própria. Eles não alteram o domínio de produção. Os previews são
+públicos por padrão; use apenas dados fictícios neles.
+
+No projeto do Cloudflare Pages, confira estas configurações:
+
+- Branch de produção: `main`
+- Comando de build: `npm test && npm run build`
+- Diretório de saída: `dist`
+- Diretório raiz: vazio (raiz do repositório)
+- Variáveis de ambiente: nenhuma necessária atualmente
+
+O comando de build roda primeiro a suíte de testes e depois o typecheck/build
+de produção. Se qualquer etapa falhar, o comando termina com erro e aquele
+deploy não deve ser promovido. Depois de um merge, acompanhe o status do
+commit/PR no GitHub ou o histórico de deploys em **Workers & Pages → werewolf-god
+→ Deployments**. Se não houver um novo deploy, confira se a integração Git
+continua conectada e se os deploys automáticos da branch de produção estão
+habilitados.
+
+Para reverter uma publicação problemática, use o rollback para um deploy de
+produção anterior no painel do Pages ou reverta o commit no GitHub e faça merge
+normalmente. O rollback do site não reverte dados que já estejam salvos no
+navegador.
+
+Após cada publicação, valide `https://werewolfmoderator.com`, especialmente
+depois de alterações no armazenamento local ou no service worker. Os dados das
+partidas ficam no IndexedDB de cada navegador, não no Cloudflare; a publicação
+ou o rollback não cria nem restaura backups desses dados.
+
 ## Planejamento
 
 Consulte [docs/product-plan.md](docs/product-plan.md) para a visão do produto, escopo proposto do MVP, alternativas arquiteturais, modelo de domínio, estratégia do motor de regras, testes, infraestrutura e roadmap.
