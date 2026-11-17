@@ -169,6 +169,42 @@ it("allows editing and deleting a game record without match progress", async () 
   assert.deepEqual(await listGames(), []);
 });
 
+it("imports a backup from the home screen and refreshes the saved games", async () => {
+  const game = createGame({
+    id: "backup-import-ui",
+    name: "Partida restaurada",
+    players: Array.from({ length: 5 }, (_, index) => ({
+      id: `backup-import-player-${index + 1}`,
+      name: `Participante ${index + 1}`,
+    })),
+    createdAt: "2026-01-01T00:00:00.000Z",
+  });
+  const backup = {
+    format: "werewolf-god-backup",
+    version: 1,
+    exportedAt: "2026-01-01T00:00:00.000Z",
+    games: [{ game }],
+  };
+  const file = new dom.window.File([JSON.stringify(backup)], "backup.json", {
+    type: "application/json",
+  });
+  Object.defineProperty(file, "text", { value: async () => JSON.stringify(backup)   });
+
+  await renderApp();
+  const importInput = document.querySelector<HTMLInputElement>('input[type="file"][aria-label="Importar backup"]');
+  assert.ok(importInput);
+  await act(async () => {
+    fireEvent.change(importInput, { target: { files: [file] } });
+    await new Promise<void>((resolve) => setTimeout(resolve, 10));
+  });
+
+  await screen.findByRole("button", { name: /Partida restaurada/ });
+  await waitFor(() => {
+    assert.match(screen.getByRole("status").textContent ?? "", /1 partida\(s\) importada\(s\)/);
+  });
+  assert.ok((await listGames()).some((savedGame) => savedGame.id === game.id));
+});
+
 it("covers setup, night calls and review, resume, voting, victory, and history", async () => {
   await renderApp();
   await createMatchThroughForm("Noite integrada");

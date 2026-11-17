@@ -8,7 +8,9 @@ Fundação React/TypeScript/Vite, cadastro local e condução de partidas implem
 
 O progresso é salvo automaticamente no IndexedDB deste navegador e pode ser retomado pela lista de partidas. Cadastros antigos continuam disponíveis para preparação. Durante a discussão, o temporizador continua contando enquanto a página está fechada. Se o salvamento falhar, mantenha a tela aberta e use **Tentar salvar novamente**; sair antes de salvar descarta as últimas alterações.
 
-Os dados ficam apenas neste perfil e dispositivo e podem ser apagados pelo navegador ou perdidos. Use uma única aba para conduzir cada partida: alterações simultâneas entre abas não são conciliadas. Não há sincronização nem backup; exportação/importação e cache offline ainda não foram implementados.
+Na tela inicial, **Exportar backup** baixa um arquivo JSON com todos os cadastros e progressos, inclusive papéis e histórico secretos. Guarde-o em local privado. **Importar backup** mescla os dados: partidas com o mesmo identificador são substituídas e as demais são preservadas. A importação valida o arquivo antes de gravá-lo.
+
+Após a primeira visita online, o app shell e os arquivos estáticos são armazenados em cache para abrir o aplicativo sem conexão. Os dados das partidas continuam no IndexedDB local. Eles ficam apenas neste perfil e dispositivo e podem ser apagados pelo navegador ou perdidos; mantenha backups externos. Use uma única aba para conduzir cada partida: alterações simultâneas entre abas não são conciliadas. Não há sincronização.
 
 ## Executar localmente
 

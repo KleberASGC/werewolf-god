@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, type FormEvent } from "react";
+import { useEffect, useRef, useState, type ChangeEvent, type FormEvent } from "react";
 import {
   endDiscussion,
   pauseDiscussion,
@@ -30,9 +30,12 @@ import {
 } from "../domain/ruleset-v1";
 import { createGame, type Game } from "../domain/game";
 import {
+  createBackup,
   deleteGame,
   getMatch,
+  importBackup,
   listGames,
+  parseBackup,
   saveGame,
   saveGameAndMatch,
   saveMatch,
@@ -942,6 +945,9 @@ function App() {
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
   const [notice, setNotice] = useState("");
+  const [backupBusy, setBackupBusy] = useState(false);
+  const [backupError, setBackupError] = useState("");
+  const [backupNotice, setBackupNotice] = useState("");
 
   useEffect(() => {
     let active = true;
@@ -1081,6 +1087,67 @@ function App() {
       setError(errorMessage(deleteError));
     } finally {
       setSaving(false);
+    }
+  }
+
+  async function handleExportBackup() {
+    setBackupError("");
+    setBackupNotice("");
+    setBackupBusy(true);
+    try {
+      const backup = await createBackup();
+      const file = new Blob([JSON.stringify(backup, null, 2)], { type: "application/json" });
+      const url = URL.createObjectURL(file);
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = `werewolf-god-backup-${new Date().toISOString().slice(0, 10)}.json`;
+      try {
+        link.click();
+      } finally {
+        URL.revokeObjectURL(url);
+      }
+      setBackupNotice(`Backup de ${backup.games.length} partida(s) exportado. Guarde o arquivo em local seguro.`);
+    } catch (exportError: unknown) {
+      setBackupError(errorMessage(exportError));
+    } finally {
+      setBackupBusy(false);
+    }
+  }
+
+  async function handleImportBackup(event: ChangeEvent<HTMLInputElement>) {
+    const file = event.currentTarget.files?.[0];
+    event.currentTarget.value = "";
+    if (!file) return;
+
+    setBackupError("");
+    setBackupNotice("");
+    setBackupBusy(true);
+    try {
+      let contents: unknown;
+      const text = await file.text();
+      try {
+        contents = JSON.parse(text);
+      } catch {
+        throw new Error("O arquivo selecionado não contém JSON válido.");
+      }
+      const backup = parseBackup(contents);
+      if (!window.confirm(
+        `Importar ${backup.games.length} partida(s)? Partidas com o mesmo identificador serão substituídas; as demais partidas locais serão mantidas.`,
+      )) {
+        return;
+      }
+
+      const importedCount = await importBackup(backup);
+      const updatedGames = await listGames();
+      setGames(updatedGames);
+      setSelectedGame(null);
+      setSelectedMatch(null);
+      setEditingGameId(null);
+      setBackupNotice(`${importedCount} partida(s) importada(s). Os cadastros correspondentes foram atualizados.`);
+    } catch (importError: unknown) {
+      setBackupError(errorMessage(importError));
+    } finally {
+      setBackupBusy(false);
     }
   }
 
@@ -1319,6 +1386,36 @@ function App() {
                 )}
               </div>
             )}
+
+            <section className="backup-controls" aria-labelledby="backup-title">
+              <h3 id="backup-title">Backup e uso offline</h3>
+              <p>
+                O backup inclui cadastros, papéis, ações e histórico secretos. Mantenha o arquivo privado.
+                Depois da primeira visita online, o aplicativo pode ser aberto sem conexão.
+              </p>
+              <div className="button-row">
+                <button
+                  className="secondary-button"
+                  disabled={backupBusy || loading}
+                  onClick={handleExportBackup}
+                  type="button"
+                >
+                  {backupBusy ? "Aguarde..." : "Exportar backup"}
+                </button>
+                <label className={`secondary-button backup-import${backupBusy || loading ? " disabled" : ""}`}>
+                  Importar backup
+                  <input
+                    accept="application/json,.json"
+                    aria-label="Importar backup"
+                    disabled={backupBusy || loading}
+                    onChange={handleImportBackup}
+                    type="file"
+                  />
+                </label>
+              </div>
+              {backupError && <p className="message error-message" role="alert">{backupError}</p>}
+              {backupNotice && <p className="message success-message" role="status">{backupNotice}</p>}
+            </section>
           </section>
         </div>
 

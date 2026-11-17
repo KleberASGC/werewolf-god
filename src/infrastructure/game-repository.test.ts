@@ -15,7 +15,16 @@ import {
 } from "../domain/match-engine";
 import { createMatch } from "../domain/match-setup";
 import type { MatchState } from "../domain/match";
-import { deleteGame, getMatch, listGames, saveGameAndMatch, saveMatch } from "./game-repository";
+import {
+  createBackup,
+  deleteGame,
+  getMatch,
+  importBackup,
+  listGames,
+  saveGame,
+  saveGameAndMatch,
+  saveMatch,
+} from "./game-repository";
 
 describe("match persistence", () => {
   it("preserves legacy game records during migration", async () => {
@@ -40,6 +49,7 @@ describe("match persistence", () => {
     });
     assert.deepEqual(await listGames(), [game]);
     assert.equal(await getMatch(game.id), undefined);
+    await deleteGame(game.id);
   });
 
   it("saves and resumes role assignment, actions, timer, votes, and history", async () => {
@@ -129,5 +139,90 @@ describe("match persistence", () => {
     await assert.rejects(getMatch("future"), /incompatível/);
     await assert.rejects(getMatch("future"), /incompatível/);
     await deleteGame("future");
+  });
+
+  it("exports and imports complete backups while merging matching game ids", async () => {
+    const players = Array.from({ length: 5 }, (_, index) => ({
+      id: `backup-player-${index + 1}`,
+      name: `Participante ${index + 1}`,
+    }));
+    const game = createGame({
+      id: "backup-game",
+      name: "Partida exportada",
+      players,
+      createdAt: "2026-01-01T00:00:00.000Z",
+    });
+    const match = createMatch({
+      id: game.id,
+      name: game.name,
+      players,
+      roleCounts: { werewolf: 1, bodyguard: 1, witch: 1, seer: 1, villager: 1 },
+      dayDurationMinutes: 5,
+    }, () => 0.5);
+    const legacyGame = createGame({
+      id: "backup-legacy",
+      name: "Cadastro sem progresso",
+      players,
+      createdAt: "2026-01-02T00:00:00.000Z",
+    });
+    await saveGameAndMatch(game, match);
+    await saveGame(legacyGame);
+
+    const backup = await createBackup();
+    assert.equal(backup.format, "werewolf-god-backup");
+    assert.equal(backup.games.length, 2);
+    assert.deepEqual(backup.games.find((entry) => entry.game.id === game.id)?.match, match);
+    assert.equal(backup.games.find((entry) => entry.game.id === legacyGame.id)?.match, undefined);
+
+    const replacedGame = { ...game, name: "Versão local divergente" };
+    const unrelatedGame = createGame({
+      id: "backup-unrelated",
+      name: "Partida não substituída",
+      players,
+      createdAt: "2026-01-03T00:00:00.000Z",
+    });
+    await saveGameAndMatch(replacedGame, { ...match, name: replacedGame.name });
+    await saveGameAndMatch(legacyGame, createMatch({
+      id: legacyGame.id,
+      name: legacyGame.name,
+      players,
+      roleCounts: { werewolf: 1, villager: 4 },
+      dayDurationMinutes: 5,
+    }, () => 0.5));
+    await saveGame(unrelatedGame);
+
+    assert.equal(await importBackup(backup), 2);
+    assert.equal((await listGames()).find((saved) => saved.id === game.id)?.name, game.name);
+    assert.deepEqual(await getMatch(game.id), match);
+    assert.equal(await getMatch(legacyGame.id), undefined);
+    assert.ok((await listGames()).some((saved) => saved.id === unrelatedGame.id));
+
+    await deleteGame(game.id);
+    await deleteGame(legacyGame.id);
+    await deleteGame(unrelatedGame.id);
+  });
+
+  it("rejects invalid backups before changing local data", async () => {
+    const players = Array.from({ length: 5 }, (_, index) => ({
+      id: `invalid-backup-player-${index + 1}`,
+      name: `Participante ${index + 1}`,
+    }));
+    const game = createGame({
+      id: "invalid-backup-local",
+      name: "Partida local preservada",
+      players,
+      createdAt: "2026-01-01T00:00:00.000Z",
+    });
+    await saveGame(game);
+    const invalidBackup = {
+      format: "werewolf-god-backup",
+      version: 1,
+      exportedAt: "2026-01-01T00:00:00.000Z",
+      games: [{ game }, { game }],
+    };
+
+    await assert.rejects(importBackup(invalidBackup), /inválidas, duplicadas ou incompatíveis/);
+    assert.deepEqual(await listGames(), [game]);
+    await deleteGame(game.id);
   });
 });

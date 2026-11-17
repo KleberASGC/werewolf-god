@@ -7,8 +7,22 @@ const DATABASE_VERSION = 2;
 const GAME_STORE = "games";
 const MATCH_STORE = "matches";
 const MATCH_FORMAT_VERSION = 1;
+const BACKUP_FORMAT = "werewolf-god-backup";
+const BACKUP_VERSION = 1;
 
 let databasePromise: Promise<IDBDatabase> | undefined;
+
+export interface GameBackupEntry {
+  game: Game;
+  match?: MatchState;
+}
+
+export interface GameBackup {
+  format: typeof BACKUP_FORMAT;
+  version: typeof BACKUP_VERSION;
+  exportedAt: string;
+  games: GameBackupEntry[];
+}
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null;
@@ -114,6 +128,32 @@ function isMatch(value: unknown): value is MatchState {
   return true;
 }
 
+export function parseBackup(value: unknown): GameBackup {
+  if (!isRecord(value) || value.format !== BACKUP_FORMAT || value.version !== BACKUP_VERSION ||
+      typeof value.exportedAt !== "string" || !Array.isArray(value.games)) {
+    throw new Error("O arquivo não é um backup Werewolf God compatível.");
+  }
+
+  const ids = new Set<string>();
+  const games: GameBackupEntry[] = [];
+  for (const entry of value.games) {
+    if (!isRecord(entry) || !isGame(entry.game) ||
+        (entry.match !== undefined && (!isMatch(entry.match) || entry.match.id !== entry.game.id)) ||
+        ids.has(entry.game.id)) {
+      throw new Error("O backup contém partidas inválidas, duplicadas ou incompatíveis.");
+    }
+    ids.add(entry.game.id);
+    games.push(entry.match ? { game: entry.game, match: entry.match } : { game: entry.game });
+  }
+
+  return {
+    format: BACKUP_FORMAT,
+    version: BACKUP_VERSION,
+    exportedAt: value.exportedAt,
+    games,
+  };
+}
+
 function openDatabase(): Promise<IDBDatabase> {
   if (!globalThis.indexedDB) {
     return Promise.reject(new Error("Este navegador não oferece armazenamento local compatível."));
@@ -161,6 +201,87 @@ function openDatabase(): Promise<IDBDatabase> {
   }
 
   return databasePromise;
+}
+
+export async function createBackup(): Promise<GameBackup> {
+  const database = await openDatabase();
+  return new Promise((resolve, reject) => {
+    const transaction = database.transaction([GAME_STORE, MATCH_STORE], "readonly");
+    const gamesRequest = transaction.objectStore(GAME_STORE).getAll();
+    const matchesRequest = transaction.objectStore(MATCH_STORE).getAll();
+    let games: unknown[] = [];
+    let matches: unknown[] = [];
+
+    gamesRequest.onsuccess = () => { games = gamesRequest.result; };
+    matchesRequest.onsuccess = () => { matches = matchesRequest.result; };
+    transaction.oncomplete = () => {
+      const validGames: Game[] = [];
+      for (const game of games) {
+        if (!isGame(game)) {
+          reject(new Error("Há cadastros inválidos no armazenamento local; não foi possível exportar."));
+          return;
+        }
+        validGames.push(game);
+      }
+
+      const matchesById = new Map<string, MatchState>();
+      for (const saved of matches) {
+        if (!isRecord(saved) || typeof saved.id !== "string" ||
+            saved.version !== MATCH_FORMAT_VERSION || !isMatch(saved.match) ||
+            saved.match.id !== saved.id || matchesById.has(saved.id)) {
+          reject(new Error("Há progresso inválido no armazenamento local; não foi possível exportar."));
+          return;
+        }
+        matchesById.set(saved.id, saved.match);
+      }
+
+      const gameIds = new Set(validGames.map((game) => game.id));
+      if ([...matchesById.keys()].some((id) => !gameIds.has(id))) {
+        reject(new Error("Há progresso sem cadastro correspondente; não foi possível exportar."));
+        return;
+      }
+
+      resolve({
+        format: BACKUP_FORMAT,
+        version: BACKUP_VERSION,
+        exportedAt: new Date().toISOString(),
+        games: validGames.map((game) => {
+          const match = matchesById.get(game.id);
+          return match ? { game, match } : { game };
+        }),
+      });
+    };
+    transaction.onerror = () => reject(transaction.error ?? new Error("Não foi possível exportar os dados locais."));
+    transaction.onabort = () => reject(transaction.error ?? new Error("A exportação dos dados locais foi interrompida."));
+  });
+}
+
+export async function importBackup(value: unknown): Promise<number> {
+  const backup = parseBackup(value);
+  const database = await openDatabase();
+
+  return new Promise((resolve, reject) => {
+    const transaction = database.transaction([GAME_STORE, MATCH_STORE], "readwrite");
+    transaction.oncomplete = () => resolve(backup.games.length);
+    transaction.onerror = () => reject(transaction.error ?? new Error("Não foi possível importar o backup."));
+    transaction.onabort = () => reject(transaction.error ?? new Error("A importação do backup foi interrompida."));
+
+    try {
+      const gameStore = transaction.objectStore(GAME_STORE);
+      const matchStore = transaction.objectStore(MATCH_STORE);
+      for (const { game, match } of backup.games) {
+        gameStore.put(game);
+        if (match) {
+          matchStore.put({ id: game.id, version: MATCH_FORMAT_VERSION, match });
+        } else {
+          matchStore.delete(game.id);
+        }
+      }
+    } catch (error: unknown) {
+      transaction.abort();
+      reject(error);
+    }
+  });
 }
 
 export async function getMatch(gameId: string): Promise<MatchState | undefined> {

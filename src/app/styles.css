@@ -500,6 +500,61 @@ select:focus-visible {
   line-height: 1.6;
 }
 
+.backup-controls {
+  display: grid;
+  gap: 10px;
+  margin-top: 24px;
+  padding-top: 18px;
+  border-top: 1px solid var(--line);
+}
+
+.backup-controls h3 {
+  margin: 0;
+  color: #e4e9dc;
+  font-size: 15px;
+  font-weight: 500;
+}
+
+.backup-controls > p {
+  margin: 0;
+  color: #aab1a6;
+  font-size: 11px;
+  line-height: 1.6;
+}
+
+.backup-controls .button-row {
+  margin-top: 3px;
+}
+
+.backup-controls .secondary-button {
+  flex: 1;
+}
+
+.backup-import {
+  position: relative;
+  overflow: hidden;
+  cursor: pointer;
+}
+
+.backup-import input {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  overflow: hidden;
+  opacity: 0;
+}
+
+.backup-import:focus-within {
+  outline: 2px solid var(--green);
+  outline-offset: 2px;
+}
+
+.backup-import.disabled {
+  cursor: wait;
+  opacity: 0.65;
+}
+
 .game-management-actions,
 .game-editor {
   display: grid;

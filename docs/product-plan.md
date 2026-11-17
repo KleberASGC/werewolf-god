@@ -261,7 +261,7 @@ Não declarar uma regra implementada apenas por teste genérico. Cada comportame
 | 2. Domínio | Entidades, fluxo de fase, validação e motor puro implementados com testes dos cenários aprovados. **Concluída para o ruleset v1.** |
 | 3. Preparação da partida | Cadastro de participantes, seleção/associação de personagens e validações de composição confirmadas. **Domínio e integração inicial de UI implementados.** |
 | 4. Condução noturna | Interface rápida de ações, resolução explicável, confirmação e histórico; fluxo testado em celular. **Fluxo integrado ao domínio; refinamento e validação em celular pendentes.** |
-| 5. Persistência/PWA | Salvar/retomar localmente, exportar/importar, cache offline e tratamento de falhas de armazenamento. |
+| 5. Persistência/PWA | Salvar/retomar localmente, exportar/importar, cache offline e tratamento de falhas de armazenamento. **Implementada para o MVP; validação final em dispositivo físico permanece pendente.** |
 | 6. Publicação | Deploy estático, documentação atualizada, verificação de acessibilidade e checklist de operação/backup. |
 | 7. Evolução guiada por uso | Considerar sincronização, contas, mais regras ou painel de edição somente após validar necessidade. |
 
@@ -282,6 +282,6 @@ As etapas 4–5 dependem da integração do domínio com interface e armazenamen
 1. Persistir e retomar partidas completas no IndexedDB, incluindo migração/compatibilidade dos cadastros existentes e tratamento de falhas de armazenamento. **Implementado.**
 2. Adicionar testes de integração e interface para preparação, ações e revisão noturnas, votação, vitória e retomada, incluindo o gerenciamento dos cadastros. **Implementado.**
 3. Validar o fluxo e a acessibilidade em celular, incluindo os controles de ações, votação e temporizador. **Fluxo e layout validados em viewport móvel de 375 × 812; validação em dispositivo físico ainda pendente.**
-4. Implementar exportação/importação e cache offline antes da publicação, se permanecerem no escopo do MVP.
+4. Implementar exportação/importação e cache offline antes da publicação, se permanecerem no escopo do MVP. **Resolvido para o MVP:** backup JSON com mesclagem por identificador e cache do app shell após a primeira visita online.
 
 Correções depois de uma noite ou votação confirmada e mecânicas de papéis futuros exigem decisões próprias antes de entrar em implementação.
