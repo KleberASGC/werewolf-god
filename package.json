@@ -5,7 +5,7 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "test": "tsx --test src/domain/match-setup.test.ts src/domain/match-engine.test.ts",
+    "test": "tsx --test src/domain/match-setup.test.ts src/domain/match-engine.test.ts src/infrastructure/game-repository.test.ts",
     "typecheck": "tsc --noEmit",
     "build": "npm run typecheck && vite build",
     "preview": "vite preview"
@@ -19,6 +19,7 @@
     "@types/react": "^19.0.0",
     "@types/react-dom": "^19.0.0",
     "@vitejs/plugin-react": "^4.3.4",
+    "fake-indexeddb": "^6.2.4",
     "tsx": "^4.23.15",
     "typescript": "^5.7.2",
     "vite": "^6.0.0"

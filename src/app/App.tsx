@@ -1,4 +1,4 @@
-import { useEffect, useState, type FormEvent } from "react";
+import { useEffect, useRef, useState, type FormEvent } from "react";
 import {
   endDiscussion,
   pauseDiscussion,
@@ -29,7 +29,14 @@ import {
   type RoleId,
 } from "../domain/ruleset-v1";
 import { createGame, type Game } from "../domain/game";
-import { deleteGame, listGames, saveGame } from "../infrastructure/game-repository";
+import {
+  deleteGame,
+  getMatch,
+  listGames,
+  saveGame,
+  saveGameAndMatch,
+  saveMatch,
+} from "../infrastructure/game-repository";
 
 const INITIAL_ROLE_COUNTS: Record<RoleId, number> = {
   werewolf: 1,
@@ -322,17 +329,40 @@ function MasterConsole({
   const [error, setError] = useState("");
   const [editingRole, setEditingRole] = useState<NightRole | null>(null);
   const [voteChoice, setVoteChoice] = useState("");
+  const [storageStatus, setStorageStatus] = useState<"saved" | "saving" | "error">("saved");
+  const [storageError, setStorageError] = useState("");
+  const [now, setNow] = useState(Date.now);
+  const savingRef = useRef(false);
+  const statusRef = useRef(storageStatus);
+
+  function persist(next: MatchState) {
+    savingRef.current = true;
+    statusRef.current = "saving";
+    setStorageStatus("saving");
+    setStorageError("");
+    void saveMatch(next).then(() => {
+      statusRef.current = "saved";
+      setStorageStatus("saved");
+    }).catch((saveError: unknown) => {
+      statusRef.current = "error";
+      setStorageStatus("error");
+      setStorageError(errorMessage(saveError));
+    }).finally(() => {
+      savingRef.current = false;
+    });
+  }
 
   useEffect(() => {
     if (match.phase !== "discussion" || match.discussion?.status !== "running") return;
     const timerId = window.setInterval(() => {
-      setMatch((current) => updateDiscussionClock(current, Date.now()));
+      setNow(Date.now());
     }, 250);
     return () => window.clearInterval(timerId);
   }, [match.phase, match.discussion?.status]);
 
   useEffect(() => {
     function warnBeforeLeaving(event: BeforeUnloadEvent) {
+      if (statusRef.current === "saved") return;
       event.preventDefault();
       event.returnValue = "";
     }
@@ -341,10 +371,23 @@ function MasterConsole({
     return () => window.removeEventListener("beforeunload", warnBeforeLeaving);
   }, []);
 
+  useEffect(() => {
+    if (match.phase !== "discussion" || match.discussion?.status !== "running") return;
+    if (match.discussion.startedAtMs === null ||
+        now - match.discussion.startedAtMs < match.discussion.remainingMs ||
+        savingRef.current || storageStatus === "error") return;
+    const expired = updateDiscussionClock(match, now);
+    setMatch(expired);
+    persist(expired);
+  }, [match, now, storageStatus]);
+
   function transition(change: (current: MatchState) => MatchState): boolean {
+    if (savingRef.current || statusRef.current === "error") return false;
     setError("");
     try {
-      setMatch(change(match));
+      const next = change(match);
+      setMatch(next);
+      persist(next);
       return true;
     } catch (transitionError: unknown) {
       setError(errorMessage(transitionError));
@@ -362,13 +405,7 @@ function MasterConsole({
   }
 
   function handleNightResolution() {
-    setError("");
-    try {
-      setMatch(resolveNight(match).match);
-      setEditingRole(null);
-    } catch (resolutionError: unknown) {
-      setError(errorMessage(resolutionError));
-    }
+    if (transition((current) => resolveNight(current).match)) setEditingRole(null);
   }
 
   function handleVote(event: FormEvent<HTMLFormElement>) {
@@ -407,7 +444,9 @@ function MasterConsole({
   const latestVote = [...match.history].reverse().find(
     (entry) => entry.type === "vote-resolved",
   );
-  const remainingMs = match.discussion?.remainingMs ?? 0;
+  const remainingMs = match.discussion?.status === "running" && match.discussion.startedAtMs !== null
+    ? Math.max(0, match.discussion.remainingMs - Math.max(0, now - match.discussion.startedAtMs))
+    : match.discussion?.remainingMs ?? 0;
   const timeLabel = `${String(Math.floor(remainingMs / 60_000)).padStart(2, "0")}:${String(
     Math.floor((remainingMs % 60_000) / 1_000),
   ).padStart(2, "0")}`;
@@ -417,7 +456,8 @@ function MasterConsole({
       <div className="privacy-banner" role="note">
         <strong>TELA PRIVADA DO MESTRE</strong>
         <span>Papéis, ações, votos e resultados abaixo são secretos. Não projete nem mostre esta tela aos participantes.</span>
-        <span>O progresso da condução ainda não é salvo; sair ou atualizar a página encerra esta sessão.</span>
+        <span>Os dados ficam apenas neste navegador e dispositivo; eles podem ser perdidos se os dados locais forem apagados.</span>
+        <span>Use apenas uma aba para conduzir esta partida; alterações simultâneas não são conciliadas.</span>
       </div>
 
       <div className="console-heading">
@@ -425,13 +465,26 @@ function MasterConsole({
           <p className="eyebrow">{match.name} · NOITE {match.round || 1}</p>
           <h2 id="console-title">{phaseLabels[match.phase]}</h2>
         </div>
-        <button className="secondary-button" onClick={onExit} type="button">
+        <button className="secondary-button" disabled={storageStatus === "saving"} onClick={() => {
+          if (storageStatus !== "error" || window.confirm("As últimas alterações não foram salvas. Sair e perdê-las?")) {
+            onExit();
+          }
+        }} type="button">
           Voltar às partidas
         </button>
       </div>
 
       {error && <p className="message error-message" role="alert">{error}</p>}
+      {storageStatus === "error" ? (
+        <div className="message error-message" role="alert">
+          <p>Não foi possível salvar o progresso: {storageError} As alterações continuam nesta tela, mas serão perdidas ao sair.</p>
+          <button className="secondary-button" onClick={() => persist(match)} type="button">Tentar salvar novamente</button>
+        </div>
+      ) : (
+        <p className="field-hint" role="status">{storageStatus === "saving" ? "Salvando progresso..." : "Progresso salvo neste dispositivo."}</p>
+      )}
 
+      <fieldset className="console-controls" disabled={storageStatus !== "saved"}>
       {match.phase === "prepared" && (
         <section className="phase-panel">
           <h3>Distribuição secreta</h3>
@@ -658,14 +711,7 @@ function MasterConsole({
           {match.voting.votes.length === match.voting.order.length && (
             <button
               className="primary-button"
-              onClick={() => {
-                setError("");
-                try {
-                  setMatch(resolveVoting(match).match);
-                } catch (resolutionError: unknown) {
-                  setError(errorMessage(resolutionError));
-                }
-              }}
+              onClick={() => transition((current) => resolveVoting(current).match)}
               type="button"
             >
               Apurar e confirmar votação
@@ -727,6 +773,7 @@ function MasterConsole({
           </ol>
         )}
       </section>
+      </fieldset>
     </section>
   );
 }
@@ -883,6 +930,10 @@ function App() {
   const [selectedGame, setSelectedGame] = useState<Game | null>(null);
   const [editingGameId, setEditingGameId] = useState<string | null>(null);
   const [activeMatch, setActiveMatch] = useState<MatchState | null>(null);
+  const [selectedMatch, setSelectedMatch] = useState<MatchState | null>(null);
+  const [loadingMatch, setLoadingMatch] = useState(false);
+  const [matchLoadError, setMatchLoadError] = useState("");
+  const [matchLoadAttempt, setMatchLoadAttempt] = useState(0);
   const [gameName, setGameName] = useState("");
   const [playerNames, setPlayerNames] = useState(["", "", "", "", ""]);
   const [roleCounts, setRoleCounts] = useState<Record<RoleId, number>>(INITIAL_ROLE_COUNTS);
@@ -911,6 +962,28 @@ function App() {
     };
   }, []);
 
+  useEffect(() => {
+    let active = true;
+    setSelectedMatch(null);
+    setMatchLoadError("");
+    if (!selectedGame || activeMatch) {
+      setLoadingMatch(false);
+      return () => { active = false; };
+    }
+    setLoadingMatch(true);
+    getMatch(selectedGame.id)
+      .then((savedMatch) => {
+        if (active) setSelectedMatch(savedMatch ?? null);
+      })
+      .catch((loadError: unknown) => {
+        if (active) setMatchLoadError(errorMessage(loadError));
+      })
+      .finally(() => {
+        if (active) setLoadingMatch(false);
+      });
+    return () => { active = false; };
+  }, [selectedGame, activeMatch, matchLoadAttempt]);
+
   async function handleCreateGame(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setError("");
@@ -929,7 +1002,7 @@ function App() {
       const match = makeMatch(game, roleCounts, dayDurationMinutes);
 
       setSaving(true);
-      await saveGame(game);
+      await saveGameAndMatch(game, match);
       setGames((currentGames) => [game, ...currentGames]);
       setSelectedGame(game);
       setActiveMatch(match);
@@ -963,14 +1036,20 @@ function App() {
     );
   }
 
-  function prepareSelectedGame() {
+  async function prepareSelectedGame() {
     if (!selectedGame) return;
     setError("");
     setNotice("");
     try {
-      setActiveMatch(makeMatch(selectedGame, roleCounts, dayDurationMinutes));
+      const match = makeMatch(selectedGame, roleCounts, dayDurationMinutes);
+      setSaving(true);
+      await saveMatch(match);
+      setSelectedMatch(match);
+      setActiveMatch(match);
     } catch (prepareError: unknown) {
       setError(errorMessage(prepareError));
+    } finally {
+      setSaving(false);
     }
   }
 
@@ -1005,30 +1084,21 @@ function App() {
     }
   }
 
-  function leaveActiveMatch() {
-    if (window.confirm("O progresso desta partida não está salvo. Deseja sair mesmo assim?")) {
-      setActiveMatch(null);
-    }
-  }
-
   if (activeMatch) {
     return (
       <div className="app-shell">
         <header className="topbar">
-          <a className="brand" href="/" aria-label="Werewolf God, início" onClick={(event) => {
-            event.preventDefault();
-            leaveActiveMatch();
-          }}>
+          <div className="brand">
             <span className="brand-mark" aria-hidden="true">W</span>
             <span className="brand-copy">
               <strong>WEREWOLF GOD</strong>
               <span>ASSISTENTE DO MESTRE</span>
             </span>
-          </a>
+          </div>
           <span className="status-pill"><span /> TELA PRIVADA</span>
         </header>
         <main>
-          <MasterConsole initialMatch={activeMatch} onExit={leaveActiveMatch} />
+          <MasterConsole initialMatch={activeMatch} onExit={() => setActiveMatch(null)} />
         </main>
       </div>
     );
@@ -1220,11 +1290,20 @@ function App() {
                       ))}
                     </ul>
                     {error && <p className="message error-message" role="alert">{error}</p>}
+                    {matchLoadError && <p className="message error-message" role="alert">Não foi possível carregar o progresso: {matchLoadError}</p>}
+                    {matchLoadError && <button className="secondary-button" onClick={() => setMatchLoadAttempt((attempt) => attempt + 1)} type="button">Tentar carregar novamente</button>}
+                    {loadingMatch && <p className="field-hint" role="status">Carregando progresso...</p>}
                     <div className="game-management-actions">
-                      <button className="primary-button" onClick={prepareSelectedGame} type="button">
-                        Sortear papéis e preparar esta partida
-                      </button>
-                      <button className="secondary-button" onClick={() => setEditingGameId(selectedGame.id)} type="button">
+                      {selectedMatch ? (
+                        <button className="primary-button" disabled={saving || loadingMatch} onClick={() => setActiveMatch(selectedMatch)} type="button">
+                          Retomar partida
+                        </button>
+                      ) : (
+                        <button className="primary-button" disabled={saving || loadingMatch || !!matchLoadError} onClick={prepareSelectedGame} type="button">
+                          Sortear papéis e preparar esta partida
+                        </button>
+                      )}
+                      <button className="secondary-button" disabled={saving || loadingMatch || !!matchLoadError || !!selectedMatch} onClick={() => setEditingGameId(selectedGame.id)} type="button">
                         Editar cadastro
                       </button>
                       <button className="danger-button" disabled={saving} onClick={removeSelectedGame} type="button">
@@ -1232,7 +1311,9 @@ function App() {
                       </button>
                     </div>
                     <p className="detail-note">
-                      A configuração de cartas e duração acima será usada. O sorteio e a condução ficam nesta tela privada do mestre.
+                      {selectedMatch
+                        ? "O cadastro não pode ser editado enquanto houver uma partida salva. Exclua a partida para removê-la junto ao cadastro."
+                        : "A configuração de cartas e duração acima será usada. O sorteio e a condução ficam nesta tela privada do mestre."}
                     </p>
                   </>
                 )}

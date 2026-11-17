@@ -1,6 +1,6 @@
 # Planejamento de produto e arquitetura
 
-**Status:** fundação, regras v1 e motor puro implementados; preparação e condução estão integradas à interface privada do mestre. A persistência da partida completa ainda está pendente.
+**Status:** fundação, regras v1 e motor puro implementados; preparação, condução e retomada local estão integradas à interface privada do mestre.
 **Objetivo:** apoiar o mestre de uma partida presencial, sem substituir sua autoridade nem inventar regras.
 
 ## 1. Visão do produto
@@ -42,7 +42,7 @@ Não fazem parte do motor v1: papéis futuros, variações de regras e correçõ
 - Primeira fatia funcional: criar partidas com nomes e participantes, persistir no IndexedDB e listar/consultar as partidas do navegador.
 - Regras v1 aprovadas, modelo de domínio, validação/sorteio de papéis, sequência noturna e resolução determinística, temporizador, votação, condições de vitória e testes unitários puros.
 - Preparação pela interface com composição de cartas, duração do dia e sorteio secreto; condução integrada para chamadas e revisão noturnas, amanhecer, discussão, votação, resultados, histórico e vitória. Papéis, ações, votos e resultados ficam na tela privada do mestre.
-- O cadastro básico continua salvo no IndexedDB, mas o estado da partida em condução ainda é apenas temporário; a persistência e retomada completas permanecem pendentes.
+- Estado completo salvo no IndexedDB e retomável, com preservação dos cadastros anteriores, indicação de salvamento e nova tentativa em caso de falha. O temporizador em execução considera o tempo decorrido enquanto a tela está fechada.
 
 ## 3. Escopo proposto do MVP
 
@@ -59,7 +59,7 @@ Não fazem parte do motor v1: papéis futuros, variações de regras e correçõ
 9. Disponibilizar exportação e importação de uma cópia da partida, com versão de formato e validação.
 10. Permitir corrigir ação antes de confirmar o resultado. Correções após uma fase concluída ficam fora do MVP até que o comportamento seja especificado.
 
-O motor v1 automatiza o temporizador, a apuração da votação, as eliminações e as condições de vitória; a discussão e a decisão social continuam sob condução do mestre. O fluxo inicial está integrado à tela privada do mestre; persistência completa e validação móvel continuam pendentes.
+O motor v1 automatiza o temporizador, a apuração da votação, as eliminações e as condições de vitória; a discussão e a decisão social continuam sob condução do mestre. O fluxo está integrado à tela privada do mestre e à persistência local; validação móvel e cache offline continuam pendentes.
 
 ### Adiar
 
@@ -279,7 +279,7 @@ As etapas 4–5 dependem da integração do domínio com interface e armazenamen
 
 ## 12. Próximos passos
 
-1. Persistir e retomar partidas completas no IndexedDB, incluindo migração/compatibilidade dos cadastros existentes e tratamento de falhas de armazenamento.
+1. Persistir e retomar partidas completas no IndexedDB, incluindo migração/compatibilidade dos cadastros existentes e tratamento de falhas de armazenamento. **Implementado.**
 2. Adicionar testes de integração e interface para preparação, ações e revisão noturnas, votação, vitória e retomada, incluindo o gerenciamento dos cadastros.
 3. Validar o fluxo e a acessibilidade em celular, incluindo os controles de ações, votação e temporizador.
 4. Implementar exportação/importação e cache offline antes da publicação, se permanecerem no escopo do MVP.

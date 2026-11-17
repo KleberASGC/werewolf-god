@@ -4,7 +4,11 @@ Assistente web para apoiar mestres durante partidas presenciais de Lobisomem.
 
 ## Status
 
-Fundação React/TypeScript/Vite e cadastro local de partidas implementados. O motor de domínio v1 já valida a configuração, sorteia papéis, conduz e resolve ações noturnas, cronômetro, votação e vitória. A integração desse motor à interface e à persistência de partidas em andamento ainda está em desenvolvimento.
+Fundação React/TypeScript/Vite, cadastro local e condução de partidas implementados. O motor de domínio v1 valida a configuração, sorteia papéis, conduz e resolve ações noturnas, cronômetro, votação e vitória.
+
+O progresso é salvo automaticamente no IndexedDB deste navegador e pode ser retomado pela lista de partidas. Cadastros antigos continuam disponíveis para preparação. Durante a discussão, o temporizador continua contando enquanto a página está fechada. Se o salvamento falhar, mantenha a tela aberta e use **Tentar salvar novamente**; sair antes de salvar descarta as últimas alterações.
+
+Os dados ficam apenas neste perfil e dispositivo e podem ser apagados pelo navegador ou perdidos. Use uma única aba para conduzir cada partida: alterações simultâneas entre abas não são conciliadas. Não há sincronização nem backup; exportação/importação e cache offline ainda não foram implementados.
 
 ## Executar localmente
 
