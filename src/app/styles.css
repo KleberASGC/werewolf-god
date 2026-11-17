@@ -277,8 +277,8 @@ select:focus-visible {
 }
 
 .remove-player {
-  width: 36px;
-  height: 40px;
+  width: 44px;
+  height: 44px;
   flex: 0 0 auto;
   border: 0;
   border-radius: 5px;
@@ -295,7 +295,7 @@ select:focus-visible {
 
 .add-player {
   display: inline-flex;
-  min-height: 42px;
+  min-height: 44px;
   align-items: center;
   gap: 8px;
   margin: 5px 0 20px 30px;
@@ -856,6 +856,8 @@ select:focus-visible {
 }
 
 .text-button {
+  min-height: 44px;
+  padding: 0 8px;
   border: 0;
   background: transparent;
   color: var(--green);
@@ -865,7 +867,7 @@ select:focus-visible {
 
 .clear-target {
   justify-self: start;
-  min-height: 36px;
+  min-height: 44px;
   padding: 0 8px;
 }
 
@@ -1013,8 +1015,47 @@ a:focus-visible {
     flex-direction: column;
   }
 
+  .console-heading .secondary-button {
+    width: 100%;
+    min-height: 48px;
+  }
+
   .phase-panel {
     padding: 19px;
+  }
+
+  .button-row {
+    flex-direction: column;
+  }
+
+  .button-row .primary-button,
+  .button-row .secondary-button {
+    width: 100%;
+    min-height: 48px;
+    min-width: 0;
+    flex: auto;
+  }
+
+  .secondary-button,
+  .danger-button {
+    min-height: 48px;
+  }
+
+  .text-button {
+    min-height: 48px;
+  }
+
+  .player-choice {
+    min-height: 72px;
+  }
+
+  .player-choice-name {
+    font-size: 15px;
+  }
+
+  .player-choice-status,
+  .field-hint {
+    font-size: 12px;
   }
 
   .roster-list li {

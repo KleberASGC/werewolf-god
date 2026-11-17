@@ -619,7 +619,7 @@ function MasterConsole({
       {match.phase === "discussion" && match.discussion && (
         <section className="phase-panel timer-panel">
           <h3>Discussão</h3>
-          <p className="timer-display" aria-live="polite">{timeLabel}</p>
+          <p className="timer-display" role="timer" aria-live="off">{timeLabel}</p>
           <p>
             {match.discussion.status === "expired"
               ? "Tempo esgotado. A votação só começa quando o mestre decidir."

@@ -232,6 +232,8 @@ it("covers setup, night calls and review, resume, voting, victory, and history",
   await waitFor(() => {
     assert.equal(document.querySelector("#console-title")?.textContent, "Discussão");
   });
+  const timer = screen.getByRole("timer");
+  assert.equal(timer.getAttribute("aria-live"), "off");
   await waitForSavedProgress();
   clickButton("Pausar");
   await screen.findByText("Temporizador pausado.");

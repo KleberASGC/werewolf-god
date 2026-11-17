@@ -281,7 +281,7 @@ As etapas 4–5 dependem da integração do domínio com interface e armazenamen
 
 1. Persistir e retomar partidas completas no IndexedDB, incluindo migração/compatibilidade dos cadastros existentes e tratamento de falhas de armazenamento. **Implementado.**
 2. Adicionar testes de integração e interface para preparação, ações e revisão noturnas, votação, vitória e retomada, incluindo o gerenciamento dos cadastros. **Implementado.**
-3. Validar o fluxo e a acessibilidade em celular, incluindo os controles de ações, votação e temporizador.
+3. Validar o fluxo e a acessibilidade em celular, incluindo os controles de ações, votação e temporizador. **Fluxo e layout validados em viewport móvel de 375 × 812; validação em dispositivo físico ainda pendente.**
 4. Implementar exportação/importação e cache offline antes da publicação, se permanecerem no escopo do MVP.
 
 Correções depois de uma noite ou votação confirmada e mecânicas de papéis futuros exigem decisões próprias antes de entrar em implementação.
