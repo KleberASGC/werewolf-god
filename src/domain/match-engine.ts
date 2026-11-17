@@ -409,7 +409,7 @@ function advanceTimer(match: MatchState, nowMs: number): MatchState {
     discussion: {
       status: expired ? "expired" : "running",
       remainingMs,
-      startedAtMs: expired ? null : match.discussion.startedAtMs,
+      startedAtMs: expired ? null : nowMs,
     },
   };
 }

@@ -1,6 +1,6 @@
 # Planejamento de produto e arquitetura
 
-**Status:** fundação implementada; regras v1 aprovadas e motor puro de domínio implementado. A integração do motor com a interface e a persistência da partida completa ainda está pendente.
+**Status:** fundação, regras v1 e motor puro implementados; preparação e condução estão integradas à interface privada do mestre. A persistência da partida completa ainda está pendente.
 **Objetivo:** apoiar o mestre de uma partida presencial, sem substituir sua autoridade nem inventar regras.
 
 ## 1. Visão do produto
@@ -41,7 +41,8 @@ Não fazem parte do motor v1: papéis futuros, variações de regras e correçõ
 - Scaffold React/TypeScript/Vite, sem dependência de serviço remoto.
 - Primeira fatia funcional: criar partidas com nomes e participantes, persistir no IndexedDB e listar/consultar as partidas do navegador.
 - Regras v1 aprovadas, modelo de domínio, validação/sorteio de papéis, sequência noturna e resolução determinística, temporizador, votação, condições de vitória e testes unitários puros.
-- O motor ainda não está integrado à interface nem à persistência de partidas em andamento.
+- Preparação pela interface com composição de cartas, duração do dia e sorteio secreto; condução integrada para chamadas e revisão noturnas, amanhecer, discussão, votação, resultados, histórico e vitória. Papéis, ações, votos e resultados ficam na tela privada do mestre.
+- O cadastro básico continua salvo no IndexedDB, mas o estado da partida em condução ainda é apenas temporário; a persistência e retomada completas permanecem pendentes.
 
 ## 3. Escopo proposto do MVP
 
@@ -58,7 +59,7 @@ Não fazem parte do motor v1: papéis futuros, variações de regras e correçõ
 9. Disponibilizar exportação e importação de uma cópia da partida, com versão de formato e validação.
 10. Permitir corrigir ação antes de confirmar o resultado. Correções após uma fase concluída ficam fora do MVP até que o comportamento seja especificado.
 
-O motor v1 automatiza o temporizador, a apuração da votação, as eliminações e as condições de vitória; a discussão e a decisão social continuam sob condução do mestre. A integração desse motor à interface ainda está pendente.
+O motor v1 automatiza o temporizador, a apuração da votação, as eliminações e as condições de vitória; a discussão e a decisão social continuam sob condução do mestre. O fluxo inicial está integrado à tela privada do mestre; persistência completa e validação móvel continuam pendentes.
 
 ### Adiar
 
@@ -258,8 +259,8 @@ Não declarar uma regra implementada apenas por teste genérico. Cada comportame
 | 0. Descoberta de regras | Documento de regras v1 e cenários de aceitação para os personagens do MVP; lacunas explicitamente resolvidas. **Concluída.** |
 | 1. Fundação | Scaffold, typecheck/testes e execução local documentada. **Concluída parcialmente; UI acessível continua em evolução.** |
 | 2. Domínio | Entidades, fluxo de fase, validação e motor puro implementados com testes dos cenários aprovados. **Concluída para o ruleset v1.** |
-| 3. Preparação da partida | Cadastro de participantes, seleção/associação de personagens e validações de composição confirmadas. **Validação/sorteio de domínio implementados; integração de UI pendente.** |
-| 4. Condução noturna | Interface rápida de ações, resolução explicável, confirmação e histórico; fluxo testado em celular. |
+| 3. Preparação da partida | Cadastro de participantes, seleção/associação de personagens e validações de composição confirmadas. **Domínio e integração inicial de UI implementados.** |
+| 4. Condução noturna | Interface rápida de ações, resolução explicável, confirmação e histórico; fluxo testado em celular. **Fluxo integrado ao domínio; refinamento e validação em celular pendentes.** |
 | 5. Persistência/PWA | Salvar/retomar localmente, exportar/importar, cache offline e tratamento de falhas de armazenamento. |
 | 6. Publicação | Deploy estático, documentação atualizada, verificação de acessibilidade e checklist de operação/backup. |
 | 7. Evolução guiada por uso | Considerar sincronização, contas, mais regras ou painel de edição somente após validar necessidade. |
@@ -278,9 +279,9 @@ As etapas 4–5 dependem da integração do domínio com interface e armazenamen
 
 ## 12. Próximos passos
 
-1. Integrar o domínio à preparação e à interface de condução, mantendo papéis e resultados secretos restritos à tela do mestre.
-2. Persistir e retomar partidas completas no IndexedDB, incluindo migração/compatibilidade dos cadastros existentes.
-3. Adicionar testes de integração e interface para preparação, noite, votação, vitória e retomada.
+1. Persistir e retomar partidas completas no IndexedDB, incluindo migração/compatibilidade dos cadastros existentes e tratamento de falhas de armazenamento.
+2. Adicionar testes de integração e interface para preparação, ações e revisão noturnas, votação, vitória e retomada, incluindo o gerenciamento dos cadastros.
+3. Validar o fluxo e a acessibilidade em celular, incluindo os controles de ações, votação e temporizador.
 4. Implementar exportação/importação e cache offline antes da publicação, se permanecerem no escopo do MVP.
 
 Correções depois de uma noite ou votação confirmada e mecânicas de papéis futuros exigem decisões próprias antes de entrar em implementação.

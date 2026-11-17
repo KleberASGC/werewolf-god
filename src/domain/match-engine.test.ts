@@ -366,6 +366,20 @@ describe("discussion and voting", () => {
     assert.equal(expired.discussion?.status, "expired");
   });
 
+  it("subtracts only the time elapsed since the previous clock update", () => {
+    const fiveMinuteMatch = {
+      ...resolveQuietNight(createFixture()),
+      dayDurationMinutes: 5,
+    };
+    const discussion = startDiscussion(fiveMinuteMatch, 1_000);
+    const firstTick = updateDiscussionClock(discussion, 2_000);
+    const secondTick = updateDiscussionClock(firstTick, 3_000);
+
+    assert.equal(firstTick.discussion?.remainingMs, 299_000);
+    assert.equal(secondTick.discussion?.remainingMs, 298_000);
+    assert.equal(secondTick.discussion?.startedAtMs, 3_000);
+  });
+
   it("annuls when strictly more than half of eligible voters choose annul", () => {
     const voting = enterVoting(createFixture());
     const filled = castAllVotes(voting, (_voterId, index) =>

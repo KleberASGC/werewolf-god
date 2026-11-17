@@ -115,3 +115,20 @@ export async function saveGame(game: Game): Promise<void> {
     };
   });
 }
+
+export async function deleteGame(gameId: string): Promise<void> {
+  const database = await openDatabase();
+
+  return new Promise((resolve, reject) => {
+    const transaction = database.transaction(GAME_STORE, "readwrite");
+    transaction.objectStore(GAME_STORE).delete(gameId);
+
+    transaction.oncomplete = () => resolve();
+    transaction.onerror = () => {
+      reject(transaction.error ?? new Error("Não foi possível excluir a partida."));
+    };
+    transaction.onabort = () => {
+      reject(transaction.error ?? new Error("A exclusão da partida foi interrompida."));
+    };
+  });
+}
