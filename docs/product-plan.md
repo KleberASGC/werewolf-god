@@ -1,13 +1,13 @@
 # Planejamento de produto e arquitetura
 
-**Status:** implementação da fundação iniciada; regras de jogo e algumas decisões de produto ainda precisam de validação.
+**Status:** fundação implementada; regras v1 aprovadas e motor puro de domínio implementado. A integração do motor com a interface e a persistência da partida completa ainda está pendente.
 **Objetivo:** apoiar o mestre de uma partida presencial, sem substituir sua autoridade nem inventar regras.
 
 ## 1. Visão do produto
 
 Werewolf God será uma aplicação web responsiva para ajudar uma pessoa a preparar e conduzir uma partida presencial de Lobisomem. Seu valor principal é reduzir a carga de memória do mestre: orientar a sequência da partida, registrar ações, aplicar as regras selecionadas e explicar os resultados.
 
-O público inicial é a pessoa que conduz uma partida presencial. A recomendação de MVP é otimizar primeiro para um mestre usando um único dispositivo, especialmente celular; a necessidade de sincronização continua em aberto. O uso deve ser rápido, legível em ambientes pouco iluminados e tolerante à falta de conexão.
+O público inicial é a pessoa que conduz uma partida presencial. O MVP é otimizado para um mestre usando um único dispositivo, especialmente celular, sem contas, backend ou sincronização. O uso deve ser rápido, legível em ambientes pouco iluminados e tolerante à falta de conexão.
 
 ### Princípios
 
@@ -23,30 +23,25 @@ O público inicial é a pessoa que conduz uma partida presencial. A recomendaç�
 
 - O projeto usará um conjunto próprio de regras, a documentar.
 - O conjunto inicial de personagens contém Lobisomem, Aldeão, Vidente, Guarda-costas e Bruxa.
+- Uma partida tem de 5 a 75 jogadores; cópias repetidas agem como um grupo e registram uma ação conjunta. Os usos da Bruxa são compartilhados pelo grupo e opcionais.
 - O mestre configura a quantidade de participantes e de cartas de cada função; deve haver ao menos um Lobisomem e menos Lobisomens que participantes não Lobisomens.
 - A soma das cartas é igual ao número de participantes; a aplicação sorteia uma função para cada jogador e o mestre distribui as cartas físicas. O mapeamento é privado do mestre.
 - A ordem fixa das chamadas noturnas é Lobisomens, Guarda-costas, Bruxa e Vidente; após a ação da Vidente, o mestre encerra a noite e anuncia o amanhecer.
+- Toda função incluída na composição inicial que tenha ação noturna é chamada em todas as noites, mesmo que não haja participantes vivos.
 - O MVP deve automatizar um conjunto pequeno de personagens, depois que suas mecânicas forem definidas.
 - A aplicação é uma ferramenta para o mestre em partidas presenciais; experiência móvel e custo operacional baixo são prioridades.
+- As regras e cenários aprovados do motor v1 estão em [ruleset-v1.md](./rules/ruleset-v1.md).
 
 ### Pendente: não tratar como regra definida
 
-Precisam de confirmação antes da implementação de conteúdo do motor:
-
-- Regras de interações e resolução completa das ações noturnas, incluindo combinações de proteções e efeitos ainda não descritos.
-- O que ocorre se um papel não age, não escolhe ou tenta uma escolha inválida.
-- Como corrigir uma noite já concluída e se o histórico deve reter estados substituídos.
-- Se a partida deve sincronizar ou ter backup online; o modo local é a recomendação abaixo, não uma decisão já confirmada.
-
-O detalhamento das regras confirmadas e pendentes — fases, ordem noturna, personagens, proteções, votação, temporizador e vitória — está no [rascunho colaborativo das regras](./rules/initial-rules-draft.md). Esse documento é a referência para decisões de mecânica; não implementar comportamentos ainda marcados como pendentes.
-
-O rascunho vivo está em `docs/rules/initial-rules-draft.md`; ele distingue o que foi descrito do que continua pendente.
+Não fazem parte do motor v1: papéis futuros, variações de regras e correções após uma fase concluída. Necessidades de sincronização/backup online também ficam adiadas; o MVP é local-first.
 
 ### Implementado até agora
 
 - Scaffold React/TypeScript/Vite, sem dependência de serviço remoto.
 - Primeira fatia funcional: criar partidas com nomes e participantes, persistir no IndexedDB e listar/consultar as partidas do navegador.
-- A composição de papéis, fluxo noturno e motor continuam deliberadamente ausentes até que suas regras sejam confirmadas.
+- Regras v1 aprovadas, modelo de domínio, validação/sorteio de papéis, sequência noturna e resolução determinística, temporizador, votação, condições de vitória e testes unitários puros.
+- O motor ainda não está integrado à interface nem à persistência de partidas em andamento.
 
 ## 3. Escopo proposto do MVP
 
@@ -61,9 +56,9 @@ O rascunho vivo está em `docs/rules/initial-rules-draft.md`; ele distingue o qu
 7. Registrar acontecimentos e permitir consultar noites anteriores.
 8. Salvar e retomar a partida no mesmo dispositivo, inclusive sem conexão após o carregamento inicial.
 9. Disponibilizar exportação e importação de uma cópia da partida, com versão de formato e validação.
-10. Permitir corrigir ação antes de confirmar o resultado. Proposta para correções posteriores: exigir confirmação, recalcular e deixar rastreio explícito; validar esse comportamento antes da implementação.
+10. Permitir corrigir ação antes de confirmar o resultado. Correções após uma fase concluída ficam fora do MVP até que o comportamento seja especificado.
 
-Dia, votação, eliminação e encerramento podem ser acompanhados como etapas e registros pelo mestre. Não se automatiza a discussão ou o julgamento social. Condições automáticas de fim só entram quando forem especificadas.
+O motor v1 automatiza o temporizador, a apuração da votação, as eliminações e as condições de vitória; a discussão e a decisão social continuam sob condução do mestre. A integração desse motor à interface ainda está pendente.
 
 ### Adiar
 
@@ -139,7 +134,7 @@ Mesmo sem backend, definir limites de domínio e adaptadores agora. Se a sincron
 | Linguagem e frontend | TypeScript, React, Vite | SPA responsiva; domínio TypeScript puro. |
 | Persistência | IndexedDB, encapsulado por repositório/adapter | Evitar depender de localStorage para o estado estruturado da partida. Um helper pequeno pode ser adotado durante a implementação, se reduzir código de baixo nível. |
 | Validação | Tipos estáticos + validação em runtime na entrada/importação | Dados restaurados e ações do usuário precisam de validação mesmo com TypeScript. |
-| Testes | Vitest para domínio; Testing Library para fluxos de UI; Playwright para jornadas críticas | Introduzir apenas ao iniciar a implementação e conforme o escopo exigir. |
+| Testes | Node `node:test` via `tsx` para domínio; Testing Library para fluxos de UI; Playwright para jornadas críticas | O runner do domínio já está configurado; adicionar ferramentas de UI quando essas jornadas forem implementadas. |
 | PWA | Manifest e service worker/cache com integração Vite | Verificar comportamento offline e atualização da aplicação; não cachear dados privados em recursos públicos. |
 | Backend no MVP | Nenhum | Motor e dados da partida operam localmente. |
 | CI/qualidade | Typecheck, lint e testes automatizados no fluxo do projeto | Fixar ferramentas/configuração quando o scaffold da aplicação for aprovado. |
@@ -208,7 +203,7 @@ Entidades conceituais:
 - **GameEvent:** consequência registrada com fonte/causa; inclui explicação compreensível para o mestre.
 - **NightResolution:** resultado calculado de ações válidas numa versão específica do estado/regra.
 
-Não é necessário adotar event sourcing completo. Para o MVP, persistir partida, ações e eventos explicativos, além do resultado da resolução. Uma correção deve registrar a alteração e recalcular a noite afetada de forma explícita, preservando o histórico suficiente para auditoria.
+Não é necessário adotar event sourcing completo. Para o MVP, persistir partida, ações e eventos explicativos, além do resultado da resolução. Correções estão limitadas às ações da noite antes da confirmação; alterações posteriores ficam fora do escopo atual.
 
 ## 7. Estratégia do motor de regras
 
@@ -218,7 +213,7 @@ O motor deve ser uma função determinística: recebe uma cópia do estado relev
 
 ### Ordem de processamento
 
-Proposta de pipeline conceitual, cuja ordem concreta deverá ser definida pelas regras aprovadas:
+Para o conjunto aprovado v1, o motor:
 
 1. Validar estado, atores, habilidades, alvos, condições e usos.
 2. Classificar ações por janelas de resolução definidas no conjunto de regras.
@@ -227,7 +222,7 @@ Proposta de pipeline conceitual, cuja ordem concreta deverá ser definida pelas 
 5. Produzir explicação causal e eventos para o histórico.
 6. Confirmar o resultado com o mestre e persistir a resolução.
 
-Não assumir que toda noite usa essa ordem literalmente; ela é uma separação arquitetural e as janelas/precedências precisam de validação de domínio.
+As interações de papéis futuros continuam fora do motor e exigem aprovação antes de serem adicionadas.
 
 ### Representação e testes de regras
 
@@ -239,7 +234,7 @@ Não assumir que toda noite usa essa ordem literalmente; ela é uma separação 
 
 ## 8. Histórico, correção e privacidade
 
-Registrar mudanças de fase, ações, validações relevantes, resolução e eliminação. Antes de concluir uma noite, permitir editar ações. Após conclusão, correções precisam de confirmação, recálculo e registro de que o resultado anterior foi substituído; evitar apagar silenciosamente o histórico.
+Registrar mudanças de fase, ações, validações relevantes, resolução e eliminação. Antes de concluir uma noite, permitir editar ações. Não permitir corrigir fases já confirmadas nesta versão.
 
 A aplicação é voltada ao mestre, então a tela de condução deve manter informação secreta visível apenas no dispositivo do mestre e reduzir revelações acidentais (por exemplo, estados claros, sem projetar detalhes secretos por padrão). Não há controle de acesso contra quem já consegue usar o dispositivo. O usuário deve poder exportar e apagar dados locais.
 
@@ -260,31 +255,32 @@ Não declarar uma regra implementada apenas por teste genérico. Cada comportame
 
 | Etapa | Resultado e critério de conclusão |
 |---|---|
-| 0. Descoberta de regras | Documento de regras v1 e cenários de aceitação para os personagens do MVP; lacunas explicitamente resolvidas. |
-| 1. Fundação | Scaffold, arquitetura em camadas, acessibilidade base, typecheck/lint/testes e execução local documentada. |
-| 2. Domínio | Entidades, fluxo de fase, validação e motor puro implementados com testes dos cenários aprovados. |
-| 3. Preparação da partida | Cadastro de participantes, seleção/associação de personagens e validações de composição confirmadas. |
+| 0. Descoberta de regras | Documento de regras v1 e cenários de aceitação para os personagens do MVP; lacunas explicitamente resolvidas. **Concluída.** |
+| 1. Fundação | Scaffold, typecheck/testes e execução local documentada. **Concluída parcialmente; UI acessível continua em evolução.** |
+| 2. Domínio | Entidades, fluxo de fase, validação e motor puro implementados com testes dos cenários aprovados. **Concluída para o ruleset v1.** |
+| 3. Preparação da partida | Cadastro de participantes, seleção/associação de personagens e validações de composição confirmadas. **Validação/sorteio de domínio implementados; integração de UI pendente.** |
 | 4. Condução noturna | Interface rápida de ações, resolução explicável, confirmação e histórico; fluxo testado em celular. |
 | 5. Persistência/PWA | Salvar/retomar localmente, exportar/importar, cache offline e tratamento de falhas de armazenamento. |
 | 6. Publicação | Deploy estático, documentação atualizada, verificação de acessibilidade e checklist de operação/backup. |
 | 7. Evolução guiada por uso | Considerar sincronização, contas, mais regras ou painel de edição somente após validar necessidade. |
 
-As etapas 2–5 podem ser ajustadas após a descoberta, mas nenhuma começa com regras de domínio ainda não aprovadas.
+As etapas 4–5 dependem da integração do domínio com interface e armazenamento; papéis futuros e correções após fases concluídas continuam fora do motor.
 
 ## 11. Documentação inicial proposta
 
-- `README.md`: propósito, status, como executar/testar quando existir implementação e links para documentação.
+- `README.md`: propósito, status, como executar/testar e links para documentação.
 - `docs/product-plan.md`: este plano de produto e arquitetura.
 - `docs/rules/ruleset-template.md`: template preenchível para documentar papéis, fases, interações e cenários de aceitação sem presumir mecânicas.
-- `docs/rules/initial-rules-draft.md`: rascunho vivo das regras ditadas, ainda não aprovado para implementação do motor.
+- `docs/rules/initial-rules-draft.md`: rascunho vivo das regras ditadas, preservado como histórico de descoberta.
+- `docs/rules/ruleset-v1.md`: conjunto e cenários aprovados para a primeira versão do motor.
 - `docs/rules/`: manter documentos de regras separados por versão; preservar o rascunho e o template.
 - Decisões arquiteturais futuras devem registrar contexto, alternativas, decisão e consequências; criar registros apenas quando uma decisão concreta for tomada.
 
-## 12. Próximas decisões necessárias
+## 12. Próximos passos
 
-Antes de implementar o motor:
+1. Integrar o domínio à preparação e à interface de condução, mantendo papéis e resultados secretos restritos à tela do mestre.
+2. Persistir e retomar partidas completas no IndexedDB, incluindo migração/compatibilidade dos cadastros existentes.
+3. Adicionar testes de integração e interface para preparação, noite, votação, vitória e retomada.
+4. Implementar exportação/importação e cache offline antes da publicação, se permanecerem no escopo do MVP.
 
-1. Definir o que conta como maioria para anular, a elegibilidade para votar e se qualquer empate impede o exílio.
-2. Especificar a ação e o resultado de cada um dos cinco personagens, incluindo ordem, alvo e limitações.
-3. Definir como múltiplos efeitos são combinados e como o mestre revisa/corrige uma resolução.
-4. Confirmar se a recomendação local-first sem conta atende à primeira versão ou se backup/sincronização online é requisito.
+Correções depois de uma noite ou votação confirmada e mecânicas de papéis futuros exigem decisões próprias antes de entrar em implementação.

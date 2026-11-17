@@ -10,7 +10,7 @@ function App() {
   const [games, setGames] = useState<Game[]>([]);
   const [selectedGame, setSelectedGame] = useState<Game | null>(null);
   const [gameName, setGameName] = useState("");
-  const [playerNames, setPlayerNames] = useState(["", ""]);
+  const [playerNames, setPlayerNames] = useState(["", "", "", "", ""]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
@@ -55,7 +55,7 @@ function App() {
       setGames((currentGames) => [game, ...currentGames]);
       setSelectedGame(game);
       setGameName("");
-      setPlayerNames(["", ""]);
+      setPlayerNames(["", "", "", "", ""]);
       setNotice("Partida salva neste dispositivo.");
     } catch (saveError: unknown) {
       setError(errorMessage(saveError));
