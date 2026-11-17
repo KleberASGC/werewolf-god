@@ -17,8 +17,8 @@ import { createMatch } from "../domain/match-setup";
 import type { MatchState } from "../domain/match";
 import { deleteGame, getMatch, listGames, saveGameAndMatch, saveMatch } from "./game-repository";
 
-describe("persistência de partidas", () => {
-  it("preserva cadastros da versão anterior durante a migração", async () => {
+describe("match persistence", () => {
+  it("preserves legacy game records during migration", async () => {
     const game = createGame({
       id: "legacy",
       name: "Cadastro antigo",
@@ -42,7 +42,7 @@ describe("persistência de partidas", () => {
     assert.equal(await getMatch(game.id), undefined);
   });
 
-  it("salva e retoma sorteio, ações, temporizador, votos e histórico", async () => {
+  it("saves and resumes role assignment, actions, timer, votes, and history", async () => {
     const players = Array.from({ length: 5 }, (_, index) => ({
       id: `player-${index + 1}`,
       name: `Participante ${index + 1}`,
@@ -103,7 +103,7 @@ describe("persistência de partidas", () => {
     assert.ok(!(await listGames()).some((saved) => saved.id === game.id));
   });
 
-  it("não salva o cadastro parcialmente quando a gravação do progresso falha", async () => {
+  it("does not partially save a game record when progress persistence fails", async () => {
     const players = Array.from({ length: 5 }, (_, index) => ({ id: `${index}`, name: `P${index}` }));
     const game = createGame({ id: "failure", name: "Falha", players, createdAt: "2026-01-01T00:00:00.000Z" });
     const match = createMatch({
@@ -114,7 +114,7 @@ describe("persistência de partidas", () => {
     assert.equal(await getMatch(game.id), undefined);
   });
 
-  it("recusa versões de progresso desconhecidas sem sobrescrevê-las", async () => {
+  it("rejects unknown progress versions without overwriting them", async () => {
     await new Promise<void>((resolve, reject) => {
       const request = indexedDB.open("werewolf-god", 2);
       request.onerror = () => reject(request.error);
