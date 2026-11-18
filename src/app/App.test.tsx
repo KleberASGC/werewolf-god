@@ -576,13 +576,16 @@ it("allows including Lycan and shows it as a Werewolf to the Seer", async () => 
   }
   clickButton(/Sortear papéis e preparar/);
   await screen.findByRole("heading", { name: "Preparação" });
+  await waitForSavedProgress();
 
   const lycan = getRoleHolder("Lycan");
   const seer = getRoleHolder("Vidente");
   clickButton("Iniciar a partida");
+  await waitForSavedProgress();
   await screen.findByRole("heading", { name: /Chamar: Lobisomem/ });
   chooseRadio("night-target", (input) => selectedPlayerName(input) !== lycan && selectedPlayerName(input) !== seer);
   clickButton("Registrar chamada e avançar");
+  await waitForSavedProgress();
 
   await screen.findByRole("heading", { name: /Chamar: Vidente/ });
   chooseRadio("night-target", (input) => selectedPlayerName(input) === lycan);
