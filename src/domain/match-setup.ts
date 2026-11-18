@@ -78,6 +78,7 @@ export function createMatch(
     witch: input.roleCounts.witch ?? 0,
     seer: input.roleCounts.seer ?? 0,
     lycan: input.roleCounts.lycan ?? 0,
+    cursed: input.roleCounts.cursed ?? 0,
     spellcaster: input.roleCounts.spellcaster ?? 0,
     villager: input.roleCounts.villager ?? 0,
   };
@@ -95,6 +96,9 @@ export function createMatch(
   }
   if (counts.werewolf >= players.length - counts.werewolf) {
     throw new Error("Deve haver mais jogadores não Lobisomens do que Lobisomens.");
+  }
+  if (counts.cursed > 1) {
+    throw new Error("A partida pode ter no máximo um Amaldiçoado.");
   }
   if (
     !Number.isInteger(input.dayDurationMinutes) ||

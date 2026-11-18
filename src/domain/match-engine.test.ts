@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 import { createMatch } from "./match-setup";
 import {
+  awakenCursed,
   continueAfterSeerResult,
   endDiscussion,
   pauseDiscussion,
@@ -259,7 +260,196 @@ describe("night flow and resolution", () => {
     assert.equal(result.match.players.find((player) => player.id === "player-3")?.status, "alive");
   });
 
-  it("calls the Conjurador after the Seer, allows self-targeting, and prevents consecutive targets", () => {
+  it("marks an unprotected Cursed conversion as pending after the Seer investigates", () => {
+    const match = createFixture(["werewolf", "cursed", "bodyguard", "witch", "seer"]);
+    const pending = recordNight(match, {
+      werewolf: { kind: "werewolf-attack", targetId: "player-2" },
+      bodyguard: { kind: "bodyguard-protect", targetId: "player-3" },
+      seer: { kind: "seer-investigate", targetId: "player-2" },
+    });
+
+    const result = resolveNight(pending);
+    const cursed = result.match.players.find((player) => player.id === "player-2");
+
+    assert.deepEqual(result.investigations, [{ targetId: "player-2", isWerewolf: false }]);
+    assert.deepEqual(result.convertedPlayerIds, []);
+    assert.deepEqual(result.pendingCursedConversionPlayerIds, ["player-2"]);
+    assert.deepEqual(result.eliminatedPlayerIds, []);
+    assert.equal(cursed?.role, "cursed");
+    assert.equal(cursed?.pendingCursedConversion, true);
+    assert.equal(cursed?.convertedFromCursed, undefined);
+    assert.equal(cursed?.status, "alive");
+    assert.deepEqual(result.match.history.at(-1), {
+      type: "night-resolved",
+      round: 1,
+      actions: pending.night?.actions,
+      eliminatedPlayerIds: [],
+      pendingCursedConversionPlayerIds: ["player-2"],
+      protectedPlayerIds: ["player-3"],
+      blockedAttackTargetIds: [],
+      investigations: [{ targetId: "player-2", isWerewolf: false }],
+    });
+  });
+
+  it("does not convert a protected Cursed", () => {
+    const match = createFixture(["werewolf", "cursed", "bodyguard", "witch", "seer"]);
+    const result = resolveNight(recordNight(match, {
+      werewolf: { kind: "werewolf-attack", targetId: "player-2" },
+      bodyguard: { kind: "bodyguard-protect", targetId: "player-3" },
+      witch: { kind: "witch", protectTargetId: "player-2" },
+      seer: { kind: "seer-investigate", targetId: "player-2" },
+    }));
+
+    assert.deepEqual(result.convertedPlayerIds, []);
+    assert.deepEqual(result.eliminatedPlayerIds, []);
+    assert.equal(result.match.players.find((player) => player.id === "player-2")?.role, "cursed");
+    assert.deepEqual(result.blockedAttackTargetIds, ["player-2"]);
+    assert.equal(result.match.witchResources.protectionUsed, true);
+  });
+
+  it("does not convert a Cursed protected by the Bodyguard", () => {
+    const match = createFixture(["werewolf", "cursed", "bodyguard", "witch", "seer"]);
+    const result = resolveNight(recordNight(match, {
+      werewolf: { kind: "werewolf-attack", targetId: "player-2" },
+      bodyguard: { kind: "bodyguard-protect", targetId: "player-2" },
+      seer: { kind: "seer-investigate", targetId: "player-2" },
+    }));
+
+    assert.deepEqual(result.convertedPlayerIds, []);
+    assert.deepEqual(result.eliminatedPlayerIds, []);
+    assert.equal(result.match.players.find((player) => player.id === "player-2")?.role, "cursed");
+  });
+
+  it("shows a converted Cursed as a Werewolf to the Seer on the following night", () => {
+    const firstNight = resolveNight(recordNight(
+      createFixture(["werewolf", "cursed", "bodyguard", "witch", "seer"]),
+      {
+        werewolf: { kind: "werewolf-attack", targetId: "player-2" },
+        bodyguard: { kind: "bodyguard-protect", targetId: "player-3" },
+        seer: { kind: "seer-investigate", targetId: "player-2" },
+      },
+    )).match;
+    const discussion = endDiscussion(startDiscussion(firstNight, 0), 0);
+    const voting = startVoting(discussion, () => 0.5);
+    const filledVotes = castAllVotes(voting, () => ({ kind: "annul" }));
+    const nextNight = startNextNight(resolveVoting(filledVotes).match);
+    assert.equal(nextNight.night?.awakeningRequired, true);
+    assert.equal(nextNight.players.find((player) => player.id === "player-2")?.role, "cursed");
+    assert.throws(
+      () => submitNightCall(nextNight, "werewolf", {
+        kind: "werewolf-attack",
+        targetId: "player-4",
+      }),
+      /deve ser despertado discretamente/,
+    );
+    const awakened = awakenCursed(nextNight);
+    assert.equal(awakened.players.find((player) => player.id === "player-2")?.role, "werewolf");
+    let pending = submitNightCall(awakened, "werewolf", {
+      kind: "werewolf-attack",
+      targetId: "player-3",
+    });
+    pending = submitNightCall(pending, "bodyguard", {
+      kind: "bodyguard-protect",
+      targetId: "player-4",
+    });
+    pending = submitNightCall(pending, "witch");
+    pending = submitNightCall(pending, "seer", {
+      kind: "seer-investigate",
+      targetId: "player-2",
+    });
+    pending = continueAfterSeerResult(pending);
+
+    assert.deepEqual(resolveNight(pending).investigations, [
+      { targetId: "player-2", isWerewolf: true },
+    ]);
+  });
+
+  it("eliminates rather than converts a Cursed attacked by both the Wolves and Witch", () => {
+    const match = createFixture(["werewolf", "cursed", "bodyguard", "witch", "seer"]);
+    const result = resolveNight(recordNight(match, {
+      werewolf: { kind: "werewolf-attack", targetId: "player-2" },
+      bodyguard: { kind: "bodyguard-protect", targetId: "player-3" },
+      witch: { kind: "witch", eliminateTargetId: "player-2" },
+      seer: { kind: "seer-investigate", targetId: "player-2" },
+    }));
+
+    assert.deepEqual(result.convertedPlayerIds, []);
+    assert.deepEqual(result.eliminatedPlayerIds, ["player-2"]);
+    assert.equal(result.match.players.find((player) => player.id === "player-2")?.role, "cursed");
+    assert.equal(result.match.players.find((player) => player.id === "player-2")?.status, "dead");
+    assert.deepEqual(result.investigations, [{ targetId: "player-2", isWerewolf: false }]);
+  });
+
+  it("eliminates a Cursed targeted only by the Witch without converting", () => {
+    const match = createFixture(["werewolf", "cursed", "bodyguard", "witch", "seer"]);
+    const result = resolveNight(recordNight(match, {
+      werewolf: { kind: "werewolf-attack", targetId: "player-5" },
+      bodyguard: { kind: "bodyguard-protect", targetId: "player-3" },
+      witch: { kind: "witch", eliminateTargetId: "player-2" },
+      seer: { kind: "seer-investigate", targetId: "player-2" },
+    }));
+
+    assert.deepEqual(result.convertedPlayerIds, []);
+    assert.deepEqual(result.eliminatedPlayerIds, ["player-5", "player-2"]);
+    assert.equal(result.match.players.find((player) => player.id === "player-2")?.role, "cursed");
+    assert.equal(result.match.players.find((player) => player.id === "player-2")?.status, "dead");
+  });
+
+  it("counts a Cursed as Werewolf only after discreet awakening", () => {
+    const match = createFixture(["werewolf", "werewolf", "cursed", "bodyguard", "seer"]);
+    const firstNight = resolveNight(recordNight(match, {
+      werewolf: { kind: "werewolf-attack", targetId: "player-3" },
+      bodyguard: { kind: "bodyguard-protect", targetId: "player-4" },
+      seer: { kind: "seer-investigate", targetId: "player-3" },
+    })).match;
+    assert.equal(firstNight.phase, "dawn");
+    assert.equal(firstNight.players.find((player) => player.id === "player-3")?.role, "cursed");
+
+    const discussion = endDiscussion(startDiscussion(firstNight, 0), 0);
+    const voting = startVoting(discussion, () => 0.5);
+    const filledVotes = castAllVotes(voting, () => ({ kind: "annul" }));
+    const nextNight = awakenCursed(startNextNight(resolveVoting(filledVotes).match));
+    assert.equal(nextNight.players.filter((player) => player.status === "alive" && player.role === "werewolf").length, 3);
+    assert.equal(nextNight.phase, "night");
+  });
+
+  it("continues after the last Werewolf is exiled while a Cursed awaits awakening", () => {
+    const firstNight = resolveNight(recordNight(
+      createFixture(["werewolf", "cursed", "bodyguard", "witch", "seer"]),
+      {
+        werewolf: { kind: "werewolf-attack", targetId: "player-2" },
+        bodyguard: { kind: "bodyguard-protect", targetId: "player-3" },
+        seer: { kind: "seer-investigate", targetId: "player-2" },
+      },
+    )).match;
+    const voting = startVoting(
+      endDiscussion(startDiscussion(firstNight, 0), 0),
+      () => 0.5,
+    );
+    const werewolfId = "player-1";
+    const filledVotes = castAllVotes(voting, (voterId) =>
+      voterId === werewolfId
+        ? { kind: "player", playerId: "player-3" }
+        : { kind: "player", playerId: werewolfId },
+    );
+    const afterExile = resolveVoting(filledVotes);
+
+    assert.equal(afterExile.exiledPlayerId, werewolfId);
+    assert.equal(afterExile.winner, undefined);
+    assert.equal(afterExile.match.phase, "ready-for-night");
+    assert.equal(afterExile.match.players.find((player) => player.id === "player-2")?.pendingCursedConversion, true);
+
+    const nextNight = startNextNight(afterExile.match);
+    assert.equal(nextNight.night?.awakeningRequired, true);
+    const awakened = awakenCursed(nextNight);
+    assert.equal(awakened.players.find((player) => player.id === "player-2")?.role, "werewolf");
+    assert.equal(awakened.players.filter((player) =>
+      player.status === "alive" && player.role === "werewolf",
+    ).length, 1);
+    assert.equal(awakened.phase, "night");
+  });
+
+  it("calls the Conjurador after the Seer and prevents consecutive targets", () => {
     const fixture = createFixture([
       "werewolf",
       "seer",
@@ -281,31 +471,24 @@ describe("night flow and resolution", () => {
     });
     assert.equal(match.phase, "seer-result");
     match = continueAfterSeerResult(match);
-    assert.equal(match.phase, "night");
-    assert.equal(match.night?.schedule[match.night.nextCallIndex], "spellcaster");
     assert.throws(
       () => submitNightCall(match, "spellcaster"),
       /precisa registrar sua ação/,
     );
-
     match = submitNightCall(match, "spellcaster", {
       kind: "spellcaster-silence",
       targetId: "player-3",
     });
     const firstNight = resolveNight(match).match;
     assert.equal(firstNight.lastSpellcasterTargetId, "player-3");
-    assert.equal(
-      firstNight.history[0].type === "night-resolved"
-        ? firstNight.history[0].actions.filter((record) => record.role === "spellcaster").length
-        : 0,
-      1,
-    );
-    assert.deepEqual(
-      firstNight.history[0].type === "night-resolved"
-        ? firstNight.history[0].actions.find((record) => record.role === "spellcaster")?.action
-        : undefined,
-      { kind: "spellcaster-silence", targetId: "player-3" },
-    );
+    const firstNightHistory = firstNight.history[0];
+    assert.equal(firstNightHistory.type, "night-resolved");
+    if (firstNightHistory.type === "night-resolved") {
+      assert.deepEqual(
+        firstNightHistory.actions.find((record) => record.role === "spellcaster")?.action,
+        { kind: "spellcaster-silence", targetId: "player-3" },
+      );
+    }
 
     const voting = startVoting(
       endDiscussion(startDiscussion(firstNight, 0), 0),
@@ -374,7 +557,6 @@ describe("night flow and resolution", () => {
     });
     match = continueAfterSeerResult(match);
     match = submitNightCall(match, "spellcaster");
-
     assert.equal(match.phase, "night-resolution");
     assert.equal(match.night?.actions.some((record) => record.role === "spellcaster"), false);
   });

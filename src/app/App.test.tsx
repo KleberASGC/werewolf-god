@@ -5,6 +5,19 @@ import { JSDOM } from "jsdom";
 import { version as packageVersion, codename as releaseCodename } from "../../package.json";
 import { act } from "react";
 import { createGame } from "../domain/game";
+import {
+  continueAfterSeerResult,
+  endDiscussion,
+  recordVote,
+  resolveNight,
+  resolveVoting,
+  startDiscussion,
+  startMatch,
+  startNextNight,
+  startVoting,
+  submitNightCall,
+} from "../domain/match-engine";
+import type { MatchState } from "../domain/match";
 import { createMatch } from "../domain/match-setup";
 import {
   deleteGame,
@@ -187,7 +200,7 @@ it("shows the release label and can redraw roles before the match starts", async
   );
   assert.equal(
     screen.getByRole("group", { name: "Time dos aldeões" }).querySelectorAll(".role-count").length,
-    6,
+    7,
   );
   await createMatchThroughForm("Novo sorteio");
 
@@ -236,10 +249,73 @@ it("shows role help and the illustrated character catalog", async () => {
   const catalogLink = screen.getByRole("link", { name: "Personagens" });
   assert.equal(catalogLink.getAttribute("href"), "#personagens");
   assert.ok(screen.getByRole("heading", { name: "Personagens da vila" }));
-  for (const role of ["Lobisomem", "Guarda-costas", "Bruxa", "Vidente", "Lycan", "Conjurador", "Aldeão"]) {
+  for (const role of ["Lobisomem", "Guarda-costas", "Bruxa", "Vidente", "Lycan", "Amaldiçoado", "Conjurador", "Aldeão"]) {
     assert.ok(screen.getByRole("heading", { level: 3, name: role }));
   }
-  assert.equal(document.querySelectorAll(".role-illustration").length, 7);
+  assert.equal(document.querySelectorAll(".role-illustration").length, 8);
+});
+
+it("keeps a Cursed conversion secret until the moderator wakes them with the Wolves", async () => {
+  const game = createGame({
+    id: "amaldiçoado-ui",
+    name: "Amaldiçoado",
+    players: Array.from({ length: 5 }, (_, index) => ({
+      id: `cursed-ui-${index + 1}`,
+      name: ["Lobo", "Amaldiçoado", "Guarda", "Bruxa", "Vidente"][index],
+    })),
+    createdAt: "2026-01-01T00:00:00.000Z",
+  });
+  const prepared = createMatch({
+    id: game.id,
+    name: game.name,
+    players: game.players,
+    roleCounts: { werewolf: 1, cursed: 1, bodyguard: 1, witch: 1, seer: 1 },
+    dayDurationMinutes: 5,
+  });
+  let match: MatchState = {
+    ...prepared,
+    players: prepared.players.map((player, index) => ({
+      ...player,
+      role: (["werewolf", "cursed", "bodyguard", "witch", "seer"] as const)[index],
+    })),
+  };
+  match = startMatch(match);
+  match = submitNightCall(match, "werewolf", {
+    kind: "werewolf-attack",
+    targetId: "cursed-ui-2",
+  });
+  match = submitNightCall(match, "bodyguard", {
+    kind: "bodyguard-protect",
+    targetId: "cursed-ui-3",
+  });
+  match = submitNightCall(match, "witch");
+  match = submitNightCall(match, "seer", {
+    kind: "seer-investigate",
+    targetId: "cursed-ui-2",
+  });
+  match = continueAfterSeerResult(match);
+  match = resolveNight(match).match;
+  match = startDiscussion(match, 0);
+  match = endDiscussion(match, 0);
+  match = startVoting(match, () => 0.5);
+  for (const voterId of match.voting!.order) {
+    match = recordVote(match, voterId, { kind: "annul" });
+  }
+  match = startNextNight(resolveVoting(match).match);
+  await saveGameAndMatch(game, match);
+  await renderApp();
+
+  await screen.findByRole("button", { name: /Amaldiçoado/ });
+  await clickGameAndWaitForDetails(/Amaldiçoado/, "Retomar partida");
+  clickButton("Retomar partida");
+
+  await screen.findByRole("heading", { name: "Despertar discreto" });
+  assert.ok(screen.getByText(/só passa a ser Lobisomem e saberá da conversão a partir deste momento/));
+  assert.equal((await getMatch(game.id))?.players.find((player) => player.id === "cursed-ui-2")?.role, "cursed");
+  clickButton("Acordei discretamente o Amaldiçoado");
+  await screen.findByRole("heading", { name: /Chamar: Lobisomem/ });
+  await waitForSavedProgress();
+  assert.equal((await getMatch(game.id))?.players.find((player) => player.id === "cursed-ui-2")?.role, "werewolf");
 });
 
 it("confirms restarting from an active phase and returns to role distribution", async () => {
@@ -320,7 +396,7 @@ it("edits a saved game roster by replacing its prepared match and role draw", as
   );
   assert.equal(
     editorVillagerTeam.querySelectorAll(".role-count").length,
-    6,
+    7,
   );
   fillInput("Nome do participante editado 1", "Ana");
   clickButton("Remover participante editado 5");

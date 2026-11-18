@@ -70,6 +70,35 @@ describe("createMatch", () => {
     assert.equal(match.rulesetId, "werewolf-god-v1");
   });
 
+  it("allows one Cursed and rejects a composition with multiple Cursed cards", () => {
+    const match = createMatch(
+      {
+        id: "match-cursed",
+        name: "Cursed game",
+        players: players(5),
+        roleCounts: { werewolf: 1, cursed: 1, villager: 3 },
+        dayDurationMinutes: 5,
+      },
+      () => 0,
+    );
+
+    assert.equal(match.players.filter((player) => player.role === "cursed").length, 1);
+    assert.throws(
+      () =>
+        createMatch(
+          {
+            id: "match-multiple-cursed",
+            name: "Multiple Cursed",
+            players: players(5),
+            roleCounts: { werewolf: 1, cursed: 2, villager: 2 },
+            dayDurationMinutes: 5,
+          },
+          () => 0,
+        ),
+      /no máximo um Amaldiçoado/,
+    );
+  });
+
   it("includes Conjurador in the role draw without counting it as a Werewolf", () => {
     const match = createMatch(
       {

@@ -47,6 +47,7 @@ o motor, a interface e os testes necessários.
 - **Vitória:** condição de vitória dos Aldeões.
 - **Estado no aplicativo:** implementado.
 
+
 ### Bruxa
 
 - **Identificador:** `witch`
@@ -107,6 +108,21 @@ o motor, a interface e os testes necessários.
 - **Informação recebida pela Vidente:** aparece como Lobisomem; o papel exato não é revelado.
 - **Outras interações ou efeitos:** nenhum efeito noturno; a condição de vitória é a dos Aldeões.
 - **Informação recebida pelo personagem:** não recebe informação especial.
+- **Estado no aplicativo:** implementado.
+
+### Amaldiçoado
+
+- **Identificador estável:** `cursed`
+- **Nome exibido:** Amaldiçoado
+- **Facção e condição de vitória:** começa no time dos Aldeões. Se a conversão ficar pendente, permanece Aldeão até ser despertado discretamente com os Lobisomens na noite seguinte; só então passa ao time dos Lobisomens e conta para a condição de vitória dessa facção. Se todos os outros Lobisomens forem eliminados enquanto a conversão estiver pendente, a partida continua e ele será o único Lobisomem ao despertar.
+- **Quantidade permitida:** no máximo um Amaldiçoado por partida.
+- **Ação e momento:** não escolhe alvo nem tem ação noturna. Se a conversão ficar pendente, o mestre o desperta discretamente antes da chamada dos Lobisomens na noite seguinte; só então ele se torna Lobisomem e passa a agir com o grupo.
+- **Conversão:** se for alvo do ataque dos Lobisomens, não estiver protegido e não for também alvo da Bruxa na mesma noite, permanece vivo como Aldeão e fica com conversão pendente. A conversão só se efetiva quando o mestre o desperta na noite seguinte.
+- **Proteção e ataques simultâneos:** proteção do Guarda-costas ou da Bruxa bloqueia os ataques e impede que a conversão fique pendente. Se a Bruxa também o atacar e não houver proteção, ele morre normalmente sem conversão. Se for alvo apenas de outro efeito de eliminação ou de exílio, é eliminado normalmente.
+- **Vidente:** aparece como não Lobisomem na noite do ataque e enquanto a conversão estiver pendente. Depois de ser despertado pelo mestre com os Lobisomens, aparece como Lobisomem.
+- **Informação recebida pelo personagem:** antes de ser despertado para a conversão, não sabe que foi escolhido nem que sua conversão está pendente. O mestre o acorda discretamente antes do grupo e o informa pela própria inclusão no chamado dos Lobisomens.
+- **Informação mostrada ao mestre e ao grupo:** somente o mestre sabe da conversão pendente durante o dia e antes do despertar. O personagem e o grupo não são informados antes desse momento. O aplicativo atualiza o papel na escalação privada quando o mestre confirma o despertar.
+- **Cenários de exemplo:** ataque dos Lobisomens sem proteção nem ataque da Bruxa deixa conversão pendente sem eliminar; na noite seguinte, o mestre o desperta discretamente antes da chamada do grupo e a partir daí ele é Lobisomem; se todos os demais Lobisomens forem eliminados ou exilados antes disso, a partida continua até o despertar, quando ele será o único Lobisomem; ataque simultâneo da Bruxa sem proteção elimina sem conversão; proteção impede a conversão pendente; investigação retorna “não é Lobisomem” até o despertar.
 - **Estado no aplicativo:** implementado.
 
 ### Conjurador
