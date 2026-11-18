@@ -1,8 +1,8 @@
 {
   "name": "werewolf-god",
   "private": true,
-  "version": "1.0.0",
-  "codename": "Moonlit Howl",
+  "version": "1.0.1",
+  "codename": "Silver Eclipse",
   "type": "module",
   "scripts": {
     "dev": "vite",
