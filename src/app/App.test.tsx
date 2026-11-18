@@ -181,6 +181,14 @@ it("shows the release label and can redraw roles before the match starts", async
   await renderApp();
   assert.ok(screen.getByRole("link", { name: /Werewolf Moderator, início/ }));
   assert.ok(screen.getByText(`v${packageVersion} · ${releaseCodename}`));
+  assert.equal(
+    screen.getByRole("group", { name: "Time dos lobisomens" }).querySelectorAll(".role-count").length,
+    1,
+  );
+  assert.equal(
+    screen.getByRole("group", { name: "Time dos aldeões" }).querySelectorAll(".role-count").length,
+    5,
+  );
   await createMatchThroughForm("Novo sorteio");
 
   const game = (await listGames())[0];
@@ -205,6 +213,11 @@ it("shows the release label and can redraw roles before the match starts", async
     }, {}),
     { werewolf: 1, bodyguard: 1, witch: 1, seer: 1, villager: 1 },
   );
+
+  await act(async () => {
+    fireEvent.click(screen.getByRole("link", { name: "Werewolf Moderator, início" }));
+  });
+  await screen.findByRole("heading", { name: "Nova partida" });
 });
 
 it("shows role help and the illustrated character catalog", async () => {
@@ -297,6 +310,18 @@ it("edits a saved game roster by replacing its prepared match and role draw", as
   await screen.findByRole("button", { name: /Partida editável/ });
   await clickGameAndWaitForDetails(/Partida editável/, "Editar cadastro");
   clickButton("Editar cadastro");
+  const editorWerewolfTeam = screen.getAllByRole("group", { name: "Time dos lobisomens" }).at(-1);
+  const editorVillagerTeam = screen.getAllByRole("group", { name: "Time dos aldeões" }).at(-1);
+  assert.ok(editorWerewolfTeam);
+  assert.ok(editorVillagerTeam);
+  assert.equal(
+    editorWerewolfTeam.querySelectorAll(".role-count").length,
+    1,
+  );
+  assert.equal(
+    editorVillagerTeam.querySelectorAll(".role-count").length,
+    5,
+  );
   fillInput("Nome do participante editado 1", "Ana");
   clickButton("Remover participante editado 5");
   clickLastButton("Adicionar participante");
