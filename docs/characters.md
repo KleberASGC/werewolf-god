@@ -108,3 +108,23 @@ o motor, a interface e os testes necessários.
 - **Outras interações ou efeitos:** nenhum efeito noturno; a condição de vitória é a dos Aldeões.
 - **Informação recebida pelo personagem:** não recebe informação especial.
 - **Estado no aplicativo:** implementado.
+
+### Conjurador
+
+- **Identificador estável:** `spellcaster`
+- **Nome exibido:** Conjurador
+- **Facção e condição de vitória:** Aldeões
+- **Quantidade permitida na partida:** sem limite individual adicional; vale o total de cartas e jogadores.
+- **Ação:** os Conjuradores vivos escolhem em consenso um jogador por noite.
+- **Ordem:** depois da Vidente.
+- **Obrigatoriedade:** obrigatória quando há ao menos um Conjurador vivo.
+- **Alvos válidos:** qualquer jogador vivo, inclusive o próprio Conjurador e integrantes do grupo.
+- **Limite de usos:** não se aplica
+- **Condições e restrições:** não pode silenciar a mesma pessoa por dois dias consecutivos.
+- **Efeito:** o alvo não pode falar desde o amanhecer até o fim da votação do dia seguinte. Continua votando, indicando o voto sem falar.
+- **Interações com outros personagens/efeitos:** não se aplica
+- **Informação recebida pelo personagem:** não se aplica
+- **Sinalização:** depois de registrar a escolha, o mestre se aproxima sem fazer barulho e toca no ombro do alvo. O sinal de silenciamento é explicado previamente a todos, mas o mestre não revela publicamente quem foi escolhido.
+- **Se o personagem for eliminado:** a chamada da função continua. Se não houver Conjuradores vivos, não há escolha nem efeito.
+- **Decisões pendentes:** nenhuma.
+- **Estado no aplicativo:** implementado.

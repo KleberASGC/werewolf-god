@@ -71,6 +71,9 @@ function recordNight(
   let current = startMatch(match);
   const schedule = [...current.night!.schedule];
   for (const role of schedule) {
+    if (current.phase === "seer-result") {
+      current = continueAfterSeerResult(current);
+    }
     current = submitNightCall(current, role, actions[role]);
   }
   if (!pauseAfterSeerResult && current.phase === "seer-result") {
@@ -254,6 +257,126 @@ describe("night flow and resolution", () => {
 
     assert.deepEqual(result.investigations, [{ targetId: "player-3", isWerewolf: true }]);
     assert.equal(result.match.players.find((player) => player.id === "player-3")?.status, "alive");
+  });
+
+  it("calls the Conjurador after the Seer, allows self-targeting, and prevents consecutive targets", () => {
+    const fixture = createFixture([
+      "werewolf",
+      "seer",
+      "spellcaster",
+      "spellcaster",
+      "villager",
+      "villager",
+    ]);
+    let match = startMatch(fixture);
+    assert.deepEqual(match.night?.schedule, ["werewolf", "seer", "spellcaster"]);
+
+    match = submitNightCall(match, "werewolf", {
+      kind: "werewolf-attack",
+      targetId: "player-4",
+    });
+    match = submitNightCall(match, "seer", {
+      kind: "seer-investigate",
+      targetId: "player-1",
+    });
+    assert.equal(match.phase, "seer-result");
+    match = continueAfterSeerResult(match);
+    assert.equal(match.phase, "night");
+    assert.equal(match.night?.schedule[match.night.nextCallIndex], "spellcaster");
+    assert.throws(
+      () => submitNightCall(match, "spellcaster"),
+      /precisa registrar sua ação/,
+    );
+
+    match = submitNightCall(match, "spellcaster", {
+      kind: "spellcaster-silence",
+      targetId: "player-3",
+    });
+    const firstNight = resolveNight(match).match;
+    assert.equal(firstNight.lastSpellcasterTargetId, "player-3");
+    assert.equal(
+      firstNight.history[0].type === "night-resolved"
+        ? firstNight.history[0].actions.filter((record) => record.role === "spellcaster").length
+        : 0,
+      1,
+    );
+    assert.deepEqual(
+      firstNight.history[0].type === "night-resolved"
+        ? firstNight.history[0].actions.find((record) => record.role === "spellcaster")?.action
+        : undefined,
+      { kind: "spellcaster-silence", targetId: "player-3" },
+    );
+
+    const voting = startVoting(
+      endDiscussion(startDiscussion(firstNight, 0), 0),
+      () => 0.5,
+    );
+    const filledVotes = castAllVotes(voting, () => ({ kind: "annul" }));
+    match = startNextNight(resolveVoting(filledVotes).match);
+    match = submitNightCall(match, "werewolf", {
+      kind: "werewolf-attack",
+      targetId: "player-5",
+    });
+    match = submitNightCall(match, "seer", {
+      kind: "seer-investigate",
+      targetId: "player-1",
+    });
+    match = continueAfterSeerResult(match);
+    assert.throws(
+      () =>
+        submitNightCall(match, "spellcaster", {
+          kind: "spellcaster-silence",
+          targetId: "player-4",
+        }),
+      /precisa estar vivo/,
+    );
+    assert.throws(
+      () =>
+        submitNightCall(match, "spellcaster", {
+          kind: "spellcaster-silence",
+          targetId: "player-3",
+        }),
+      /não pode repetir o alvo em dias consecutivos/,
+    );
+    assert.doesNotThrow(() =>
+      submitNightCall(match, "spellcaster", {
+        kind: "spellcaster-silence",
+        targetId: "player-2",
+      }),
+    );
+  });
+
+  it("keeps the Conjurador call but records no action when all copies are eliminated", () => {
+    const fixture = createFixture([
+      "werewolf",
+      "bodyguard",
+      "seer",
+      "spellcaster",
+      "villager",
+    ]);
+    const players = fixture.players.map((player) =>
+      player.role === "spellcaster" ? { ...player, status: "dead" as const } : player,
+    );
+    let match = startMatch({ ...fixture, players });
+
+    assert.ok(match.night?.schedule.includes("spellcaster"));
+    match = submitNightCall(match, "werewolf", {
+      kind: "werewolf-attack",
+      targetId: "player-5",
+    });
+    match = submitNightCall(match, "bodyguard", {
+      kind: "bodyguard-protect",
+      targetId: "player-2",
+    });
+    match = submitNightCall(match, "seer", {
+      kind: "seer-investigate",
+      targetId: "player-1",
+    });
+    match = continueAfterSeerResult(match);
+    match = submitNightCall(match, "spellcaster");
+
+    assert.equal(match.phase, "night-resolution");
+    assert.equal(match.night?.actions.some((record) => record.role === "spellcaster"), false);
   });
 
   it("does not allow the guard group to repeat its previous target", () => {

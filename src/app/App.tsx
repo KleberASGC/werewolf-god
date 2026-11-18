@@ -50,6 +50,7 @@ const INITIAL_ROLE_COUNTS: Record<RoleId, number> = {
   witch: 1,
   seer: 1,
   lycan: 0,
+  spellcaster: 0,
   villager: 1,
 };
 const RELEASE_LABEL = `v${packageVersion} · ${releaseCodename}`;
@@ -59,6 +60,7 @@ const ROLE_DESCRIPTIONS: Record<RoleId, string> = {
   witch: "Compartilha um uso de proteção e um de eliminação durante toda a partida; ambos são opcionais.",
   seer: "Investiga uma pessoa por noite e descobre apenas se ela aparece como Lobisomem.",
   lycan: "Faz parte dos Aldeões, não age à noite e aparece como Lobisomem para a Vidente.",
+  spellcaster: "Silencia um jogador durante todo o dia seguinte, não podendo repetir o alvo em dias consecutivos.",
   villager: "Não tem ação noturna; participa da discussão e vota para eliminar Lobisomens.",
 };
 const ROLE_FACTIONS: Record<RoleId, string> = {
@@ -67,6 +69,7 @@ const ROLE_FACTIONS: Record<RoleId, string> = {
   witch: "Facção dos Aldeões",
   seer: "Facção dos Aldeões",
   lycan: "Facção dos Aldeões",
+  spellcaster: "Facção dos Aldeões",
   villager: "Facção dos Aldeões",
 };
 const ROLE_TEAMS = [
@@ -74,7 +77,7 @@ const ROLE_TEAMS = [
   {
     id: "villagers",
     label: "Time dos aldeões",
-    roles: ["bodyguard", "witch", "seer", "lycan", "villager"],
+    roles: ["bodyguard", "witch", "seer", "lycan", "spellcaster", "villager"],
   },
 ] as const satisfies readonly { id: string; label: string; roles: readonly RoleId[] }[];
 
@@ -172,6 +175,14 @@ function RoleIllustration({ role }: { role: RoleId }) {
           <path d="m91 24 3 8 8 3-8 3-3 8-3-8-8-3 8-3 3-8Z" />
         </>
       )}
+      {role === "spellcaster" && (
+        <>
+          <circle cx="60" cy="60" r="43" />
+          <circle cx="45" cy="49" r="3" />
+          <circle cx="75" cy="49" r="3" />
+          <path d="m51 69 18 16m0-16L51 85" />
+        </>
+      )}
       {role === "villager" && (
         <>
           <circle cx="60" cy="43" r="20" />
@@ -201,7 +212,7 @@ function getRoleCounts(players: MatchPlayer[]): Record<RoleId, number> {
   return players.reduce<Record<RoleId, number>>((counts, player) => {
     counts[player.role] += 1;
     return counts;
-  }, { werewolf: 0, bodyguard: 0, witch: 0, seer: 0, lycan: 0, villager: 0 });
+  }, { werewolf: 0, bodyguard: 0, witch: 0, seer: 0, lycan: 0, spellcaster: 0, villager: 0 });
 }
 
 function playerName(match: MatchState, playerId: string): string {
@@ -216,6 +227,8 @@ function formatNightAction(match: MatchState, action: NightAction): string {
       return `Proteção: ${playerName(match, action.targetId)}`;
     case "seer-investigate":
       return `Investigação: ${playerName(match, action.targetId)}`;
+    case "spellcaster-silence":
+      return `Silenciamento: ${playerName(match, action.targetId)}`;
     case "witch":
       return [
         action.protectTargetId
@@ -318,6 +331,7 @@ function NightActionForm({
     if (targetRole === "werewolf") return player.role !== "werewolf";
     if (targetRole === "seer") return player.role !== "seer";
     if (targetRole === "bodyguard") return player.id !== match.lastBodyguardTargetId;
+    if (targetRole === "spellcaster") return player.id !== match.lastSpellcasterTargetId;
     return true;
   }
 
@@ -328,6 +342,7 @@ function NightActionForm({
     if (targetRole === "werewolf" && player.role === "werewolf") return "Não pode escolher outro Lobisomem";
     if (targetRole === "seer" && player.role === "seer") return "Não pode investigar alguém do próprio grupo";
     if (targetRole === "bodyguard" && player.id === match.lastBodyguardTargetId) return "Protegido na noite anterior";
+    if (targetRole === "spellcaster" && player.id === match.lastSpellcasterTargetId) return "Silenciado no dia anterior";
     if (targetRole === "witch" && player.role === "witch") return "Não pode eliminar alguém do próprio grupo";
     return "Indisponível";
   }
@@ -351,8 +366,10 @@ function NightActionForm({
       nextAction = { kind: "werewolf-attack", targetId };
     } else if (role === "bodyguard") {
       nextAction = { kind: "bodyguard-protect", targetId };
-    } else {
+    } else if (role === "seer") {
       nextAction = { kind: "seer-investigate", targetId };
+    } else {
+      nextAction = { kind: "spellcaster-silence", targetId };
     }
 
     try {
@@ -433,10 +450,18 @@ function NightActionForm({
     ? "Vítima escolhida pelo grupo"
     : role === "bodyguard"
       ? "Pessoa protegida"
-      : "Pessoa investigada";
+      : role === "seer"
+        ? "Pessoa investigada"
+        : "Pessoa silenciada no dia seguinte";
 
   return (
     <form className="action-form" onSubmit={handleSubmit}>
+      {role === "spellcaster" && (
+        <p className="field-hint">
+          Depois de registrar a escolha, aproxime-se sem fazer barulho e toque no ombro do alvo.
+          A pessoa continua votando, mas não pode falar até o fim da votação.
+        </p>
+      )}
       {allowedTargets.length === 0 && (
         <p className="message error-message" role="alert">
           Não há alvo válido disponível para esta chamada.
@@ -615,6 +640,12 @@ function MasterConsole({
   const latestNight = [...match.history].reverse().find(
     (entry): entry is NightHistoryEntry => entry.type === "night-resolved",
   );
+  const latestSpellcasterAction = latestNight?.actions.find(
+    (record) => record.action.kind === "spellcaster-silence",
+  );
+  const silencedPlayerId = latestSpellcasterAction?.action.kind === "spellcaster-silence"
+    ? latestSpellcasterAction.action.targetId
+    : undefined;
   const latestVote = [...match.history].reverse().find(
     (entry) => entry.type === "vote-resolved",
   );
@@ -786,6 +817,14 @@ function MasterConsole({
         <section className="phase-panel">
           <h3>Revisar ações antes de confirmar</h3>
           <p>Esta revisão é a última oportunidade de corrigir as ações da noite.</p>
+          {match.night.actions.map(({ role, action }) =>
+            role === "spellcaster" && action.kind === "spellcaster-silence" ? (
+              <p className="message" key="spellcaster-reminder">
+                <strong>Lembrete:</strong> aproxime-se sem fazer barulho e toque no ombro de{" "}
+                {playerName(match, action.targetId)} para sinalizar o silenciamento. Mantenha a escolha privada.
+              </p>
+            ) : null,
+          )}
           {match.night.actions.length === 0 ? (
             <p className="empty-state compact">Nenhuma ação foi registrada.</p>
           ) : (
@@ -836,6 +875,12 @@ function MasterConsole({
               ))}
             </ul>
           ) : <p className="field-hint">Nenhuma investigação registrada.</p>}
+          {silencedPlayerId && (
+            <p className="message">
+              <strong>Silenciamento (privado):</strong> {playerName(match, silencedPlayerId)} não pode falar
+              até o fim da votação. Aproxime-se sem fazer barulho e toque no ombro da pessoa; não revele o alvo.
+            </p>
+          )}
           <PlayerRoster match={match} />
           <button
             className="primary-button"
@@ -850,6 +895,14 @@ function MasterConsole({
       {match.phase === "discussion" && match.discussion && (
         <section className="phase-panel timer-panel">
           <h3>Discussão</h3>
+          {silencedPlayerId && match.players.some(
+            (player) => player.id === silencedPlayerId && player.status === "alive",
+          ) && (
+            <p className="message">
+              <strong>Silenciado (privado):</strong> {playerName(match, silencedPlayerId)} não pode falar
+              até o fim da votação. Aproxime-se sem fazer barulho e toque no ombro da pessoa; mantenha o alvo em segredo.
+            </p>
+          )}
           <p className="timer-display" role="timer" aria-live="off">{timeLabel}</p>
           <p>
             {match.discussion.status === "expired"
@@ -887,6 +940,14 @@ function MasterConsole({
           <h3>{currentVoterId
             ? `Voto ${match.voting.nextVoterIndex + 1} de ${match.voting.order.length}`
             : "Todos os votos foram registrados"}</h3>
+          {silencedPlayerId && match.players.some(
+            (player) => player.id === silencedPlayerId && player.status === "alive",
+          ) && (
+            <p className="message">
+              <strong>Silenciado (privado):</strong> {playerName(match, silencedPlayerId)} não pode falar,
+              mas continua votando. Registre a escolha sem fala e mantenha o alvo em segredo.
+            </p>
+          )}
           {currentVoterId ? (
             <>
               <p>Registre em privado o voto aberto de <strong>{playerName(match, currentVoterId)}</strong>.</p>
