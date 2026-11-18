@@ -36,7 +36,7 @@ jobs:
       - name: Executar testes
         run: |
           npm test
-          node --test scripts/release-needs-build.test.mjs
+          node --test scripts/release-needs-build.test.mjs scripts/release-codenames.test.mjs
 
       - name: Gerar build
         run: npm run build

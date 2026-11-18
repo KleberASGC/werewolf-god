@@ -1,3 +1,45 @@
 {
-  "available": []
+  "available": [
+    "Crimson Moon",
+    "Midnight Howl",
+    "Shadow Pact",
+    "Blood Moon",
+    "Silent Howl",
+    "Darkwood Whisper",
+    "Wolf's Oath",
+    "Moonlit Secrets",
+    "Eternal Night",
+    "Obsidian Moon",
+    "Phantom Howl",
+    "Frostfang",
+    "Twilight Ritual",
+    "Veil of Shadows",
+    "Raven's Watch",
+    "Nocturnal Crown",
+    "Scarlet Dusk",
+    "The Last Howl",
+    "Mystic Hunt",
+    "Eclipse Rising",
+    "Hollow Moon",
+    "Wicked Harvest",
+    "Nightfall Ritual",
+    "Silver Howl",
+    "Lunar Dominion",
+    "Whispering Woods",
+    "The Forgotten Pack",
+    "Dawn of the Wolves",
+    "Cursed Moon",
+    "Veil of Deception",
+    "Midnight Covenant",
+    "The Final Reckoning",
+    "Ashen Eclipse",
+    "Wolfsbane Omen"
+  ],
+  "used": [
+    "Moonlit Howl",
+    "Whispering Pines",
+    "Silver Eclipse",
+    "Duskwatch",
+    "Lunar Veil"
+  ]
 }

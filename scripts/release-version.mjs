@@ -1,5 +1,6 @@
 import { execFileSync } from "node:child_process";
 import { readFileSync, writeFileSync } from "node:fs";
+import { selectCodename, validateCodenameData } from "./release-codenames.mjs";
 
 const event = JSON.parse(readFileSync(process.env.GITHUB_EVENT_PATH, "utf8"));
 
@@ -18,22 +19,27 @@ if (releaseLabels.length > 1) {
 const bump = releaseLabels[0]?.slice("release:".length) ?? "patch";
 const codenamePath = "docs/release-codenames.json";
 const codenameData = JSON.parse(readFileSync(codenamePath, "utf8"));
+const packagePath = "package.json";
+const currentPackage = JSON.parse(readFileSync(packagePath, "utf8"));
 
-if (!Array.isArray(codenameData.available) || codenameData.available.length === 0) {
-  throw new Error(`Não há codinomes disponíveis em ${codenamePath}.`);
+validateCodenameData(codenameData);
+if (typeof currentPackage.codename !== "string" || !currentPackage.codename.trim()) {
+  throw new Error("O codinome atual do pacote é inválido.");
 }
-
-const codename = codenameData.available.shift();
 
 execFileSync("npm", ["version", bump, "--no-git-tag-version"], {
   stdio: "inherit",
 });
 
-const packagePath = "package.json";
 const packageData = JSON.parse(readFileSync(packagePath, "utf8"));
+const codename = selectCodename(codenameData, packageData.version, currentPackage.codename);
 packageData.codename = codename;
 
 writeFileSync(packagePath, `${JSON.stringify(packageData, null, 2)}\n`);
 writeFileSync(codenamePath, `${JSON.stringify(codenameData, null, 2)}\n`);
+
+if (codenameData.available.length <= 5) {
+  console.warn(`::warning::Restam ${codenameData.available.length} codinomes selecionados em ${codenamePath}; nomes serão gerados automaticamente quando necessário.`);
+}
 
 console.log(`Release preparado: v${packageData.version} · ${codename}`);
