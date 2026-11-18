@@ -2,6 +2,7 @@ import "fake-indexeddb/auto";
 import assert from "node:assert/strict";
 import { afterEach, it } from "node:test";
 import { JSDOM } from "jsdom";
+import { version as packageVersion, codename as releaseCodename } from "../../package.json";
 import { act } from "react";
 import { createGame } from "../domain/game";
 import { createMatch } from "../domain/match-setup";
@@ -179,7 +180,7 @@ it("allows editing and deleting a game record without match progress", async () 
 it("shows the release label and can redraw roles before the match starts", async () => {
   await renderApp();
   assert.ok(screen.getByRole("link", { name: /Werewolf Moderator, início/ }));
-  assert.ok(screen.getByText("v1.0.0 · Moonlit Howl"));
+  assert.ok(screen.getByText(`v${packageVersion} · ${releaseCodename}`));
   await createMatchThroughForm("Novo sorteio");
 
   const game = (await listGames())[0];
@@ -577,9 +578,10 @@ it("allows including Lycan and shows it as a Werewolf to the Seer", async () => 
   await screen.findByRole("heading", { name: "Preparação" });
 
   const lycan = getRoleHolder("Lycan");
+  const seer = getRoleHolder("Vidente");
   clickButton("Iniciar a partida");
   await screen.findByRole("heading", { name: /Chamar: Lobisomem/ });
-  chooseRadio("night-target", (input) => selectedPlayerName(input) !== lycan);
+  chooseRadio("night-target", (input) => selectedPlayerName(input) !== lycan && selectedPlayerName(input) !== seer);
   clickButton("Registrar chamada e avançar");
 
   await screen.findByRole("heading", { name: /Chamar: Vidente/ });
