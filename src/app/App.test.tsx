@@ -187,7 +187,7 @@ it("shows the release label and can redraw roles before the match starts", async
   );
   assert.equal(
     screen.getByRole("group", { name: "Time dos aldeões" }).querySelectorAll(".role-count").length,
-    5,
+    6,
   );
   await createMatchThroughForm("Novo sorteio");
 
@@ -236,10 +236,10 @@ it("shows role help and the illustrated character catalog", async () => {
   const catalogLink = screen.getByRole("link", { name: "Personagens" });
   assert.equal(catalogLink.getAttribute("href"), "#personagens");
   assert.ok(screen.getByRole("heading", { name: "Personagens da vila" }));
-  for (const role of ["Lobisomem", "Guarda-costas", "Bruxa", "Vidente", "Lycan", "Aldeão"]) {
+  for (const role of ["Lobisomem", "Guarda-costas", "Bruxa", "Vidente", "Lycan", "Conjurador", "Aldeão"]) {
     assert.ok(screen.getByRole("heading", { level: 3, name: role }));
   }
-  assert.equal(document.querySelectorAll(".role-illustration").length, 6);
+  assert.equal(document.querySelectorAll(".role-illustration").length, 7);
 });
 
 it("confirms restarting from an active phase and returns to role distribution", async () => {
@@ -320,7 +320,7 @@ it("edits a saved game roster by replacing its prepared match and role draw", as
   );
   assert.equal(
     editorVillagerTeam.querySelectorAll(".role-count").length,
-    5,
+    6,
   );
   fillInput("Nome do participante editado 1", "Ana");
   clickButton("Remover participante editado 5");
@@ -618,4 +618,71 @@ it("allows including Lycan and shows it as a Werewolf to the Seer", async () => 
 
   await screen.findByRole("heading", { level: 3, name: "Resultado da investigação" });
   assert.ok(screen.getByText("é Lobisomem."));
+});
+
+it("calls the Conjurador after the Seer and shows the private silence reminder through voting", async () => {
+  await renderApp();
+  await waitFor(() => {
+    const button = screen.getByRole("button", { name: /Sortear papéis e preparar/ }) as HTMLButtonElement;
+    assert.equal(button.disabled, false);
+  });
+
+  fillInput("Nome da partida", "Conjurador");
+  for (let index = 1; index <= 5; index += 1) {
+    fillInput(`Nome do participante ${index}`, `Jogador ${index}`);
+  }
+  for (const [role, count] of [
+    ["Guarda-costas", 0],
+    ["Bruxa", 0],
+    ["Vidente", 1],
+    ["Conjurador", 1],
+    ["Aldeão", 2],
+  ] as const) {
+    fireEvent.change(screen.getByRole("spinbutton", { name: `Quantidade de ${role}` }), {
+      target: { value: String(count) },
+    });
+  }
+  clickButton(/Sortear papéis e preparar/);
+  await screen.findByRole("heading", { name: "Preparação" });
+  await waitForSavedProgress();
+
+  const conjurer = getRoleHolder("Conjurador");
+  clickButton("Iniciar a partida");
+  await screen.findByRole("heading", { name: /Chamar: Lobisomem/ });
+  await waitForSavedProgress();
+  chooseRadio("night-target", (input) => selectedPlayerName(input) !== conjurer);
+  clickButton("Registrar chamada e avançar");
+
+  await screen.findByRole("heading", { name: /Chamar: Vidente/ });
+  await waitForSavedProgress();
+  chooseRadio("night-target", (input) => !input.disabled);
+  clickButton("Registrar chamada e avançar");
+  await screen.findByRole("heading", { level: 3, name: "Resultado da investigação" });
+  await waitForSavedProgress();
+  clickButton("Vidente pode dormir novamente");
+
+  await screen.findByRole("heading", { name: /Chamar: Conjurador/ });
+  await waitForSavedProgress();
+  assert.ok(document.body.textContent?.includes("Depois de registrar a escolha, aproxime-se sem fazer barulho"));
+  chooseRadio("night-target", (input) => selectedPlayerName(input) === conjurer);
+  clickButton("Registrar chamada e avançar");
+
+  await screen.findByRole("heading", { name: "Revisar ações antes de confirmar" });
+  await waitForSavedProgress();
+  assert.ok(document.body.textContent?.includes(`Silenciamento: ${conjurer}`));
+  assert.ok(document.body.textContent?.includes(
+    `Lembrete: aproxime-se sem fazer barulho e toque no ombro de ${conjurer}`,
+  ));
+  clickButton("Confirmar resolução da noite");
+  await screen.findByRole("heading", { name: "Resultado privado da noite" });
+  await waitForSavedProgress();
+  assert.ok(document.body.textContent?.includes(`Silenciamento (privado): ${conjurer}`));
+  clickButton("Abrir discussão e iniciar temporizador");
+  await waitForSavedProgress();
+  assert.ok(document.body.textContent?.includes(`Silenciado (privado): ${conjurer}`));
+  clickButton("Encerrar discussão");
+  await waitForSavedProgress();
+  clickButton("Iniciar votação");
+  await waitForSavedProgress();
+  assert.ok(document.body.textContent?.includes("continua votando"));
 });

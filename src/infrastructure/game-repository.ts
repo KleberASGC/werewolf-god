@@ -67,7 +67,7 @@ function isAction(value: unknown): boolean {
   if (value.kind === "witch") {
     return isOptionalString(value.protectTargetId) && isOptionalString(value.eliminateTargetId);
   }
-  return isOneOf(value.kind, ["werewolf-attack", "bodyguard-protect", "seer-investigate"]) &&
+  return isOneOf(value.kind, ["werewolf-attack", "bodyguard-protect", "seer-investigate", "spellcaster-silence"]) &&
     typeof value.targetId === "string";
 }
 
@@ -104,6 +104,7 @@ function isMatch(value: unknown): value is MatchState {
       !isRecord(value.witchResources) || typeof value.witchResources.protectionUsed !== "boolean" ||
       typeof value.witchResources.eliminationUsed !== "boolean" ||
       !isOptionalString(value.lastBodyguardTargetId) ||
+      !isOptionalString(value.lastSpellcasterTargetId) ||
       !Array.isArray(value.history) || !value.history.every(isHistoryEntry) ||
       (value.winner !== undefined && !isOneOf(value.winner, ["werewolves", "villagers"]))) return false;
 
