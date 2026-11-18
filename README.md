@@ -86,3 +86,11 @@ O catálogo com as fichas dos personagens atuais e um modelo para propor novos e
 Para implementar uma ficha com o Copilot, use a skill [`add-character`](.github/skills/add-character/SKILL.md), por exemplo: `/add-character implemente o personagem [nome] do catálogo`. Ela também pode ser carregada automaticamente quando o pedido corresponder à descrição.
 
 Para revisar e criar um commit, use a skill [`commit-changes`](.github/skills/commit-changes/SKILL.md), por exemplo: `/commit-changes`. Ela usa Conventional Commits e escreve as mensagens de commit em inglês.
+
+## Pipeline
+
+- As mudanças entram na `main` por pull request; o ruleset deve exigir PR e o check `CI`, bloquear force push e conceder bypass apenas ao aplicativo de release.
+- O workflow `CI` executa testes, typecheck e build. Use a skill `open-pull-request` para escolher `release:major`, `release:minor` ou nenhum rótulo (patch).
+- Após o merge, o workflow de release verifica os arquivos do PR. Alterações na aplicação, assets, arquivos de build ou configuração de deploy geram nova versão e codinome e disparam o deploy na Cloudflare Pages. PRs somente de documentação, testes ou outras mudanças que não exigem rebuild não geram release.
+- O aplicativo de release precisa de permissão de escrita em Contents, bypass no ruleset, variável `RELEASE_APP_ID` e secret `RELEASE_APP_PRIVATE_KEY`.
+- Para o deploy, configure os secrets `CLOUDFLARE_API_TOKEN` e `CLOUDFLARE_ACCOUNT_ID`, a variável `CLOUDFLARE_PROJECT_NAME` e desative o auto-deploy Git da Cloudflare.

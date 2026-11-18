@@ -1,0 +1,27 @@
+name: Deploy
+
+# Disparado pelo release-version.yml ou manualmente.
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: deploy
+  queue: max
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Obter código
+        uses: actions/checkout@v4
+
+      - name: Deploy
+        uses: ./.github/actions/deploy-cloudflare
+        with:
+          api-token: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          account-id: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          project-name: ${{ vars.CLOUDFLARE_PROJECT_NAME }}
