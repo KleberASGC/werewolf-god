@@ -4,6 +4,7 @@ import {
   awakenCursed,
   continueAfterSeerResult,
   endDiscussion,
+  isVotingDecided,
   pauseDiscussion,
   recordVote,
   resolveNight,
@@ -14,6 +15,7 @@ import {
   startMatch,
   startNextNight,
   startVoting,
+  skipVoting,
   submitNightCall,
   updateDiscussionClock,
 } from "../domain/match-engine";
@@ -270,6 +272,7 @@ function PlayerPicker({
   unavailableReason,
   value,
   onChange,
+  toggleSelectedOff = false,
 }: {
   id: string;
   label: string;
@@ -280,6 +283,7 @@ function PlayerPicker({
   unavailableReason: (player: MatchPlayer) => string;
   value: string;
   onChange: (value: string) => void;
+  toggleSelectedOff?: boolean;
 }) {
   return (
     <fieldset className="player-picker">
@@ -297,9 +301,9 @@ function PlayerPicker({
                 checked={value === player.id}
                 disabled={!allowed}
                 name={id}
-                onChange={() => onChange(player.id)}
+                onChange={() => onChange(toggleSelectedOff && value === player.id ? "" : player.id)}
                 required={required && allowed}
-                type="radio"
+                type={toggleSelectedOff ? "checkbox" : "radio"}
                 value={player.id}
               />
               <span className="player-choice-name">{player.name}</span>
@@ -417,6 +421,7 @@ function NightActionForm({
           disabled={match.witchResources.protectionUsed}
           players={match.players}
           required={false}
+          toggleSelectedOff
           unavailableReason={(player) =>
             match.witchResources.protectionUsed
               ? "Uso de proteção já gasto"
@@ -442,6 +447,7 @@ function NightActionForm({
           disabled={match.witchResources.eliminationUsed}
           players={match.players}
           required={false}
+          toggleSelectedOff
           unavailableReason={(player) =>
             match.witchResources.eliminationUsed
               ? "Uso de eliminação já gasto"
@@ -546,6 +552,13 @@ function MasterConsole({
   }
 
   useEffect(() => {
+    if (match !== initialMatch || !isVotingDecided(match)) return;
+    const resolved = resolveVoting(match).match;
+    setMatch(resolved);
+    persist(resolved);
+  }, [initialMatch, match]);
+
+  useEffect(() => {
     if (match.phase !== "discussion" || match.discussion?.status !== "running") return;
     const timerId = window.setInterval(() => {
       setNow(Date.now());
@@ -632,7 +645,10 @@ function MasterConsole({
     const choice: VoteChoice = voteChoice === "annul"
       ? { kind: "annul" }
       : { kind: "player", playerId: voteChoice };
-    if (transition((current) => recordVote(current, voterId, choice))) {
+    if (transition((current) => {
+      const recorded = recordVote(current, voterId, choice);
+      return isVotingDecided(recorded) ? resolveVoting(recorded).match : recorded;
+    })) {
       setVoteChoice("");
     }
   }
@@ -977,9 +993,14 @@ function MasterConsole({
               </>
             )}
             {(match.discussion.status === "ended" || match.discussion.status === "expired") && (
-              <button className="primary-button" onClick={() => transition((current) => startVoting(current))} type="button">
-                Iniciar votação
-              </button>
+              <>
+                <button className="primary-button" onClick={() => transition((current) => startVoting(current))} type="button">
+                  Iniciar votação
+                </button>
+                <button className="secondary-button" onClick={() => transition((current) => skipVoting(current))} type="button">
+                  Pular votação e iniciar noite
+                </button>
+              </>
             )}
           </div>
         </section>
@@ -1050,15 +1071,6 @@ function MasterConsole({
             <p>Confira a quantidade de votos registrados e confirme a apuração.</p>
           )}
           <p className="field-hint">{match.voting.votes.length} voto(s) registrado(s); ordem e escolhas são privadas do mestre.</p>
-          {match.voting.votes.length === match.voting.order.length && (
-            <button
-              className="primary-button"
-              onClick={() => transition((current) => resolveVoting(current).match)}
-              type="button"
-            >
-              Apurar e confirmar votação
-            </button>
-          )}
         </section>
       )}
 

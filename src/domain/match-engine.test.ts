@@ -5,12 +5,14 @@ import {
   awakenCursed,
   continueAfterSeerResult,
   endDiscussion,
+  isVotingDecided,
   pauseDiscussion,
   recordVote,
   resumeDiscussion,
   reviseNightAction,
   resolveNight,
   resolveVoting,
+  skipVoting,
   startDiscussion,
   startMatch,
   startNextNight,
@@ -724,6 +726,43 @@ describe("discussion and voting", () => {
     assert.equal(firstTick.discussion?.remainingMs, 299_000);
     assert.equal(secondTick.discussion?.remainingMs, 298_000);
     assert.equal(secondTick.discussion?.startedAtMs, 3_000);
+  });
+
+  it("skips voting directly to the next night after discussion ends", () => {
+    const discussion = endDiscussion(startDiscussion(resolveQuietNight(createFixture()), 10_000), 10_000);
+    const nextNight = skipVoting(discussion);
+
+    assert.equal(nextNight.phase, "night");
+    assert.equal(nextNight.round, discussion.round + 1);
+    assert.equal(nextNight.voting, undefined);
+    assert.equal(nextNight.history.length, discussion.history.length);
+    assert.throws(() => skipVoting(startDiscussion(resolveQuietNight(createFixture()), 10_000)));
+  });
+
+  it("resolves as soon as the voting result cannot change", () => {
+    const voting = enterVoting(createFixture());
+    const order = voting.voting!.order;
+    const targetId = order[order.length - 1];
+    let partial = voting;
+
+    for (const voterId of order.slice(0, 3)) {
+      partial = recordVote(partial, voterId, { kind: "player", playerId: targetId });
+    }
+
+    assert.equal(partial.voting!.votes.length, 3);
+    assert.equal(isVotingDecided(partial), true);
+    assert.equal(resolveVoting(partial).exiledPlayerId, targetId);
+  });
+
+  it("does not resolve while remaining votes could change the winner", () => {
+    const voting = enterVoting(createFixture());
+    const order = voting.voting!.order;
+    let partial = voting;
+    partial = recordVote(partial, order[0], { kind: "annul" });
+    partial = recordVote(partial, order[1], { kind: "annul" });
+
+    assert.equal(isVotingDecided(partial), false);
+    assert.throws(() => resolveVoting(partial), /ainda não tem resultado definido/);
   });
 
   it("annuls when strictly more than half of eligible voters choose annul", () => {
