@@ -1,8 +1,8 @@
 {
   "name": "werewolf-god",
   "private": true,
-  "version": "1.0.1",
-  "codename": "Silver Eclipse",
+  "version": "1.0.2",
+  "codename": "Whispering Pines",
   "type": "module",
   "scripts": {
     "dev": "vite",
