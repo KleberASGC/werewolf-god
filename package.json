@@ -1,8 +1,8 @@
 {
   "name": "werewolf-god",
   "private": true,
-  "version": "1.2.0",
-  "codename": "Crimson Moon",
+  "version": "1.3.0",
+  "codename": "Midnight Howl",
   "type": "module",
   "scripts": {
     "dev": "vite",
