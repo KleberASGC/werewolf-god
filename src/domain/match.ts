@@ -43,11 +43,17 @@ export interface SeerAction {
   targetId: string;
 }
 
+export interface SpellcasterAction {
+  kind: "spellcaster-silence";
+  targetId: string;
+}
+
 export type NightAction =
   | WerewolfAction
   | BodyguardAction
   | WitchAction
-  | SeerAction;
+  | SeerAction
+  | SpellcasterAction;
 
 export interface NightActionRecord {
   role: NightRole;
@@ -132,6 +138,7 @@ export interface MatchState {
   voting?: VotingState;
   witchResources: WitchResources;
   lastBodyguardTargetId?: string;
+  lastSpellcasterTargetId?: string;
   history: MatchHistoryEntry[];
   winner?: WinningTeam;
 }
