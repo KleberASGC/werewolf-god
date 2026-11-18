@@ -1,8 +1,8 @@
 {
   "name": "werewolf-god",
   "private": true,
-  "version": "1.1.1",
-  "codename": "Lunar Veil",
+  "version": "1.2.0",
+  "codename": "Crimson Moon",
   "type": "module",
   "scripts": {
     "dev": "vite",
