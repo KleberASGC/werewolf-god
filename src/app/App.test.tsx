@@ -206,6 +206,28 @@ it("shows the release label and can redraw roles before the match starts", async
   );
 });
 
+it("shows role help and the illustrated character catalog", async () => {
+  await renderApp();
+
+  const werewolfHelp = document.querySelector(
+    '.role-info summary[aria-label="Informações sobre Lobisomem"]',
+  );
+  assert.ok(werewolfHelp);
+  const helpDetails = werewolfHelp.closest("details");
+  assert.ok(helpDetails);
+  fireEvent.click(werewolfHelp);
+  assert.equal(helpDetails.open, true);
+  assert.match(helpDetails.textContent ?? "", /À noite, os Lobisomens vivos/);
+
+  const catalogLink = screen.getByRole("link", { name: "Personagens" });
+  assert.equal(catalogLink.getAttribute("href"), "#personagens");
+  assert.ok(screen.getByRole("heading", { name: "Personagens da vila" }));
+  for (const role of ["Lobisomem", "Guarda-costas", "Bruxa", "Vidente", "Lycan", "Aldeão"]) {
+    assert.ok(screen.getByRole("heading", { level: 3, name: role }));
+  }
+  assert.equal(document.querySelectorAll(".role-illustration").length, 6);
+});
+
 it("confirms restarting from an active phase and returns to role distribution", async () => {
   await renderApp();
   await createMatchThroughForm("Reinício");
