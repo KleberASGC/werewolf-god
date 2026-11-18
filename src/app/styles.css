@@ -645,6 +645,25 @@ select:focus-visible {
   margin-top: 13px;
 }
 
+.role-team {
+  min-width: 0;
+  margin: 14px 0 0;
+  padding: 10px 0 0;
+  border: 0;
+  border-top: 1px solid var(--line);
+}
+
+.role-team legend {
+  padding-right: 8px;
+  color: #dfe3d8;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.role-team .role-counts {
+  margin-top: 4px;
+}
+
 .role-count {
   position: relative;
   display: flex;
@@ -1351,6 +1370,17 @@ a:focus-visible {
 
   .empty-state {
     min-height: 155px;
+  }
+
+  .role-info > span {
+    position: fixed;
+    inset: auto max(16px, env(safe-area-inset-right)) max(16px, env(safe-area-inset-bottom))
+      max(16px, env(safe-area-inset-left));
+    width: auto;
+    max-height: min(45vh, 240px);
+    overflow-y: auto;
+    padding: 14px 15px;
+    font-size: 14px;
   }
 }
 

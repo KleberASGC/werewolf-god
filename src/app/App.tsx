@@ -69,6 +69,14 @@ const ROLE_FACTIONS: Record<RoleId, string> = {
   lycan: "Facção dos Aldeões",
   villager: "Facção dos Aldeões",
 };
+const ROLE_TEAMS = [
+  { id: "werewolves", label: "Time dos lobisomens", roles: ["werewolf"] },
+  {
+    id: "villagers",
+    label: "Time dos aldeões",
+    roles: ["bodyguard", "witch", "seer", "lycan", "villager"],
+  },
+] as const satisfies readonly { id: string; label: string; roles: readonly RoleId[] }[];
 
 function RoleCountField({
   role,
@@ -98,6 +106,34 @@ function RoleCountField({
         value={value}
       />
     </div>
+  );
+}
+
+function RoleCountGroups({
+  roleCounts,
+  onChange,
+}: {
+  roleCounts: Record<RoleId, number>;
+  onChange: (role: RoleId, value: number) => void;
+}) {
+  return (
+    <>
+      {ROLE_TEAMS.map((team) => (
+        <fieldset className="role-team" key={team.id}>
+          <legend>{team.label}</legend>
+          <div className="role-counts">
+            {team.roles.map((role) => (
+              <RoleCountField
+                key={role}
+                onChange={(value) => onChange(role, value)}
+                role={role}
+                value={roleCounts[role]}
+              />
+            ))}
+          </div>
+        </fieldset>
+      ))}
+    </>
   );
 }
 
@@ -1174,16 +1210,10 @@ function GameEditor({
           <p className="field-hint">
             Ajuste as quantidades para corresponder aos {players.length} participantes.
           </p>
-          <div className="role-counts">
-            {ROLE_IDS.map((role) => (
-              <RoleCountField
-                key={role}
-                onChange={(value) => setRoleCounts((counts) => ({ ...counts, [role]: value }))}
-                role={role}
-                value={roleCounts[role]}
-              />
-            ))}
-          </div>
+          <RoleCountGroups
+            onChange={(role, value) => setRoleCounts((counts) => ({ ...counts, [role]: value }))}
+            roleCounts={roleCounts}
+          />
           <p className="field-hint">
             Total: {Object.values(roleCounts).reduce((total, count) => total + count, 0)} cartas.
           </p>
@@ -1486,14 +1516,22 @@ function App() {
     return (
       <div className="app-shell">
         <header className="topbar">
-          <div className="brand">
+          <a
+            className="brand"
+            href="/"
+            aria-label="Werewolf Moderator, início"
+            onClick={(event) => {
+              event.preventDefault();
+              setActiveMatch(null);
+            }}
+          >
             <span className="brand-mark" aria-hidden="true">W</span>
             <span className="brand-copy">
               <strong>WEREWOLF MODERATOR</strong>
               <span>ASSISTENTE DO MESTRE</span>
               <span className="release-version">{RELEASE_LABEL}</span>
             </span>
-          </div>
+          </a>
           <span className="status-pill"><span /> TELA PRIVADA</span>
         </header>
         <main>
@@ -1598,16 +1636,12 @@ function App() {
               <div className="setup-options">
                 <p className="detail-label">CARTAS POR FUNÇÃO</p>
                 <p className="field-hint">A soma deve corresponder aos participantes nomeados.</p>
-                <div className="role-counts">
-                  {ROLE_IDS.map((role) => (
-                    <RoleCountField
-                      key={role}
-                      onChange={(value) => setRoleCounts((counts) => ({ ...counts, [role]: value }))}
-                      role={role}
-                      value={roleCounts[role]}
-                    />
-                  ))}
-                </div>
+                <RoleCountGroups
+                  onChange={(role, value) =>
+                    setRoleCounts((counts) => ({ ...counts, [role]: value }))
+                  }
+                  roleCounts={roleCounts}
+                />
                 <label className="field-label duration-field" htmlFor="day-duration">
                   Duração da discussão (minutos)
                   <select
