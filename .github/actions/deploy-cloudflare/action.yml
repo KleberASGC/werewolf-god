@@ -1,0 +1,40 @@
+name: Deploy na Cloudflare Pages
+description: Gera o build e publica a pasta dist na Cloudflare Pages.
+
+inputs:
+  api-token:
+    description: Token de API da Cloudflare com permissão de edição no Pages.
+    required: true
+  account-id:
+    description: ID da conta Cloudflare.
+    required: true
+  project-name:
+    description: Nome do projeto no Cloudflare Pages.
+    required: true
+  branch:
+    description: Branch de produção do projeto.
+    default: main
+
+runs:
+  using: composite
+  steps:
+    - name: Configurar Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: 22
+        cache: npm
+
+    - name: Instalar dependências
+      shell: bash
+      run: npm ci
+
+    - name: Gerar build
+      shell: bash
+      run: npm run build
+
+    - name: Publicar na Cloudflare Pages
+      uses: cloudflare/wrangler-action@v3
+      with:
+        apiToken: ${{ inputs.api-token }}
+        accountId: ${{ inputs.account-id }}
+        command: pages deploy dist --project-name=${{ inputs.project-name }} --branch=${{ inputs.branch }}

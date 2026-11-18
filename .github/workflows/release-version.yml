@@ -8,7 +8,13 @@ on:
       - closed
 
 permissions:
-  contents: write
+  contents: read
+  pull-requests: read
+  actions: write
+
+concurrency:
+  group: release-main
+  queue: max
 
 jobs:
   release:
@@ -16,20 +22,40 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
+      - name: Gerar token do aplicativo de release
+        id: release-token
+        uses: actions/create-github-app-token@v2
+        with:
+          app-id: ${{ vars.RELEASE_APP_ID }}
+          private-key: ${{ secrets.RELEASE_APP_PRIVATE_KEY }}
+
       - name: Obter main atualizada
         uses: actions/checkout@v4
         with:
           ref: main
+          token: ${{ steps.release-token.outputs.token }}
 
       - name: Configurar Node.js
         uses: actions/setup-node@v4
         with:
           node-version: 22
 
+      - name: Verificar se o merge exige deploy
+        id: changes
+        env:
+          GH_TOKEN: ${{ github.token }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+        run: |
+          set -o pipefail
+          gh api --paginate --slurp "repos/${GITHUB_REPOSITORY}/pulls/${PR_NUMBER}/files?per_page=100" \
+            | node scripts/release-needs-build.mjs >> "$GITHUB_OUTPUT"
+
       - name: Atualizar versão e codinome
+        if: steps.changes.outputs.deploy == 'true'
         run: node scripts/release-version.mjs
 
       - name: Criar commit de release
+        if: steps.changes.outputs.deploy == 'true'
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
@@ -38,3 +64,9 @@ jobs:
           git add package.json package-lock.json docs/release-codenames.json
           git commit -m "chore(release): v${VERSION}"
           git push origin HEAD:main
+
+      - name: Disparar deploy
+        if: steps.changes.outputs.deploy == 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh workflow run deploy.yml --ref main
