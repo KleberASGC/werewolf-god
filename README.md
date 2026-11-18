@@ -80,3 +80,9 @@ Consulte [docs/product-plan.md](docs/product-plan.md) para a visão do produto, 
 ## Regras do jogo
 
 O conjunto aprovado para o motor v1 está em [docs/rules/ruleset-v1.md](docs/rules/ruleset-v1.md). O rascunho de descoberta permanece em [docs/rules/initial-rules-draft.md](docs/rules/initial-rules-draft.md), e o template para futuras versões está em [docs/rules/ruleset-template.md](docs/rules/ruleset-template.md).
+
+O catálogo com as fichas dos personagens atuais e um modelo para propor novos está em [docs/characters.md](docs/characters.md). As fichas são documentação; novos personagens precisam ser aprovados nas regras e implementados no código antes de aparecerem no aplicativo.
+
+Para implementar uma ficha com o Copilot, use a skill [`add-character`](.github/skills/add-character/SKILL.md), por exemplo: `/add-character implemente o personagem [nome] do catálogo`. Ela também pode ser carregada automaticamente quando o pedido corresponder à descrição.
+
+Para revisar e criar um commit, use a skill [`commit-changes`](.github/skills/commit-changes/SKILL.md), por exemplo: `/commit-changes`. Ela usa Conventional Commits e escreve as mensagens de commit em inglês.
