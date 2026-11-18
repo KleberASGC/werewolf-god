@@ -80,6 +80,9 @@ function isHistoryEntry(value: unknown): boolean {
   if (value.type === "night-resolved") {
     return Array.isArray(value.actions) && value.actions.every(isActionRecord) &&
       isStringArray(value.eliminatedPlayerIds) && isStringArray(value.protectedPlayerIds) &&
+      (value.convertedPlayerIds === undefined || isStringArray(value.convertedPlayerIds)) &&
+      (value.pendingCursedConversionPlayerIds === undefined ||
+        isStringArray(value.pendingCursedConversionPlayerIds)) &&
       isStringArray(value.blockedAttackTargetIds) && Array.isArray(value.investigations) &&
       value.investigations.every((item: unknown) =>
         isRecord(item) && typeof item.targetId === "string" && typeof item.isWerewolf === "boolean");
@@ -99,6 +102,10 @@ function isMatch(value: unknown): value is MatchState {
       !Array.isArray(value.players) || !value.players.every((player: unknown) =>
         isRecord(player) && typeof player.id === "string" && typeof player.name === "string" &&
         isOneOf(player.role, ROLE_IDS) && isOneOf(player.status, ["alive", "dead", "exiled"]) &&
+        (player.convertedFromCursed === undefined ||
+          (player.convertedFromCursed === true && player.role === "werewolf")) &&
+        (player.pendingCursedConversion === undefined ||
+          (player.pendingCursedConversion === true && player.role === "cursed")) &&
         (player.eliminatedAtRound === undefined || Number.isInteger(player.eliminatedAtRound)) &&
         (player.eliminationCause === undefined || isOneOf(player.eliminationCause, ["night", "vote"]))) ||
       !isRecord(value.witchResources) || typeof value.witchResources.protectionUsed !== "boolean" ||
@@ -110,7 +117,19 @@ function isMatch(value: unknown): value is MatchState {
   if (value.night !== undefined && (!isRecord(value.night) ||
       !Array.isArray(value.night.schedule) || !value.night.schedule.every((role: unknown) => isOneOf(role, NIGHT_ROLE_ORDER)) ||
       !Number.isInteger(value.night.nextCallIndex) || !Array.isArray(value.night.actions) ||
+      (value.night.awakeningRequired !== undefined && typeof value.night.awakeningRequired !== "boolean") ||
+      (value.night.awakenedCursedPlayerIds !== undefined &&
+        !isStringArray(value.night.awakenedCursedPlayerIds)) ||
       !value.night.actions.every(isActionRecord))) return false;
+  if (isRecord(value.night) && value.night.awakeningRequired === true &&
+      (value.night.nextCallIndex !== 0 || !Array.isArray(value.night.schedule) ||
+        value.night.schedule[0] !== "werewolf" ||
+        value.players.filter((player) =>
+          isRecord(player) && player.status === "alive" && player.pendingCursedConversion === true,
+        ).length !== 1)) return false;
+  if (value.players.filter((player) =>
+    isRecord(player) && (player.role === "cursed" || player.convertedFromCursed === true),
+  ).length > 1) return false;
   if (value.discussion !== undefined && (!isRecord(value.discussion) ||
       !isOneOf(value.discussion.status, ["running", "paused", "ended", "expired"]) ||
       typeof value.discussion.remainingMs !== "number" || !Number.isFinite(value.discussion.remainingMs) ||

@@ -5,14 +5,18 @@
 ## 1. Identificação
 
 - **Nome:** Conjunto inicial Werewolf God
-- **Versão:** 1.1.0
+- **Versão:** 1.4.0
 - **Estado:** Aprovado
-- **Papéis cobertos:** Lobisomens, Guarda-costas, Bruxa, Vidente, Lycan e Aldeão
+- **Papéis cobertos:** Lobisomens, Guarda-costas, Bruxa, Vidente, Lycan, Amaldiçoado e Aldeão
 - **Objetivo:** formalizar o conjunto mínimo de regras necessário para a primeira partida jogável.
 
-A versão 1.1.0 acrescenta o Lycan às composições de novas partidas. É uma
-alteração aditiva: partidas já salvas sem Lycan mantêm seus papéis e
-comportamento, sem migração de dados. O identificador do conjunto permanece
+A versão 1.1.0 acrescentou o Lycan às composições de novas partidas. A versão
+1.2.0 acrescentou o Amaldiçoado, limitado a uma carta por nova partida. A versão
+1.3.0 definiu que a conversão do Amaldiçoado só se torna efetiva quando o mestre
+o desperta discretamente com os Lobisomens na noite seguinte. A versão 1.4.0
+esclarece que uma conversão pendente impede a vitória dos Aldeões quando todos
+os outros Lobisomens forem eliminados ou exilados. Partidas já salvas mantêm o
+estado e o comportamento registrados, sem migração de dados. O identificador do conjunto permanece
 `werewolf-god-v1`.
 
 ## 2. Preparação
@@ -23,8 +27,9 @@ comportamento, sem migração de dados. O identificador do conjunto permanece
 - Deve haver ao menos um Lobisomem e menos Lobisomens do que jogadores não Lobisomens.
 - O aplicativo sorteia uma carta por jogador e mostra a associação somente ao mestre, que entrega as cartas físicas.
 - Não há limite individual adicional de cópias dos papéis descritos além do total de cartas e das restrições acima.
-- Todos os papéis não Lobisomem descritos pertencem ao time dos Aldeões. Os Lobisomens formam o outro time.
+- Todos os papéis não Lobisomem começam no time dos Aldeões. Os Lobisomens formam o outro time; o Amaldiçoado pode mudar de time conforme a regra de conversão abaixo.
 - O Lycan pertence ao time dos Aldeões, não age à noite e aparece como Lobisomem somente no resultado da investigação da Vidente.
+- A composição pode incluir no máximo um Amaldiçoado. Ele começa no time dos Aldeões. Se os Lobisomens o atacarem sem proteção e a Bruxa não o atacar na mesma noite, sobrevive e a conversão fica pendente, conhecida somente pelo mestre. Na noite seguinte, antes da chamada dos Lobisomens, o mestre o desperta discretamente; somente nesse momento ele passa ao time dos Lobisomens e fica sabendo da conversão.
 
 ### Cópias da mesma função
 
@@ -56,6 +61,7 @@ Todas as funções incluídas na composição inicial que tenham ação noturna 
 | Bruxa | O grupo compartilha um uso de proteção e um uso de eliminação durante toda a partida; pode usar nenhum, um ou ambos. | Proteção: qualquer jogador vivo e não exilado, inclusive no máximo uma Bruxa do grupo. Eliminação: outro jogador vivo e não exilado, nunca uma Bruxa do grupo. Se usar ambas na mesma noite, os alvos devem ser diferentes. | Proteção bloqueia ataques noturnos dos Lobisomens ou da Bruxa. Eliminação causa morte se o alvo não estiver protegido. Cada uso escolhido é consumido mesmo quando redundante ou bloqueado. |
 | Vidente | Escolhe uma pessoa para investigar por noite. | Outro jogador vivo e não exilado; não pode escolher uma Vidente do grupo. | Informa somente se o alvo é Lobisomem ou Lycan, sem revelar o papel exato. O mestre sinaliza “L” com a mão para Lobisomem ou Lycan, ou balança o indicador para “não é Lobisomem”. |
 | Lycan | Nenhuma ação noturna. | — | Pertence ao time dos Aldeões e participa da discussão e votação como os demais jogadores vivos; para a Vidente, aparece como Lobisomem. |
+| Amaldiçoado | Nenhuma ação noturna; depois de uma conversão pendente, o mestre o desperta discretamente antes da chamada dos Lobisomens na noite seguinte. | No máximo um por partida. A conversão fica pendente se for alvo do ataque dos Lobisomens sem proteção e sem ataque simultâneo da Bruxa; só se efetiva quando o mestre o desperta na noite seguinte. | Começa Aldeão. Até ser despertado, permanece no time dos Aldeões e somente o mestre sabe da conversão pendente. Ao ser despertado, passa ao time dos Lobisomens e fica sabendo; a partir daí, a Vidente o vê como Lobisomem. |
 | Aldeão | Nenhuma ação noturna. | — | Participa da discussão e vota enquanto estiver vivo e não exilado. |
 
 As ações de Guarda-costas e Vidente são obrigatórias a cada chamada quando há participantes vivos da função e alvo válido. Os usos da Bruxa são opcionais, mesmo quando disponíveis.
@@ -66,6 +72,9 @@ As ações de Guarda-costas e Vidente são obrigatórias a cada chamada quando h
 - Uma proteção do Guarda-costas ou da Bruxa bloqueia qualquer ataque noturno dos Lobisomens ou da Bruxa contra o alvo protegido.
 - Proteções simultâneas no mesmo alvo são redundantes, mas o uso de proteção da Bruxa continua consumido.
 - Se Lobisomens e Bruxa atacarem o mesmo alvo sem proteção, esse jogador é eliminado uma única vez; se protegido, sobrevive aos ataques.
+- Se Lobisomens atacarem o Amaldiçoado sem proteção e a Bruxa não o atacar nessa noite, ele permanece vivo como Aldeão e a conversão fica pendente. O estado pendente não é mostrado ao personagem nem ao grupo; somente o mestre tem essa informação.
+- Na noite seguinte, antes de chamar os Lobisomens, o mestre o desperta discretamente. A conversão passa a valer e ele se junta ao grupo dos Lobisomens nesse momento. Se a Bruxa também o atacou na noite inicial sem proteção, ele morre normalmente e não há conversão pendente. Proteção de qualquer origem bloqueia os ataques e impede a conversão.
+- A Vidente o vê como não Lobisomem na noite do ataque inicial e também enquanto a conversão estiver pendente. Depois que o mestre o desperta com os Lobisomens, ele aparece como Lobisomem para investigações posteriores. A conversão só é registrada como efetiva na noite do despertar.
 - A proteção não impede exílio diurno.
 - Ações válidas registradas antes de um agente morrer naquela noite ainda produzem efeito. O agente não pode realizar ações posteriores à eliminação.
 - O mestre vê os alvos, ações e causas privadas. Ao amanhecer, anuncia somente quem foi eliminado ou que ninguém foi eliminado; não revela papéis, ações ou proteções.
@@ -89,6 +98,8 @@ As ações de Guarda-costas e Vidente são obrigatórias a cada chamada quando h
 
 - **Lobisomens vencem** quando o número de Lobisomens vivos é igual ou maior que o número de jogadores não Lobisomens vivos.
 - **Aldeões vencem** quando todos os Lobisomens foram mortos ou exilados.
+- Um Amaldiçoado com conversão pendente continua contando como Aldeão. Só conta como Lobisomem depois que o mestre o desperta discretamente com o grupo.
+- Se não houver nenhum Lobisomem vivo, mas houver um Amaldiçoado vivo com conversão pendente, os Aldeões ainda não vencem: a partida continua até o despertar discreto no início da próxima noite. Nesse momento o Amaldiçoado torna-se o único Lobisomem, salvo se a partida já tiver terminado por outra condição.
 - Verificar vitória imediatamente após a resolução da noite e imediatamente após o exílio do dia.
 - Se não houver vitória, a partida continua. Uma partida encerrada não prossegue para outra fase.
 
@@ -121,8 +132,10 @@ As ações de Guarda-costas e Vidente são obrigatórias a cada chamada quando h
 19. **Anulação sem maioria:** com quatro votantes, duas anulações e votos divididos entre dois jogadores, ninguém é exilado; registrar anulação sem maioria.
 20. **Retomada local:** salvar a fase e o estado corrente e restaurá-los ao reabrir a aplicação no mesmo navegador.
 21. **Lycan:** permitir sua inclusão na composição, não agendá-lo para uma ação noturna e informar “Lobisomem” quando a Vidente investigar um Lycan; sua facção e condição de vitória continuam sendo as dos Aldeões.
+22. **Amaldiçoado:** limitar a uma carta na composição; iniciar como Aldeão; após ataque desprotegido dos Lobisomens, manter conversão pendente e secreta até o mestre despertá-lo discretamente na noite seguinte antes da chamada do grupo; contar como Aldeão e aparecer como não Lobisomem para a Vidente até esse despertar; passar então ao time dos Lobisomens e aparecer como Lobisomem nas investigações posteriores; preservar estado e histórico em salvamentos e backups.
+23. **Último Lobisomem e Amaldiçoado pendente:** se todos os Lobisomens restantes forem eliminados ou exilados, não declarar vitória dos Aldeões enquanto o Amaldiçoado com conversão pendente estiver vivo; continuar até despertá-lo discretamente, tornando-o o único Lobisomem.
 
-Os cenários abaixo são os contratos de aceitação para a primeira versão do motor.
+Os cenários abaixo são os contratos de aceitação do motor.
 
 ## 10. Pendências fora do motor v1
 
@@ -136,4 +149,4 @@ Os cenários abaixo são os contratos de aceitação para a primeira versão do 
 - Regras e cenários revisados pelo responsável: **Sim**
 - Pendências bloqueadoras para o escopo v1: **Nenhuma conhecida**
 - Aprovado para implementação: **Sim**
-- Aprovador/data: **Responsável do projeto / 2026-11-17**
+- Aprovador/data: **Responsável do projeto / 2026-11-18**

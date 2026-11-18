@@ -3,6 +3,7 @@ import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 import { createGame } from "../domain/game";
 import {
+  awakenCursed,
   endDiscussion,
   continueAfterSeerResult,
   recordVote,
@@ -10,6 +11,7 @@ import {
   resolveVoting,
   startDiscussion,
   startMatch,
+  startNextNight,
   startVoting,
   submitNightCall,
   updateDiscussionClock,
@@ -114,6 +116,103 @@ describe("match persistence", () => {
     await deleteGame(game.id);
     assert.equal(await getMatch(game.id), undefined);
     assert.ok(!(await listGames()).some((saved) => saved.id === game.id));
+  });
+
+  it("persists and backs up a Cursed conversion without breaking older match history", async () => {
+    const players = Array.from({ length: 5 }, (_, index) => ({
+      id: `cursed-player-${index + 1}`,
+      name: `Participante ${index + 1}`,
+    }));
+    const game = createGame({
+      id: "cursed-backup",
+      name: "Partida Amaldiçoada",
+      players,
+      createdAt: "2026-01-01T00:00:00.000Z",
+    });
+    const prepared = createMatch({
+      id: game.id,
+      name: game.name,
+      players,
+      roleCounts: { werewolf: 1, cursed: 1, bodyguard: 1, witch: 1, seer: 1 },
+      dayDurationMinutes: 5,
+    });
+    let match: MatchState = {
+      ...prepared,
+      players: prepared.players.map((player, index) => ({
+        ...player,
+        role: (["werewolf", "cursed", "bodyguard", "witch", "seer"] as const)[index],
+      })),
+    };
+    match = startMatch(match);
+    match = submitNightCall(match, "werewolf", {
+      kind: "werewolf-attack",
+      targetId: "cursed-player-2",
+    });
+    match = submitNightCall(match, "bodyguard", {
+      kind: "bodyguard-protect",
+      targetId: "cursed-player-3",
+    });
+    match = submitNightCall(match, "witch");
+    match = submitNightCall(match, "seer", {
+      kind: "seer-investigate",
+      targetId: "cursed-player-2",
+    });
+    match = continueAfterSeerResult(match);
+    match = resolveNight(match).match;
+    await saveGameAndMatch(game, match);
+
+    assert.deepEqual(await getMatch(game.id), match);
+    const backup = await createBackup();
+    assert.deepEqual(backup.games.find((entry) => entry.game.id === game.id)?.match, match);
+    assert.equal(await importBackup(backup), 1);
+    assert.deepEqual(await getMatch(game.id), match);
+    assert.equal(
+      (await getMatch(game.id))?.players.find((player) => player.id === "cursed-player-2")?.pendingCursedConversion,
+      true,
+    );
+
+    let discussion = startDiscussion(match, 0);
+    discussion = endDiscussion(discussion, 0);
+    let voting = startVoting(discussion, () => 0.5);
+    for (const voterId of voting.voting!.order) {
+      voting = recordVote(voting, voterId, { kind: "annul" });
+    }
+    match = startNextNight(resolveVoting(voting).match);
+    assert.equal(match.night?.awakeningRequired, true);
+    await saveMatch(match);
+    assert.deepEqual(await getMatch(game.id), match);
+
+    match = awakenCursed(match);
+    await saveMatch(match);
+    assert.deepEqual(await getMatch(game.id), match);
+    const awakenedBackup = await createBackup();
+    assert.deepEqual(awakenedBackup.games.find((entry) => entry.game.id === game.id)?.match, match);
+    assert.equal(
+      (await getMatch(game.id))?.players.find((player) => player.id === "cursed-player-2")?.convertedFromCursed,
+      true,
+    );
+
+    const legacyMatch: MatchState = {
+      ...match,
+      players: match.players.map((player) => player.id === "cursed-player-2"
+        ? {
+            id: player.id,
+            name: player.name,
+            role: "werewolf" as const,
+            status: player.status,
+            convertedFromCursed: true,
+          }
+        : player),
+      history: match.history.map((entry) => {
+        if (entry.type !== "night-resolved") return entry;
+        const { pendingCursedConversionPlayerIds: _pending, ...oldEntry } = entry;
+        return { ...oldEntry, convertedPlayerIds: ["cursed-player-2"] };
+      }),
+    };
+    await saveMatch(legacyMatch);
+    assert.deepEqual(await getMatch(game.id), legacyMatch);
+
+    await deleteGame(game.id);
   });
 
   it("does not partially save a game record when progress persistence fails", async () => {

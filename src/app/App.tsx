@@ -1,6 +1,7 @@
 import { useEffect, useId, useRef, useState, type ChangeEvent, type FormEvent } from "react";
 import { version as packageVersion, codename as releaseCodename } from "../../package.json";
 import {
+  awakenCursed,
   continueAfterSeerResult,
   endDiscussion,
   pauseDiscussion,
@@ -50,6 +51,7 @@ const INITIAL_ROLE_COUNTS: Record<RoleId, number> = {
   witch: 1,
   seer: 1,
   lycan: 0,
+  cursed: 0,
   villager: 1,
 };
 const RELEASE_LABEL = `v${packageVersion} · ${releaseCodename}`;
@@ -59,6 +61,7 @@ const ROLE_DESCRIPTIONS: Record<RoleId, string> = {
   witch: "Compartilha um uso de proteção e um de eliminação durante toda a partida; ambos são opcionais.",
   seer: "Investiga uma pessoa por noite e descobre apenas se ela aparece como Lobisomem.",
   lycan: "Faz parte dos Aldeões, não age à noite e aparece como Lobisomem para a Vidente.",
+  cursed: "Começa como Aldeão. Uma eliminação pelos Lobisomens deixa a conversão pendente; o moderador a efetiva ao despertá-lo discretamente na noite seguinte.",
   villager: "Não tem ação noturna; participa da discussão e vota para eliminar Lobisomens.",
 };
 const ROLE_FACTIONS: Record<RoleId, string> = {
@@ -67,6 +70,7 @@ const ROLE_FACTIONS: Record<RoleId, string> = {
   witch: "Facção dos Aldeões",
   seer: "Facção dos Aldeões",
   lycan: "Facção dos Aldeões",
+  cursed: "Aldeões; Lobisomens se convertido",
   villager: "Facção dos Aldeões",
 };
 const ROLE_TEAMS = [
@@ -74,7 +78,7 @@ const ROLE_TEAMS = [
   {
     id: "villagers",
     label: "Time dos aldeões",
-    roles: ["bodyguard", "witch", "seer", "lycan", "villager"],
+    roles: ["bodyguard", "witch", "seer", "lycan", "cursed", "villager"],
   },
 ] as const satisfies readonly { id: string; label: string; roles: readonly RoleId[] }[];
 
@@ -99,7 +103,7 @@ function RoleCountField({
       <input
         id={inputId}
         aria-label={`Quantidade de ${ROLE_LABELS[role]}`}
-        max={75}
+        max={role === "cursed" ? 1 : 75}
         min={0}
         onChange={(event) => onChange(Number(event.target.value))}
         type="number"
@@ -172,6 +176,12 @@ function RoleIllustration({ role }: { role: RoleId }) {
           <path d="m91 24 3 8 8 3-8 3-3 8-3-8-8-3 8-3 3-8Z" />
         </>
       )}
+      {role === "cursed" && (
+        <>
+          <path d="M78 17c-25 2-43 23-43 48 0 25 20 45 45 45 11 0 21-4 29-11-6 2-12 3-18 2-24-3-41-24-38-48 2-16 12-29 25-36Z" />
+          <path d="m27 36 4 9 10 1-8 7 2 10-8-5-9 5 3-10-8-7 10-1 4-9Z" />
+        </>
+      )}
       {role === "villager" && (
         <>
           <circle cx="60" cy="43" r="20" />
@@ -199,9 +209,17 @@ function makeMatch(game: Game, roleCounts: Record<RoleId, number>, dayDurationMi
 
 function getRoleCounts(players: MatchPlayer[]): Record<RoleId, number> {
   return players.reduce<Record<RoleId, number>>((counts, player) => {
-    counts[player.role] += 1;
+    counts[player.convertedFromCursed ? "cursed" : player.role] += 1;
     return counts;
-  }, { werewolf: 0, bodyguard: 0, witch: 0, seer: 0, lycan: 0, villager: 0 });
+  }, {
+    werewolf: 0,
+    bodyguard: 0,
+    witch: 0,
+    seer: 0,
+    lycan: 0,
+    cursed: 0,
+    villager: 0,
+  });
 }
 
 function playerName(match: MatchState, playerId: string): string {
@@ -702,7 +720,7 @@ function MasterConsole({
         </section>
       )}
 
-      {match.phase === "night" && currentRole && (
+      {match.phase === "night" && currentRole && !match.night?.awakeningRequired && (
         <section className="phase-panel">
           <p className="step-number">{String(match.night!.nextCallIndex + 1).padStart(2, "0")}</p>
           <h3>Chamar: {ROLE_LABELS[currentRole]}</h3>
@@ -720,6 +738,7 @@ function MasterConsole({
                 ))}
             </ul>
           </div>
+          <CursedIdentityNotice match={match} />
           {editingRole ? (
             <NightActionForm
               key={`revise-${editingRole}`}
@@ -752,6 +771,29 @@ function MasterConsole({
               </button>
             </>
           )}
+        </section>
+      )}
+
+      {match.phase === "night" && match.night?.awakeningRequired && (
+        <section className="phase-panel">
+          <h3>Despertar discreto</h3>
+          <p>
+            Antes de chamar os Lobisomens, acorde discretamente{" "}
+            <strong>
+              {match.players.find((player) =>
+                player.status === "alive" && player.pendingCursedConversion,
+              )?.name ?? "o Amaldiçoado"}
+            </strong>
+            . Ele só passa a ser Lobisomem e saberá da conversão a partir deste momento.
+          </p>
+          <p>Não revele a conversão ao grupo. Depois de acordá-lo em particular, confirme para iniciar a chamada dos Lobisomens.</p>
+          <button
+            className="primary-button"
+            onClick={() => transition((current) => awakenCursed(current))}
+            type="button"
+          >
+            Acordei discretamente o Amaldiçoado
+          </button>
         </section>
       )}
 
@@ -836,6 +878,13 @@ function MasterConsole({
               ))}
             </ul>
           ) : <p className="field-hint">Nenhuma investigação registrada.</p>}
+          {(latestNight.pendingCursedConversionPlayerIds?.length ?? 0) > 0 && (
+            <p className="message">
+              Informação privada do mestre: a conversão de{" "}
+              {(latestNight.pendingCursedConversionPlayerIds ?? []).map((id) => playerName(match, id)).join(", ")}{" "}
+              está pendente. Mantenha em segredo até despertá-lo discretamente na próxima noite.
+            </p>
+          )}
           <PlayerRoster match={match} />
           <button
             className="primary-button"
@@ -1015,6 +1064,12 @@ function MasterConsole({
                   <>
                     <span>Ações: {entry.actions.map(({ role, action }) => `${ROLE_LABELS[role]} — ${formatNightAction(match, action)}`).join("; ") || "nenhuma"}.</span>
                     <span>Eliminados: {entry.eliminatedPlayerIds.map((id) => playerName(match, id)).join(", ") || "ninguém"}.</span>
+                    {(entry.pendingCursedConversionPlayerIds?.length ?? 0) > 0 && (
+                      <span>Conversão pendente, manter em segredo: {(entry.pendingCursedConversionPlayerIds ?? []).map((id) => playerName(match, id)).join(", ")}.</span>
+                    )}
+                    {(entry.convertedPlayerIds?.length ?? 0) > 0 && (
+                      <span>Conversão efetiva nesta noite: {(entry.convertedPlayerIds ?? []).map((id) => playerName(match, id)).join(", ")}.</span>
+                    )}
                   </>
                 ) : (
                   <>
@@ -1048,6 +1103,23 @@ function PlayerRoster({ match }: { match: MatchState }) {
         ))}
       </ul>
     </div>
+  );
+}
+
+function CursedIdentityNotice({ match }: { match: MatchState }) {
+  const cursed = match.players.find((player) =>
+    player.status === "alive" &&
+    player.role === "cursed" &&
+    !player.pendingCursedConversion,
+  );
+  if (!cursed) return null;
+
+  return (
+    <p className="message">
+      <strong>Instrução privada ao mestre:</strong> sinalize em particular a{" "}
+      {cursed.name} que ainda é Aldeão (sinal negativo). Não informe a conversão
+      antes de despertá-lo com os Lobisomens.
+    </p>
   );
 }
 

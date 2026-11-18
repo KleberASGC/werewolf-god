@@ -134,6 +134,9 @@ function determineWinner(players: MatchPlayer[]): WinningTeam | undefined {
   const werewolves = living.filter((player) => player.role === "werewolf").length;
   const nonWerewolves = living.length - werewolves;
 
+  if (werewolves === 0 && living.some((player) => player.pendingCursedConversion)) {
+    return undefined;
+  }
   if (werewolves === 0) {
     return "villagers";
   }
@@ -174,6 +177,9 @@ export function submitNightCall(
 ): MatchState {
   if (match.phase !== "night" || !match.night) {
     throw new Error("A partida não está aguardando uma chamada noturna.");
+  }
+  if (match.night.awakeningRequired) {
+    throw new Error("O Amaldiçoado deve ser despertado discretamente antes da chamada dos Lobisomens.");
   }
 
   const expectedRole = match.night.schedule[match.night.nextCallIndex];
@@ -337,23 +343,40 @@ export function resolveNight(match: MatchState): NightResolution {
         .map((attack) => attack.targetId),
     ),
   ];
+  const wolfAttackTargetIds = new Set(
+    attacks.filter((attack) => attack.role === "werewolf").map((attack) => attack.targetId),
+  );
+  const witchAttackTargetIds = new Set(
+    attacks.filter((attack) => attack.role === "witch").map((attack) => attack.targetId),
+  );
+  const convertedPlayerIds = [...wolfAttackTargetIds].filter((targetId) => {
+    const target = getPlayer(match, targetId);
+    return target.role === "cursed" &&
+      !protectionTargetIds.has(targetId) &&
+      !witchAttackTargetIds.has(targetId);
+  });
+  const pendingCursedConversionPlayerIds = convertedPlayerIds;
+  const pendingConversion = new Set(pendingCursedConversionPlayerIds);
   const eliminatedPlayerIds = [
     ...new Set(
       attacks
         .filter((attack) => !protectionTargetIds.has(attack.targetId))
-        .map((attack) => attack.targetId),
+        .map((attack) => attack.targetId)
+        .filter((targetId) => !pendingConversion.has(targetId)),
     ),
   ];
   const eliminated = new Set(eliminatedPlayerIds);
   const players = match.players.map((player) =>
-    eliminated.has(player.id)
-      ? {
+    pendingConversion.has(player.id)
+      ? { ...player, pendingCursedConversion: true as const }
+      : eliminated.has(player.id)
+        ? {
           ...player,
           status: "dead" as const,
           eliminatedAtRound: match.round,
           eliminationCause: "night" as const,
         }
-      : player,
+        : player,
   );
   const winner = determineWinner(players);
   const historyEntry = {
@@ -361,6 +384,12 @@ export function resolveNight(match: MatchState): NightResolution {
     round: match.round,
     actions: match.night.actions,
     eliminatedPlayerIds,
+    ...(match.night.awakenedCursedPlayerIds?.length
+      ? { convertedPlayerIds: match.night.awakenedCursedPlayerIds }
+      : {}),
+    ...(pendingCursedConversionPlayerIds.length
+      ? { pendingCursedConversionPlayerIds }
+      : {}),
     protectedPlayerIds: [...protectionTargetIds],
     blockedAttackTargetIds,
     investigations,
@@ -381,6 +410,8 @@ export function resolveNight(match: MatchState): NightResolution {
   return {
     match: nextMatch,
     eliminatedPlayerIds,
+    convertedPlayerIds: match.night.awakenedCursedPlayerIds ?? [],
+    pendingCursedConversionPlayerIds,
     protectedPlayerIds: [...protectionTargetIds],
     blockedAttackTargetIds,
     investigations,
@@ -616,6 +647,9 @@ export function startNextNight(match: MatchState): MatchState {
     throw new Error("A partida ainda não está pronta para iniciar outra noite.");
   }
   const round = match.round + 1;
+  const awakeningRequired = match.players.some(
+    (player) => player.status === "alive" && player.pendingCursedConversion,
+  );
   return {
     ...match,
     phase: "night",
@@ -624,8 +658,44 @@ export function startNextNight(match: MatchState): MatchState {
       schedule: getNightSchedule(match),
       nextCallIndex: 0,
       actions: [],
+      ...(awakeningRequired ? { awakeningRequired: true } : {}),
     },
     discussion: undefined,
     voting: undefined,
+  };
+}
+
+export function awakenCursed(match: MatchState): MatchState {
+  if (
+    match.phase !== "night" ||
+    !match.night ||
+    match.night.nextCallIndex !== 0 ||
+    match.night.schedule[0] !== "werewolf" ||
+    match.night.awakeningRequired !== true
+  ) {
+    throw new Error("Não há Amaldiçoado aguardando para despertar com os Lobisomens.");
+  }
+
+  const awakenedCursedPlayerIds = match.players
+    .filter((player) => player.status === "alive" && player.pendingCursedConversion)
+    .map((player) => player.id);
+  if (awakenedCursedPlayerIds.length !== 1) {
+    throw new Error("A partida deve ter exatamente um Amaldiçoado vivo aguardando conversão.");
+  }
+  const awakened = new Set(awakenedCursedPlayerIds);
+  const players = match.players.map((player) => {
+    if (!awakened.has(player.id)) return player;
+    const { pendingCursedConversion: _pending, ...rest } = player;
+    return { ...rest, role: "werewolf" as const, convertedFromCursed: true as const };
+  });
+
+  return {
+    ...match,
+    players,
+    night: {
+      ...match.night,
+      awakeningRequired: false,
+      awakenedCursedPlayerIds,
+    },
   };
 }

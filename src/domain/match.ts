@@ -18,6 +18,8 @@ export interface MatchPlayer {
   name: string;
   role: RoleId;
   status: PlayerStatus;
+  convertedFromCursed?: true;
+  pendingCursedConversion?: true;
   eliminatedAtRound?: number;
   eliminationCause?: "night" | "vote";
 }
@@ -58,6 +60,8 @@ export interface NightState {
   schedule: NightRole[];
   nextCallIndex: number;
   actions: NightActionRecord[];
+  awakeningRequired?: boolean;
+  awakenedCursedPlayerIds?: string[];
 }
 
 export interface WitchResources {
@@ -103,6 +107,8 @@ export interface NightHistoryEntry {
   round: number;
   actions: NightActionRecord[];
   eliminatedPlayerIds: string[];
+  convertedPlayerIds?: string[];
+  pendingCursedConversionPlayerIds?: string[];
   protectedPlayerIds: string[];
   blockedAttackTargetIds: string[];
   investigations: InvestigationResult[];
@@ -139,6 +145,8 @@ export interface MatchState {
 export interface NightResolution {
   match: MatchState;
   eliminatedPlayerIds: string[];
+  convertedPlayerIds: string[];
+  pendingCursedConversionPlayerIds: string[];
   protectedPlayerIds: string[];
   blockedAttackTargetIds: string[];
   investigations: InvestigationResult[];
