@@ -555,6 +555,18 @@ export function startVoting(
   };
 }
 
+export function skipVoting(match: MatchState): MatchState {
+  if (
+    match.phase !== "discussion" ||
+    !match.discussion ||
+    !["ended", "expired"].includes(match.discussion.status)
+  ) {
+    throw new Error("Encerre a discussão antes de pular a votação.");
+  }
+
+  return startNextNight({ ...match, phase: "ready-for-night" });
+}
+
 export function recordVote(match: MatchState, voterId: string, choice: VoteChoice): MatchState {
   if (match.phase !== "voting" || !match.voting) {
     throw new Error("A partida não está aguardando votos.");
@@ -585,12 +597,50 @@ export function recordVote(match: MatchState, voterId: string, choice: VoteChoic
   };
 }
 
+export function isVotingDecided(match: MatchState): boolean {
+  if (match.phase !== "voting" || !match.voting) return false;
+
+  const { order, votes } = match.voting;
+  const remainingVotes = order.length - votes.length;
+  if (remainingVotes <= 0) return votes.length === order.length;
+
+  const counts: Record<string, number> = {};
+  let annulVotes = 0;
+  for (const vote of votes) {
+    if (vote.choice.kind === "annul") {
+      annulVotes += 1;
+    } else {
+      counts[vote.choice.playerId] = (counts[vote.choice.playerId] ?? 0) + 1;
+    }
+  }
+
+  if (annulVotes > order.length / 2) return true;
+
+  const annulMajorityStillPossible = annulVotes + remainingVotes > order.length / 2;
+  if (annulMajorityStillPossible) return false;
+
+  const choices = Object.entries(counts);
+  const maxPlayerVotes = Math.max(0, ...choices.map(([, count]) => count));
+  if (annulVotes > maxPlayerVotes + remainingVotes) return true;
+
+  return choices.some(([playerId, count]) => {
+    const maxOtherVotes = Math.max(
+      annulVotes,
+      0,
+      ...choices
+        .filter(([otherPlayerId]) => otherPlayerId !== playerId)
+        .map(([, otherCount]) => otherCount),
+    );
+    return count > maxOtherVotes + remainingVotes;
+  });
+}
+
 export function resolveVoting(match: MatchState): VoteResolution {
   if (match.phase !== "voting" || !match.voting) {
     throw new Error("A votação não está em andamento.");
   }
-  if (match.voting.votes.length !== match.voting.order.length) {
-    throw new Error("Todos os jogadores elegíveis devem votar antes da apuração.");
+  if (!isVotingDecided(match)) {
+    throw new Error("A votação ainda não tem resultado definido.");
   }
 
   const counts: Record<string, number> = {};

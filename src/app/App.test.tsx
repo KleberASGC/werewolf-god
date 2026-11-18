@@ -543,6 +543,92 @@ it("imports a backup from the home screen and refreshes the saved games", async 
   assert.ok((await listGames()).some((savedGame) => savedGame.id === game.id));
 });
 
+it("can skip voting and start the next night from the discussion", async () => {
+  const game = createGame({
+    id: "pular-votacao-ui",
+    name: "Sem votação",
+    players: Array.from({ length: 5 }, (_, index) => ({
+      id: `skip-vote-player-${index + 1}`,
+      name: `Jogador ${index + 1}`,
+    })),
+    createdAt: "2026-01-01T00:00:00.000Z",
+  });
+  const prepared = createMatch({
+    id: game.id,
+    name: game.name,
+    players: game.players,
+    roleCounts: { werewolf: 1, bodyguard: 1, witch: 1, seer: 1, villager: 1 },
+    dayDurationMinutes: 5,
+  });
+  await saveGameAndMatch(game, {
+    ...prepared,
+    phase: "discussion",
+    round: 1,
+    discussion: { status: "ended", remainingMs: 0, startedAtMs: null },
+  });
+  await renderApp();
+
+  await screen.findByRole("button", { name: /Sem votação/ });
+  await clickGameAndWaitForDetails(/Sem votação/, "Retomar partida");
+  clickButton("Retomar partida");
+  await screen.findByRole("heading", { level: 2, name: "Discussão" });
+  clickButton("Pular votação e iniciar noite");
+  await screen.findByRole("heading", { name: /Chamar: Lobisomem/ });
+  await waitForSavedProgress();
+
+  const nextNight = await getMatch(game.id);
+  assert.equal(nextNight?.phase, "night");
+  assert.equal(nextNight?.round, 2);
+  assert.equal(nextNight?.history.length, 0);
+});
+
+it("finishes a saved voting result when resuming an older match", async () => {
+  const game = createGame({
+    id: "votacao-salva-ui",
+    name: "Votação salva",
+    players: Array.from({ length: 5 }, (_, index) => ({
+      id: `saved-vote-player-${index + 1}`,
+      name: `Jogador ${index + 1}`,
+    })),
+    createdAt: "2026-01-01T00:00:00.000Z",
+  });
+  const prepared = createMatch({
+    id: game.id,
+    name: game.name,
+    players: game.players,
+    roleCounts: { werewolf: 1, bodyguard: 1, witch: 1, seer: 1, villager: 1 },
+    dayDurationMinutes: 5,
+  });
+  const werewolfId = prepared.players.find((player) => player.role === "werewolf")!.id;
+  const otherPlayerId = prepared.players.find((player) => player.id !== werewolfId)!.id;
+  const order = prepared.players.map((player) => player.id);
+  const votes = order.map((voterId) => ({
+    voterId,
+    choice: {
+      kind: "player" as const,
+      playerId: voterId === werewolfId ? otherPlayerId : werewolfId,
+    },
+  }));
+  await saveGameAndMatch(game, {
+    ...prepared,
+    phase: "voting",
+    voting: { order, nextVoterIndex: order.length, votes },
+  });
+  await renderApp();
+
+  await screen.findByRole("button", { name: /Votação salva/ });
+  await clickGameAndWaitForDetails(/Votação salva/, "Retomar partida");
+  clickButton("Retomar partida");
+  await waitFor(() => {
+    assert.equal(document.querySelector("#console-title")?.textContent, "Partida encerrada");
+  });
+  await waitForSavedProgress();
+
+  const resolvedMatch = await getMatch(game.id);
+  assert.equal(resolvedMatch?.phase, "finished");
+  assert.equal(resolvedMatch?.history.at(-1)?.type, "vote-resolved");
+});
+
 it("covers setup, night calls and review, resume, voting, victory, and history", async () => {
   await renderApp();
   await createMatchThroughForm("Noite integrada");
@@ -566,6 +652,16 @@ it("covers setup, night calls and review, resume, voting, victory, and history",
   await waitForSavedProgress();
 
   await screen.findByRole("heading", { name: /Chamar: Bruxa/ });
+  for (const pickerName of ["witch-protect-target", "witch-eliminate-target"]) {
+    const target = document.querySelector<HTMLInputElement>(
+      `input[type="checkbox"][name="${pickerName}"]:not(:disabled)`,
+    );
+    assert.ok(target);
+    fireEvent.click(target);
+    assert.equal(target.checked, true);
+    fireEvent.click(target);
+    assert.equal(target.checked, false);
+  }
   clickButton("Registrar chamada e avançar");
   await waitForSavedProgress();
 
@@ -619,7 +715,7 @@ it("covers setup, night calls and review, resume, voting, victory, and history",
   await screen.findByRole("heading", { name: "Voto 1 de 5" });
   await waitForSavedProgress();
 
-  for (let index = 0; index < 5; index += 1) {
+  for (let index = 0; index < 5 && !screen.queryByRole("heading", { level: 2, name: "Partida encerrada" }); index += 1) {
     const voter = screen.getByText(/Registre em privado o voto aberto de/).textContent ?? "";
     const targetName = voter.includes(werewolf)
       ? game.players.find((player) => player.name !== werewolf)?.name
@@ -630,8 +726,6 @@ it("covers setup, night calls and review, resume, voting, victory, and history",
     await waitForSavedProgress();
   }
 
-  await screen.findByRole("heading", { name: "Todos os votos foram registrados" });
-  clickButton("Apurar e confirmar votação");
   await waitFor(() => {
     assert.equal(document.querySelector("#console-title")?.textContent, "Partida encerrada");
   });
@@ -640,6 +734,7 @@ it("covers setup, night calls and review, resume, voting, victory, and history",
   await waitForSavedProgress();
   const finishedMatch = await getMatch(game.id);
   assert.equal(finishedMatch?.phase, "finished");
+  assert.ok((finishedMatch?.voting?.votes.length ?? 0) < (finishedMatch?.voting?.order.length ?? 0));
   assert.equal(finishedMatch?.winner, "villagers");
   assert.equal(finishedMatch?.history.length, 2);
 
