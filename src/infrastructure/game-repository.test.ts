@@ -211,7 +211,58 @@ describe("match persistence", () => {
     };
     await saveMatch(legacyMatch);
     assert.deepEqual(await getMatch(game.id), legacyMatch);
+    await deleteGame(game.id);
+  });
 
+  it("round-trips Conjurador actions and repeat-target state through backups", async () => {
+    const players = Array.from({ length: 5 }, (_, index) => ({
+      id: `spellcaster-player-${index + 1}`,
+      name: `Participante ${index + 1}`,
+    }));
+    const game = createGame({
+      id: "spellcaster-backup",
+      name: "Partida com Conjurador",
+      players,
+      createdAt: "2026-01-04T00:00:00.000Z",
+    });
+    const roles = ["werewolf", "seer", "spellcaster", "villager", "villager"] as const;
+    let match = createMatch({
+      id: game.id,
+      name: game.name,
+      players,
+      roleCounts: { werewolf: 1, seer: 1, spellcaster: 1, villager: 2 },
+      dayDurationMinutes: 1,
+    }, () => 0.5);
+    match.players = match.players.map((player, index) => ({
+      ...player,
+      role: roles[index],
+    }));
+
+    match = startMatch(match);
+    match = submitNightCall(match, "werewolf", {
+      kind: "werewolf-attack",
+      targetId: players[3].id,
+    });
+    match = submitNightCall(match, "seer", {
+      kind: "seer-investigate",
+      targetId: players[0].id,
+    });
+    match = continueAfterSeerResult(match);
+    match = submitNightCall(match, "spellcaster", {
+      kind: "spellcaster-silence",
+      targetId: players[2].id,
+    });
+    const resolved = resolveNight(match).match;
+    assert.equal(resolved.lastSpellcasterTargetId, players[2].id);
+
+    await saveGameAndMatch(game, resolved);
+    const backup = await createBackup();
+    assert.deepEqual(
+      backup.games.find((entry) => entry.game.id === game.id)?.match,
+      resolved,
+    );
+    assert.equal(await importBackup(backup), 1);
+    assert.deepEqual(await getMatch(game.id), resolved);
     await deleteGame(game.id);
   });
 

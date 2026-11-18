@@ -99,6 +99,25 @@ describe("createMatch", () => {
     );
   });
 
+  it("includes Conjurador in the role draw without counting it as a Werewolf", () => {
+    const match = createMatch(
+      {
+        id: "match-spellcaster",
+        name: "Spellcaster game",
+        players: players(5),
+        roleCounts: { werewolf: 1, seer: 1, spellcaster: 1, villager: 2 },
+        dayDurationMinutes: 5,
+      },
+      () => 0,
+    );
+
+    assert.deepEqual(
+      match.players.map((player) => player.role).sort(),
+      ["seer", "spellcaster", "villager", "villager", "werewolf"],
+    );
+    assert.equal(match.rulesetId, "werewolf-god-v1");
+  });
+
   it("rejects invalid player counts and role compositions", () => {
     const base = {
       id: "match-1",

@@ -79,6 +79,7 @@ export function createMatch(
     seer: input.roleCounts.seer ?? 0,
     lycan: input.roleCounts.lycan ?? 0,
     cursed: input.roleCounts.cursed ?? 0,
+    spellcaster: input.roleCounts.spellcaster ?? 0,
     villager: input.roleCounts.villager ?? 0,
   };
 

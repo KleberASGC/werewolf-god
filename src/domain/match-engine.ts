@@ -52,6 +52,8 @@ function getNightRoleForAction(action: NightAction): NightRole {
       return "witch";
     case "seer-investigate":
       return "seer";
+    case "spellcaster-silence":
+      return "spellcaster";
   }
 }
 
@@ -119,6 +121,13 @@ function validateNightAction(
       const target = validateLivingTarget(match, action.targetId);
       if (target.role === "seer") {
         throw new Error("A Vidente não pode investigar alguém do próprio grupo.");
+      }
+      break;
+    }
+    case "spellcaster-silence": {
+      validateLivingTarget(match, action.targetId);
+      if (action.targetId === match.lastSpellcasterTargetId) {
+        throw new Error("O Conjurador não pode repetir o alvo em dias consecutivos.");
       }
       break;
     }
@@ -206,9 +215,9 @@ export function submitNightCall(
     : match.night.actions;
   const nextCallIndex = match.night.nextCallIndex + 1;
   const night = { ...match.night, nextCallIndex, actions };
-  const phase = nextCallIndex < match.night.schedule.length
-    ? "night"
-    : action?.kind === "seer-investigate" ? "seer-result" : "night-resolution";
+  const phase = action?.kind === "seer-investigate"
+    ? "seer-result"
+    : nextCallIndex < match.night.schedule.length ? "night" : "night-resolution";
 
   return {
     ...match,
@@ -219,14 +228,20 @@ export function submitNightCall(
 
 export function continueAfterSeerResult(match: MatchState): MatchState {
   if (match.phase !== "seer-result" || !match.night ||
-      match.night.nextCallIndex !== match.night.schedule.length ||
+      match.night.nextCallIndex === 0 ||
+      match.night.schedule[match.night.nextCallIndex - 1] !== "seer" ||
       !match.night.actions.some(
         (record) => record.role === "seer" && record.action.kind === "seer-investigate",
       )) {
     throw new Error("Não há resultado da Vidente aguardando confirmação.");
   }
 
-  return { ...match, phase: "night-resolution" };
+  return {
+    ...match,
+    phase: match.night.nextCallIndex < match.night.schedule.length
+      ? "night"
+      : "night-resolution",
+  };
 }
 
 export function reviseNightAction(
@@ -311,6 +326,7 @@ export function resolveNight(match: MatchState): NightResolution {
   let witchProtectionUsed = false;
   let witchEliminationUsed = false;
   let lastBodyguardTargetId = match.lastBodyguardTargetId;
+  let lastSpellcasterTargetId = match.lastSpellcasterTargetId;
 
   for (const { action } of match.night.actions) {
     switch (action.kind) {
@@ -332,6 +348,9 @@ export function resolveNight(match: MatchState): NightResolution {
         }
         break;
       case "seer-investigate":
+        break;
+      case "spellcaster-silence":
+        lastSpellcasterTargetId = action.targetId;
         break;
     }
   }
@@ -403,6 +422,7 @@ export function resolveNight(match: MatchState): NightResolution {
       eliminationUsed: match.witchResources.eliminationUsed || witchEliminationUsed,
     },
     lastBodyguardTargetId,
+    lastSpellcasterTargetId,
     history: appendHistory(match.history, historyEntry),
     ...(winner ? { winner } : {}),
   };

@@ -2,7 +2,7 @@
 
 Assistente web para apoiar mestres durante partidas presenciais de Lobisomem.
 
-A versão exibida no aplicativo vem do campo `version` de `package.json`. Atualize esse campo a cada release antes do deploy. Cada release também tem o codinome **Moonlit Howl**.
+A versão e o codinome exibidos no aplicativo vêm de `package.json` e são atualizados automaticamente pela pipeline de release.
 
 ## Status
 
@@ -92,6 +92,7 @@ Para revisar e criar um commit, use a skill [`commit-changes`](.github/skills/co
 - As mudanças entram na `main` por pull request; o ruleset deve exigir PR e o check `CI`, bloquear force push e conceder bypass apenas ao aplicativo de release.
 - O workflow `CI` executa testes, typecheck e build. Use a skill `open-pull-request` para escolher `release:major`, `release:minor` ou nenhum rótulo (patch).
 - Após o merge, o workflow de release verifica os arquivos do PR. Alterações na aplicação, assets, arquivos de build ou configuração de deploy geram nova versão e codinome e disparam o deploy na Cloudflare Pages. PRs somente de documentação, testes ou outras mudanças que não exigem rebuild não geram release.
+- Os codinomes são escolhidos primeiro da lista `available` em [docs/release-codenames.json](docs/release-codenames.json). Quando ela acaba, a pipeline combina palavras temáticas e, se necessário, usa um sufixo com a versão para manter o nome único. O histórico `used` evita repetições; mantenha-o ao adicionar nomes. Um aviso aparece quando restam cinco ou menos nomes selecionados.
 - O deploy aguarda aprovação no ambiente `production`, restrito à branch `main`. Na execução do workflow `Deploy` em **Actions**, clique em **Review deployments**, selecione `production` e escolha **Approve and deploy** ou **Reject**. A versão é atualizada antes da aprovação; até o deploy ser aprovado, a aplicação publicada continua na versão anterior.
 - O aplicativo de release precisa de permissão de escrita em Contents, bypass no ruleset, variável `RELEASE_APP_ID` e secret `RELEASE_APP_PRIVATE_KEY`.
 - Para o deploy, configure os secrets `CLOUDFLARE_API_TOKEN` e `CLOUDFLARE_ACCOUNT_ID`, a variável `CLOUDFLARE_PROJECT_NAME` e desative o auto-deploy Git da Cloudflare.

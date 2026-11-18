@@ -1,13 +1,13 @@
 # Conjunto de regras v1
 
-> **Estado: aprovado para implementação.** A proposta foi revisada pelo responsável do projeto em 2026-11-17. Não preencher lacunas sobre papéis futuros ou comportamentos fora do escopo com regras de outras edições.
+> **Estado: aprovado para implementação.** As regras do Conjurador foram revisadas pelo responsável do projeto em 2026-11-18. Não preencher lacunas sobre papéis futuros ou comportamentos fora do escopo com regras de outras edições.
 
 ## 1. Identificação
 
 - **Nome:** Conjunto inicial Werewolf God
-- **Versão:** 1.4.0
+- **Versão:** 1.5.0
 - **Estado:** Aprovado
-- **Papéis cobertos:** Lobisomens, Guarda-costas, Bruxa, Vidente, Lycan, Amaldiçoado e Aldeão
+- **Papéis cobertos:** Lobisomens, Guarda-costas, Bruxa, Vidente, Lycan, Amaldiçoado, Conjurador e Aldeão
 - **Objetivo:** formalizar o conjunto mínimo de regras necessário para a primeira partida jogável.
 
 A versão 1.1.0 acrescentou o Lycan às composições de novas partidas. A versão
@@ -15,9 +15,10 @@ A versão 1.1.0 acrescentou o Lycan às composições de novas partidas. A vers�
 1.3.0 definiu que a conversão do Amaldiçoado só se torna efetiva quando o mestre
 o desperta discretamente com os Lobisomens na noite seguinte. A versão 1.4.0
 esclarece que uma conversão pendente impede a vitória dos Aldeões quando todos
-os outros Lobisomens forem eliminados ou exilados. Partidas já salvas mantêm o
-estado e o comportamento registrados, sem migração de dados. O identificador do conjunto permanece
-`werewolf-god-v1`.
+os outros Lobisomens forem eliminados ou exilados. A versão 1.5.0 acrescenta
+o Conjurador às composições de novas partidas. As alterações são aditivas:
+partidas já salvas mantêm o estado e o comportamento registrados, sem migração
+de dados. O identificador do conjunto permanece `werewolf-god-v1`.
 
 ## 2. Preparação
 
@@ -30,6 +31,7 @@ estado e o comportamento registrados, sem migração de dados. O identificador d
 - Todos os papéis não Lobisomem começam no time dos Aldeões. Os Lobisomens formam o outro time; o Amaldiçoado pode mudar de time conforme a regra de conversão abaixo.
 - O Lycan pertence ao time dos Aldeões, não age à noite e aparece como Lobisomem somente no resultado da investigação da Vidente.
 - A composição pode incluir no máximo um Amaldiçoado. Ele começa no time dos Aldeões. Se os Lobisomens o atacarem sem proteção e a Bruxa não o atacar na mesma noite, sobrevive e a conversão fica pendente, conhecida somente pelo mestre. Na noite seguinte, antes da chamada dos Lobisomens, o mestre o desperta discretamente; somente nesse momento ele passa ao time dos Lobisomens e fica sabendo da conversão.
+- O Conjurador pertence ao time dos Aldeões e age à noite depois da Vidente.
 
 ### Cópias da mesma função
 
@@ -43,8 +45,8 @@ estado e o comportamento registrados, sem migração de dados. O identificador d
 ## 3. Fases e fluxo
 
 1. **Preparação:** cadastrar jogadores, configurar cartas e duração do dia, validar e sortear os papéis.
-2. **Noite:** o mestre orienta todos a fechar os olhos e chama, na ordem Lobisomens, Guarda-costas, Bruxa e Vidente, cada função que foi incluída na composição inicial e possui ação noturna.
-3. **Amanhecer:** após a chamada da Vidente, resolver as ações noturnas em conjunto, apresentar o resultado privado ao mestre e verificar a vitória.
+2. **Noite:** o mestre orienta todos a fechar os olhos e chama, na ordem Lobisomens, Guarda-costas, Bruxa, Vidente e Conjurador, cada função que foi incluída na composição inicial e possui ação noturna.
+3. **Amanhecer:** após as chamadas noturnas (incluindo a do Conjurador, se estiver na composição), resolver as ações em conjunto, apresentar o resultado privado ao mestre e verificar a vitória.
 4. **Discussão:** se a partida continuar, abrir o dia e iniciar o temporizador configurado.
 5. **Votação:** depois que o mestre encerrar a discussão, registrar um voto por jogador vivo e não exilado na ordem sorteada.
 6. **Resultado:** apurar a votação, aplicar eventual exílio sem revelar o papel e verificar a vitória.
@@ -62,9 +64,10 @@ Todas as funções incluídas na composição inicial que tenham ação noturna 
 | Vidente | Escolhe uma pessoa para investigar por noite. | Outro jogador vivo e não exilado; não pode escolher uma Vidente do grupo. | Informa somente se o alvo é Lobisomem ou Lycan, sem revelar o papel exato. O mestre sinaliza “L” com a mão para Lobisomem ou Lycan, ou balança o indicador para “não é Lobisomem”. |
 | Lycan | Nenhuma ação noturna. | — | Pertence ao time dos Aldeões e participa da discussão e votação como os demais jogadores vivos; para a Vidente, aparece como Lobisomem. |
 | Amaldiçoado | Nenhuma ação noturna; depois de uma conversão pendente, o mestre o desperta discretamente antes da chamada dos Lobisomens na noite seguinte. | No máximo um por partida. A conversão fica pendente se for alvo do ataque dos Lobisomens sem proteção e sem ataque simultâneo da Bruxa; só se efetiva quando o mestre o desperta na noite seguinte. | Começa Aldeão. Até ser despertado, permanece no time dos Aldeões e somente o mestre sabe da conversão pendente. Ao ser despertado, passa ao time dos Lobisomens e fica sabendo; a partir daí, a Vidente o vê como Lobisomem. |
+| Conjurador | Os Conjuradores vivos escolhem em consenso uma pessoa por noite. | Qualquer jogador vivo, inclusive o próprio Conjurador e integrantes do grupo. Não pode repetir o alvo em dias consecutivos. | O alvo não pode falar do amanhecer até o fim da votação seguinte. Depois de registrar a escolha, o mestre se aproxima sem fazer barulho e toca no ombro do alvo; o alvo continua votando sem falar. |
 | Aldeão | Nenhuma ação noturna. | — | Participa da discussão e vota enquanto estiver vivo e não exilado. |
 
-As ações de Guarda-costas e Vidente são obrigatórias a cada chamada quando há participantes vivos da função e alvo válido. Os usos da Bruxa são opcionais, mesmo quando disponíveis.
+As ações de Guarda-costas, Vidente e Conjurador são obrigatórias a cada chamada quando há participantes vivos da função e alvo válido. Os usos da Bruxa são opcionais, mesmo quando disponíveis.
 
 ## 5. Resolução noturna
 
@@ -76,6 +79,8 @@ As ações de Guarda-costas e Vidente são obrigatórias a cada chamada quando h
 - Na noite seguinte, antes de chamar os Lobisomens, o mestre o desperta discretamente. A conversão passa a valer e ele se junta ao grupo dos Lobisomens nesse momento. Se a Bruxa também o atacou na noite inicial sem proteção, ele morre normalmente e não há conversão pendente. Proteção de qualquer origem bloqueia os ataques e impede a conversão.
 - A Vidente o vê como não Lobisomem na noite do ataque inicial e também enquanto a conversão estiver pendente. Depois que o mestre o desperta com os Lobisomens, ele aparece como Lobisomem para investigações posteriores. A conversão só é registrada como efetiva na noite do despertar.
 - A proteção não impede exílio diurno.
+- A ação do Conjurador não altera a resolução de ataques, proteções ou investigações; o alvo é silenciado no dia seguinte, mesmo que sua própria ação noturna o elimine.
+- Depois de registrar a ação do Conjurador, o aplicativo lembra o mestre de se aproximar sem fazer barulho e tocar no ombro do alvo. O mestre mantém a escolha privada e não permite que o alvo fale durante a discussão ou votação. O alvo continua elegível e deve votar sem falar.
 - Ações válidas registradas antes de um agente morrer naquela noite ainda produzem efeito. O agente não pode realizar ações posteriores à eliminação.
 - O mestre vê os alvos, ações e causas privadas. Ao amanhecer, anuncia somente quem foi eliminado ou que ninguém foi eliminado; não revela papéis, ações ou proteções.
 - Se a partida terminar, o mestre anuncia o fim e o time vencedor.
@@ -87,6 +92,7 @@ As ações de Guarda-costas e Vidente são obrigatórias a cada chamada quando h
 - Ao zerar, o aplicativo avisa o mestre, mas não inicia a votação automaticamente.
 - A cada votação, o aplicativo sorteia novamente a ordem de todos os jogadores vivos e não exilados.
 - Cada votante deve votar em outro jogador vivo e não exilado ou escolher “anular”; não há abstenção e não é permitido votar em si mesmo.
+- A pessoa silenciada pelo Conjurador continua votando e indica seu voto sem falar.
 - Os votos são abertos; o aplicativo registra cada voto individual para o mestre.
 - Se mais da metade dos votantes elegíveis escolher “anular”, a votação é anulada.
 - Empate pelo maior número de votos anula a votação, inclusive empate entre “anular” e um jogador.
@@ -108,6 +114,7 @@ As ações de Guarda-costas e Vidente são obrigatórias a cada chamada quando h
 - Antes de confirmar a resolução noturna, o mestre pode revisar e corrigir as ações registradas.
 - Correções depois de uma noite ou votação concluída não fazem parte desta versão; o comportamento precisa ser definido antes de ser implementado.
 - A aplicação salva e retoma a partida localmente no mesmo dispositivo. Não há conta, serviço remoto ou sincronização neste escopo.
+- O alvo do Conjurador e o último alvo necessário para validar a repetição são persistidos nas partidas novas; campos ausentes em partidas e backups anteriores permanecem válidos e não recebem valores substitutos.
 
 ## 9. Cenários de aceitação
 
@@ -134,6 +141,9 @@ As ações de Guarda-costas e Vidente são obrigatórias a cada chamada quando h
 21. **Lycan:** permitir sua inclusão na composição, não agendá-lo para uma ação noturna e informar “Lobisomem” quando a Vidente investigar um Lycan; sua facção e condição de vitória continuam sendo as dos Aldeões.
 22. **Amaldiçoado:** limitar a uma carta na composição; iniciar como Aldeão; após ataque desprotegido dos Lobisomens, manter conversão pendente e secreta até o mestre despertá-lo discretamente na noite seguinte antes da chamada do grupo; contar como Aldeão e aparecer como não Lobisomem para a Vidente até esse despertar; passar então ao time dos Lobisomens e aparecer como Lobisomem nas investigações posteriores; preservar estado e histórico em salvamentos e backups.
 23. **Último Lobisomem e Amaldiçoado pendente:** se todos os Lobisomens restantes forem eliminados ou exilados, não declarar vitória dos Aldeões enquanto o Amaldiçoado com conversão pendente estiver vivo; continuar até despertá-lo discretamente, tornando-o o único Lobisomem.
+24. **Conjurador:** permitir uma ação coletiva obrigatória depois da Vidente; escolher qualquer jogador vivo, inclusive a si próprio ou alguém do grupo, mas não repetir o alvo em dias consecutivos. O alvo fica sem falar até o fim da votação, continua votando sem falar, e depois de registrar a ação o aplicativo lembra o mestre de se aproximar sem fazer barulho e tocar no ombro do alvo, sem revelar publicamente quem foi escolhido.
+25. **Chamadas do Conjurador:** incluir a chamada em todas as noites quando houver ao menos uma cópia na composição, inclusive se todas estiverem eliminadas; sem Conjuradores vivos, não registrar ação nem escolher alvo.
+26. **Partidas existentes:** carregar e restaurar partidas e backups anteriores sem Conjurador, mantendo seus papéis e comportamento sem migração.
 
 Os cenários abaixo são os contratos de aceitação do motor.
 
@@ -149,4 +159,4 @@ Os cenários abaixo são os contratos de aceitação do motor.
 - Regras e cenários revisados pelo responsável: **Sim**
 - Pendências bloqueadoras para o escopo v1: **Nenhuma conhecida**
 - Aprovado para implementação: **Sim**
-- Aprovador/data: **Responsável do projeto / 2026-11-18**
+- Aprovador/data: **Responsável do projeto / 2026-11-18 (revisão 1.5.0)**
