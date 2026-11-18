@@ -529,3 +529,41 @@ it("covers setup, night calls and review, resume, voting, victory, and history",
   });
   assert.ok(screen.getByText("vitória dos Aldeões."));
 });
+
+it("allows including Lycan and shows it as a Werewolf to the Seer", async () => {
+  await renderApp();
+  await waitFor(() => {
+    const button = screen.getByRole("button", { name: /Sortear papéis e preparar/ }) as HTMLButtonElement;
+    assert.equal(button.disabled, false);
+  });
+
+  fillInput("Nome da partida", "Lycan");
+  for (let index = 1; index <= 5; index += 1) {
+    fillInput(`Nome do participante ${index}`, `Jogador ${index}`);
+  }
+  for (const [role, count] of [
+    ["Guarda-costas", 0],
+    ["Bruxa", 0],
+    ["Lycan", 1],
+    ["Aldeão", 2],
+  ] as const) {
+    fireEvent.change(screen.getByRole("spinbutton", { name: `Quantidade de ${role}` }), {
+      target: { value: String(count) },
+    });
+  }
+  clickButton(/Sortear papéis e preparar/);
+  await screen.findByRole("heading", { name: "Preparação" });
+
+  const lycan = getRoleHolder("Lycan");
+  clickButton("Iniciar a partida");
+  await screen.findByRole("heading", { name: /Chamar: Lobisomem/ });
+  chooseRadio("night-target", (input) => selectedPlayerName(input) !== lycan);
+  clickButton("Registrar chamada e avançar");
+
+  await screen.findByRole("heading", { name: /Chamar: Vidente/ });
+  chooseRadio("night-target", (input) => selectedPlayerName(input) === lycan);
+  clickButton("Registrar chamada e avançar");
+
+  await screen.findByRole("heading", { level: 3, name: "Resultado da investigação" });
+  assert.ok(screen.getByText("é Lobisomem."));
+});

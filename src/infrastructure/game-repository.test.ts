@@ -63,12 +63,12 @@ describe("match persistence", () => {
       id: game.id,
       name: game.name,
       players,
-      roleCounts: { werewolf: 1, bodyguard: 1, witch: 1, seer: 1, villager: 1 },
+      roleCounts: { werewolf: 1, bodyguard: 1, witch: 1, seer: 1, lycan: 1 },
       dayDurationMinutes: 1,
     }, () => 0.5);
     match.players = match.players.map((player, index) => ({
       ...player,
-      role: (["werewolf", "bodyguard", "witch", "seer", "villager"] as const)[index],
+      role: (["werewolf", "bodyguard", "witch", "seer", "lycan"] as const)[index],
     }));
 
     async function roundTrip(state: MatchState): Promise<MatchState> {

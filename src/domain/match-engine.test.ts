@@ -241,6 +241,21 @@ describe("night flow and resolution", () => {
     assert.equal(continueAfterSeerResult(result).phase, "night-resolution");
   });
 
+  it("shows Lycan as a Werewolf to the Seer without scheduling a Lycan action", () => {
+    const match = createFixture(["werewolf", "seer", "lycan", "villager", "villager"]);
+    const started = startMatch(match);
+    assert.deepEqual(started.night?.schedule, ["werewolf", "seer"]);
+
+    const pending = recordNight(match, {
+      werewolf: { kind: "werewolf-attack", targetId: "player-4" },
+      seer: { kind: "seer-investigate", targetId: "player-3" },
+    });
+    const result = resolveNight(pending);
+
+    assert.deepEqual(result.investigations, [{ targetId: "player-3", isWerewolf: true }]);
+    assert.equal(result.match.players.find((player) => player.id === "player-3")?.status, "alive");
+  });
+
   it("does not allow the guard group to repeat its previous target", () => {
     const firstNight = resolveQuietNight(createFixture());
     const discussion = endDiscussion(startDiscussion(firstNight, 0), 0);

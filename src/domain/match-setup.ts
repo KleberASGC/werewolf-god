@@ -77,6 +77,7 @@ export function createMatch(
     bodyguard: input.roleCounts.bodyguard ?? 0,
     witch: input.roleCounts.witch ?? 0,
     seer: input.roleCounts.seer ?? 0,
+    lycan: input.roleCounts.lycan ?? 0,
     villager: input.roleCounts.villager ?? 0,
   };
 

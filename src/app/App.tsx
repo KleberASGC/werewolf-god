@@ -25,6 +25,7 @@ import type {
 } from "../domain/match";
 import { createMatch, type PlayerInput } from "../domain/match-setup";
 import {
+  appearsAsWerewolfToSeer,
   ROLE_IDS,
   ROLE_LABELS,
   type NightRole,
@@ -48,6 +49,7 @@ const INITIAL_ROLE_COUNTS: Record<RoleId, number> = {
   bodyguard: 1,
   witch: 1,
   seer: 1,
+  lycan: 0,
   villager: 1,
 };
 const RELEASE_LABEL = `v${packageVersion} · Moonlit Howl`;
@@ -70,7 +72,7 @@ function getRoleCounts(players: MatchPlayer[]): Record<RoleId, number> {
   return players.reduce<Record<RoleId, number>>((counts, player) => {
     counts[player.role] += 1;
     return counts;
-  }, { werewolf: 0, bodyguard: 0, witch: 0, seer: 0, villager: 0 });
+  }, { werewolf: 0, bodyguard: 0, witch: 0, seer: 0, lycan: 0, villager: 0 });
 }
 
 function playerName(match: MatchState, playerId: string): string {
@@ -636,7 +638,7 @@ function MasterConsole({
               return (
                 <p key={action.targetId}>
                   <strong>{target.name}</strong>{" "}
-                  {target.role === "werewolf" ? "é Lobisomem." : "não é Lobisomem."}
+                  {appearsAsWerewolfToSeer(target.role) ? "é Lobisomem." : "não é Lobisomem."}
                 </p>
               );
             })}

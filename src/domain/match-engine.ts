@@ -1,4 +1,8 @@
-import { NIGHT_ROLE_ORDER, type NightRole } from "./ruleset-v1";
+import {
+  appearsAsWerewolfToSeer,
+  NIGHT_ROLE_ORDER,
+  type NightRole,
+} from "./ruleset-v1";
 import { shuffleOrder, type RandomSource } from "./match-setup";
 import type {
   MatchHistoryEntry,
@@ -294,7 +298,7 @@ export function resolveNight(match: MatchState): NightResolution {
   const investigations = match.night.actions.flatMap((record) => {
     if (record.action.kind === "seer-investigate") {
       const target = getPlayer(match, record.action.targetId);
-      return [{ targetId: target.id, isWerewolf: target.role === "werewolf" }];
+      return [{ targetId: target.id, isWerewolf: appearsAsWerewolfToSeer(target.role) }];
     }
     return [];
   });

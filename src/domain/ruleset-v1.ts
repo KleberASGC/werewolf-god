@@ -7,6 +7,7 @@ export const ROLE_IDS = [
   "bodyguard",
   "witch",
   "seer",
+  "lycan",
   "villager",
 ] as const;
 
@@ -26,8 +27,13 @@ export const ROLE_LABELS: Record<RoleId, string> = {
   bodyguard: "Guarda-costas",
   witch: "Bruxa",
   seer: "Vidente",
+  lycan: "Lycan",
   villager: "Aldeão",
 };
+
+export function appearsAsWerewolfToSeer(role: RoleId): boolean {
+  return role === "werewolf" || role === "lycan";
+}
 
 export function hasNightAction(role: RoleId): role is NightRole {
   switch (role) {
@@ -36,6 +42,7 @@ export function hasNightAction(role: RoleId): role is NightRole {
     case "witch":
     case "seer":
       return true;
+    case "lycan":
     case "villager":
       return false;
   }

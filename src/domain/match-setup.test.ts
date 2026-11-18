@@ -51,6 +51,25 @@ describe("createMatch", () => {
     assert.equal(make(75).players.length, 75);
   });
 
+  it("includes Lycan in the role draw without counting it as a Werewolf", () => {
+    const match = createMatch(
+      {
+        id: "match-lycan",
+        name: "Lycan game",
+        players: players(5),
+        roleCounts: { werewolf: 1, seer: 1, lycan: 1, villager: 2 },
+        dayDurationMinutes: 5,
+      },
+      () => 0,
+    );
+
+    assert.deepEqual(
+      match.players.map((player) => player.role).sort(),
+      ["lycan", "seer", "villager", "villager", "werewolf"],
+    );
+    assert.equal(match.rulesetId, "werewolf-god-v1");
+  });
+
   it("rejects invalid player counts and role compositions", () => {
     const base = {
       id: "match-1",

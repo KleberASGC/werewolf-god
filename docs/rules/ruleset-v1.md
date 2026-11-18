@@ -5,10 +5,15 @@
 ## 1. Identificação
 
 - **Nome:** Conjunto inicial Werewolf God
-- **Versão:** 1.0.0
+- **Versão:** 1.1.0
 - **Estado:** Aprovado
-- **Papéis cobertos:** Lobisomens, Guarda-costas, Bruxa, Vidente e Aldeão
+- **Papéis cobertos:** Lobisomens, Guarda-costas, Bruxa, Vidente, Lycan e Aldeão
 - **Objetivo:** formalizar o conjunto mínimo de regras necessário para a primeira partida jogável.
+
+A versão 1.1.0 acrescenta o Lycan às composições de novas partidas. É uma
+alteração aditiva: partidas já salvas sem Lycan mantêm seus papéis e
+comportamento, sem migração de dados. O identificador do conjunto permanece
+`werewolf-god-v1`.
 
 ## 2. Preparação
 
@@ -19,6 +24,7 @@
 - O aplicativo sorteia uma carta por jogador e mostra a associação somente ao mestre, que entrega as cartas físicas.
 - Não há limite individual adicional de cópias dos papéis descritos além do total de cartas e das restrições acima.
 - Todos os papéis não Lobisomem descritos pertencem ao time dos Aldeões. Os Lobisomens formam o outro time.
+- O Lycan pertence ao time dos Aldeões, não age à noite e aparece como Lobisomem somente no resultado da investigação da Vidente.
 
 ### Cópias da mesma função
 
@@ -48,7 +54,8 @@ Todas as funções incluídas na composição inicial que tenham ação noturna 
 | Lobisomens | Escolhem por consenso uma vítima. | Outro jogador vivo e não exilado que não seja Lobisomem. | Ataque noturno; a vítima é eliminada se não estiver protegida. |
 | Guarda-costas | Escolhe uma pessoa para proteger a cada noite. | Qualquer jogador vivo e não exilado; pode escolher no máximo um dos próprios membros. Não pode repetir o alvo da noite anterior. | Protege de eliminações noturnas dos Lobisomens ou da Bruxa, mas não do exílio. |
 | Bruxa | O grupo compartilha um uso de proteção e um uso de eliminação durante toda a partida; pode usar nenhum, um ou ambos. | Proteção: qualquer jogador vivo e não exilado, inclusive no máximo uma Bruxa do grupo. Eliminação: outro jogador vivo e não exilado, nunca uma Bruxa do grupo. Se usar ambas na mesma noite, os alvos devem ser diferentes. | Proteção bloqueia ataques noturnos dos Lobisomens ou da Bruxa. Eliminação causa morte se o alvo não estiver protegido. Cada uso escolhido é consumido mesmo quando redundante ou bloqueado. |
-| Vidente | Escolhe uma pessoa para investigar por noite. | Outro jogador vivo e não exilado; não pode escolher uma Vidente do grupo. | Informa somente se o alvo é Lobisomem, sem revelar o papel exato. O mestre sinaliza “L” com a mão para Lobisomem ou balança o indicador para “não é Lobisomem”. |
+| Vidente | Escolhe uma pessoa para investigar por noite. | Outro jogador vivo e não exilado; não pode escolher uma Vidente do grupo. | Informa somente se o alvo é Lobisomem ou Lycan, sem revelar o papel exato. O mestre sinaliza “L” com a mão para Lobisomem ou Lycan, ou balança o indicador para “não é Lobisomem”. |
+| Lycan | Nenhuma ação noturna. | — | Pertence ao time dos Aldeões e participa da discussão e votação como os demais jogadores vivos; para a Vidente, aparece como Lobisomem. |
 | Aldeão | Nenhuma ação noturna. | — | Participa da discussão e vota enquanto estiver vivo e não exilado. |
 
 As ações de Guarda-costas e Vidente são obrigatórias a cada chamada quando há participantes vivos da função e alvo válido. Os usos da Bruxa são opcionais, mesmo quando disponíveis.
@@ -103,7 +110,7 @@ As ações de Guarda-costas e Vidente são obrigatórias a cada chamada quando h
 8. **Bruxa com usos compartilhados:** em todo o grupo, há no máximo um uso de proteção e um de eliminação; cada uso pode ser usado independentemente, ambos na mesma noite contra pessoas diferentes, ou não ser usado.
 9. **Uso da Bruxa bloqueado:** eliminar alvo protegido consome o uso de eliminação; proteger pessoa já protegida consome o uso de proteção.
 10. **Guarda-costas:** deve escolher alvo elegível e não pode repetir o alvo da noite anterior; a proteção não evita exílio.
-11. **Vidente:** investigar outro jogador vivo retorna apenas “Lobisomem” ou “não Lobisomem”, sem papel exato.
+11. **Vidente:** investigar outro jogador vivo retorna apenas “Lobisomem” ou “não Lobisomem”, sem papel exato; Lobisomem e Lycan retornam “Lobisomem”.
 12. **Ação antes da morte:** se um agente realizar ação válida e morrer na mesma noite, sua ação continua produzindo efeito.
 13. **Amanhecer privado:** o resultado público lista apenas eliminados ou ausência de mortes, nunca as causas, papéis ou proteções.
 14. **Temporizador:** aceitar de 1 a 10 minutos, permitir pausa e encerramento antecipado, avisar ao chegar a zero sem iniciar votação.
@@ -113,6 +120,7 @@ As ações de Guarda-costas e Vidente são obrigatórias a cada chamada quando h
 18. **Vitória:** encerrar após resolução noturna ou exílio diurno quando uma das condições de vitória for satisfeita; não iniciar fase seguinte.
 19. **Anulação sem maioria:** com quatro votantes, duas anulações e votos divididos entre dois jogadores, ninguém é exilado; registrar anulação sem maioria.
 20. **Retomada local:** salvar a fase e o estado corrente e restaurá-los ao reabrir a aplicação no mesmo navegador.
+21. **Lycan:** permitir sua inclusão na composição, não agendá-lo para uma ação noturna e informar “Lobisomem” quando a Vidente investigar um Lycan; sua facção e condição de vitória continuam sendo as dos Aldeões.
 
 Os cenários abaixo são os contratos de aceitação para a primeira versão do motor.
 
