@@ -2,6 +2,7 @@
   "name": "werewolf-god",
   "private": true,
   "version": "1.0.0",
+  "codename": "Moonlit Howl",
   "type": "module",
   "scripts": {
     "dev": "vite",

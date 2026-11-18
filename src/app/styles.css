@@ -49,6 +49,24 @@ button {
   border-bottom: 1px solid rgb(219 227 207 / 10%);
 }
 
+.topbar-actions {
+  display: flex;
+  align-items: center;
+  gap: 18px;
+}
+
+.catalog-link {
+  color: #c7d4b8;
+  font-size: 11px;
+  text-decoration: none;
+}
+
+.catalog-link:hover {
+  color: var(--green);
+  text-decoration: underline;
+  text-underline-offset: 4px;
+}
+
 .brand {
   display: inline-flex;
   align-items: center;
@@ -628,6 +646,7 @@ select:focus-visible {
 }
 
 .role-count {
+  position: relative;
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -636,10 +655,190 @@ select:focus-visible {
   font-size: 11px;
 }
 
+.role-count > label {
+  min-width: 0;
+  flex: 1;
+  cursor: pointer;
+}
+
+.role-info {
+  position: relative;
+  order: 2;
+  flex: 0 0 auto;
+}
+
+.role-info summary {
+  display: grid;
+  width: 23px;
+  height: 23px;
+  place-items: center;
+  border: 1px solid #53634a;
+  border-radius: 50%;
+  color: var(--green);
+  cursor: help;
+  font-family: Georgia, serif;
+  font-size: 14px;
+  font-style: italic;
+  line-height: 1;
+  list-style: none;
+}
+
+.role-info summary::-webkit-details-marker {
+  display: none;
+}
+
+.role-info summary:focus-visible {
+  outline: 2px solid var(--green);
+  outline-offset: 2px;
+}
+
+.role-info > span {
+  position: absolute;
+  z-index: 4;
+  top: calc(100% + 8px);
+  right: -70px;
+  display: none;
+  width: min(250px, calc(100vw - 64px));
+  padding: 11px 12px;
+  border: 1px solid #53634a;
+  border-radius: 5px;
+  background: #202720;
+  box-shadow: 0 8px 20px rgb(0 0 0 / 35%);
+  color: #e0e6d9;
+  font-size: 11px;
+  font-weight: 400;
+  line-height: 1.55;
+}
+
+.role-info:hover > span,
+.role-info:focus-within > span,
+.role-info[open] > span {
+  display: block;
+}
+
 .role-count input {
+  order: 3;
   width: 64px;
   height: 38px;
   padding: 0 8px;
+}
+
+.catalog-section {
+  scroll-margin-top: 24px;
+  margin: 72px 0 0;
+  padding: 38px 0 8px;
+  border-top: 1px solid rgb(219 227 207 / 12%);
+}
+
+.catalog-heading {
+  max-width: 600px;
+  margin-bottom: 26px;
+}
+
+.catalog-heading .eyebrow {
+  margin-bottom: 9px;
+}
+
+.catalog-heading h2 {
+  margin: 0;
+  color: #e6eadf;
+  font-size: clamp(27px, 5vw, 38px);
+  font-weight: 500;
+  letter-spacing: -0.04em;
+}
+
+.catalog-heading > p:last-child {
+  margin: 12px 0 0;
+  color: #aab1a6;
+  font-size: 13px;
+  line-height: 1.65;
+}
+
+.role-catalog {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 14px;
+}
+
+.role-card {
+  display: grid;
+  min-width: 0;
+  grid-template-columns: 76px minmax(0, 1fr);
+  align-items: center;
+  gap: 15px;
+  padding: 17px;
+  border: 1px solid var(--line);
+  border-radius: 7px;
+  background: linear-gradient(145deg, rgb(29 36 29 / 97%), rgb(23 28 24 / 97%));
+}
+
+.role-card-art {
+  display: grid;
+  width: 76px;
+  height: 76px;
+  place-items: center;
+  border: 1px solid #46533f;
+  border-radius: 50%;
+  background: #202820;
+  color: var(--green);
+}
+
+.role-illustration {
+  width: 64px;
+  height: 64px;
+  overflow: visible;
+  fill: none;
+  stroke: currentColor;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke-width: 3;
+}
+
+.role-illustration-witch,
+.role-illustration-lycan {
+  stroke-width: 2.5;
+}
+
+.role-illustration-villager circle {
+  fill: rgb(194 212 156 / 16%);
+}
+
+.role-card-werewolf .role-card-art {
+  border-color: #725448;
+  background: #30241f;
+  color: #e1aa8d;
+}
+
+.role-card-witch .role-card-art,
+.role-card-seer .role-card-art {
+  color: #d3c28d;
+}
+
+.role-card-copy {
+  min-width: 0;
+}
+
+.role-card-faction {
+  margin: 0 0 5px;
+  color: #a3ad97;
+  font-family: var(--mono);
+  font-size: 8px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.role-card-copy h3 {
+  margin: 0;
+  color: #e8ecdf;
+  font-size: 15px;
+  font-weight: 600;
+}
+
+.role-card-copy > p:last-child {
+  margin: 8px 0 0;
+  color: #aab1a6;
+  font-size: 11px;
+  line-height: 1.55;
 }
 
 .duration-field {
@@ -1062,12 +1261,28 @@ a:focus-visible {
     height: 70px;
   }
 
+  .topbar-actions {
+    gap: 0;
+  }
+
+  .topbar-actions .status-pill {
+    display: none;
+  }
+
+  .catalog-link {
+    font-size: 12px;
+  }
+
   .intro {
     padding: 48px 0 31px;
   }
 
   .workspace {
     grid-template-columns: 1fr;
+  }
+
+  .role-catalog {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
   .panel {
@@ -1136,6 +1351,32 @@ a:focus-visible {
 
   .empty-state {
     min-height: 155px;
+  }
+}
+
+@media (max-width: 560px) {
+  .role-catalog {
+    grid-template-columns: 1fr;
+  }
+
+  .role-card {
+    grid-template-columns: 68px minmax(0, 1fr);
+    padding: 14px;
+  }
+
+  .role-card-art {
+    width: 68px;
+    height: 68px;
+  }
+
+  .role-illustration {
+    width: 58px;
+    height: 58px;
+  }
+
+  .catalog-section {
+    margin-top: 52px;
+    padding-top: 30px;
   }
 }
 

@@ -1,5 +1,5 @@
-import { useEffect, useRef, useState, type ChangeEvent, type FormEvent } from "react";
-import { version as packageVersion } from "../../package.json";
+import { useEffect, useId, useRef, useState, type ChangeEvent, type FormEvent } from "react";
+import { version as packageVersion, codename as releaseCodename } from "../../package.json";
 import {
   continueAfterSeerResult,
   endDiscussion,
@@ -52,7 +52,100 @@ const INITIAL_ROLE_COUNTS: Record<RoleId, number> = {
   lycan: 0,
   villager: 1,
 };
-const RELEASE_LABEL = `v${packageVersion} · Moonlit Howl`;
+const RELEASE_LABEL = `v${packageVersion} · ${releaseCodename}`;
+const ROLE_DESCRIPTIONS: Record<RoleId, string> = {
+  werewolf: "À noite, os Lobisomens vivos escolhem em consenso um jogador que não seja Lobisomem para eliminar.",
+  bodyguard: "Protege uma pessoa de ataques noturnos. Não pode proteger o mesmo alvo em noites consecutivas.",
+  witch: "Compartilha um uso de proteção e um de eliminação durante toda a partida; ambos são opcionais.",
+  seer: "Investiga uma pessoa por noite e descobre apenas se ela aparece como Lobisomem.",
+  lycan: "Faz parte dos Aldeões, não age à noite e aparece como Lobisomem para a Vidente.",
+  villager: "Não tem ação noturna; participa da discussão e vota para eliminar Lobisomens.",
+};
+const ROLE_FACTIONS: Record<RoleId, string> = {
+  werewolf: "Facção dos Lobisomens",
+  bodyguard: "Facção dos Aldeões",
+  witch: "Facção dos Aldeões",
+  seer: "Facção dos Aldeões",
+  lycan: "Facção dos Aldeões",
+  villager: "Facção dos Aldeões",
+};
+
+function RoleCountField({
+  role,
+  value,
+  onChange,
+}: {
+  role: RoleId;
+  value: number;
+  onChange: (value: number) => void;
+}) {
+  const inputId = useId();
+
+  return (
+    <div className="role-count">
+      <label htmlFor={inputId}>{ROLE_LABELS[role]}</label>
+      <details className="role-info">
+        <summary aria-label={`Informações sobre ${ROLE_LABELS[role]}`}>i</summary>
+        <span>{ROLE_DESCRIPTIONS[role]}</span>
+      </details>
+      <input
+        id={inputId}
+        aria-label={`Quantidade de ${ROLE_LABELS[role]}`}
+        max={75}
+        min={0}
+        onChange={(event) => onChange(Number(event.target.value))}
+        type="number"
+        value={value}
+      />
+    </div>
+  );
+}
+
+function RoleIllustration({ role }: { role: RoleId }) {
+  return (
+    <svg aria-hidden="true" className={`role-illustration role-illustration-${role}`} viewBox="0 0 120 120">
+      {role === "werewolf" && (
+        <>
+          <path d="m29 47-8-29 28 15c7-3 15-3 22 0l28-15-8 29c7 10 8 24 1 36-8 15-20 23-32 23S36 98 28 83c-7-12-6-26 1-36Z" />
+          <path d="m39 60 12 4m30-4-12 4M48 78l12 5 12-5" />
+        </>
+      )}
+      {role === "bodyguard" && (
+        <>
+          <path d="M60 13 96 27v27c0 25-15 43-36 54C39 97 24 79 24 54V27l36-14Z" />
+          <path d="M60 34v48M42 58h36" />
+        </>
+      )}
+      {role === "witch" && (
+        <>
+          <path d="m23 72 69-2-20-18-8-34-20 30-21 24Z" />
+          <path d="M20 78c12-8 26-8 40-3 14 5 28 5 40-2-7 18-21 27-40 27S27 91 20 78Z" />
+          <path d="m85 23 3 8 8 3-8 3-3 8-3-8-8-3 8-3 3-8Z" />
+        </>
+      )}
+      {role === "seer" && (
+        <>
+          <path d="M13 60s17-28 47-28 47 28 47 28-17 28-47 28-47-28-47-28Z" />
+          <circle cx="60" cy="60" r="15" />
+          <circle cx="60" cy="60" r="5" />
+        </>
+      )}
+      {role === "lycan" && (
+        <>
+          <path d="M77 18c-6 7-10 17-10 28 0 24 19 43 43 43 2 0 4 0 6-.4-8 17-26 29-46 29-28 0-51-23-51-51 0-27 21-49 48-51-1 1-1 2-1 2Z" />
+          <path d="m91 24 3 8 8 3-8 3-3 8-3-8-8-3 8-3 3-8Z" />
+        </>
+      )}
+      {role === "villager" && (
+        <>
+          <circle cx="60" cy="43" r="20" />
+          <path d="M22 104c3-24 18-37 38-37s35 13 38 37H22Z" />
+          <path d="M45 77h30" />
+        </>
+      )}
+    </svg>
+  );
+}
 
 function errorMessage(error: unknown): string {
   return error instanceof Error ? error.message : "Ocorreu um erro inesperado.";
@@ -1083,20 +1176,12 @@ function GameEditor({
           </p>
           <div className="role-counts">
             {ROLE_IDS.map((role) => (
-              <label className="role-count" key={role}>
-                <span>{ROLE_LABELS[role]}</span>
-                <input
-                  aria-label={`Quantidade de ${ROLE_LABELS[role]}`}
-                  max={75}
-                  min={0}
-                  onChange={(event) => setRoleCounts((counts) => ({
-                    ...counts,
-                    [role]: Number(event.target.value),
-                  }))}
-                  type="number"
-                  value={roleCounts[role]}
-                />
-              </label>
+              <RoleCountField
+                key={role}
+                onChange={(value) => setRoleCounts((counts) => ({ ...counts, [role]: value }))}
+                role={role}
+                value={roleCounts[role]}
+              />
             ))}
           </div>
           <p className="field-hint">
@@ -1435,7 +1520,10 @@ function App() {
             <span className="release-version">{RELEASE_LABEL}</span>
           </span>
         </a>
-        <span className="status-pill"><span /> VERSÃO ATUAL</span>
+        <div className="topbar-actions">
+          <a className="catalog-link" href="#personagens">Personagens</a>
+          <span className="status-pill"><span /> VERSÃO ATUAL</span>
+        </div>
       </header>
 
       <main>
@@ -1512,20 +1600,12 @@ function App() {
                 <p className="field-hint">A soma deve corresponder aos participantes nomeados.</p>
                 <div className="role-counts">
                   {ROLE_IDS.map((role) => (
-                    <label className="role-count" key={role}>
-                      <span>{ROLE_LABELS[role]}</span>
-                      <input
-                        aria-label={`Quantidade de ${ROLE_LABELS[role]}`}
-                        max={75}
-                        min={0}
-                        onChange={(event) => setRoleCounts((counts) => ({
-                          ...counts,
-                          [role]: Number(event.target.value),
-                        }))}
-                        type="number"
-                        value={roleCounts[role]}
-                      />
-                    </label>
+                    <RoleCountField
+                      key={role}
+                      onChange={(value) => setRoleCounts((counts) => ({ ...counts, [role]: value }))}
+                      role={role}
+                      value={roleCounts[role]}
+                    />
                   ))}
                 </div>
                 <label className="field-label duration-field" htmlFor="day-duration">
@@ -1673,6 +1753,31 @@ function App() {
             </section>
           </section>
         </div>
+
+        <section className="catalog-section" id="personagens" aria-labelledby="catalog-title">
+          <div className="catalog-heading">
+            <p className="eyebrow">GUIA RÁPIDO</p>
+            <h2 id="catalog-title">Personagens da vila</h2>
+            <p>
+              Conheça as funções disponíveis e o que cada personagem faz. As ilustrações
+              são originais e não alteram as regras aprovadas do jogo.
+            </p>
+          </div>
+          <div className="role-catalog">
+            {ROLE_IDS.map((role) => (
+              <article className={`role-card role-card-${role}`} key={role}>
+                <div className="role-card-art">
+                  <RoleIllustration role={role} />
+                </div>
+                <div className="role-card-copy">
+                  <p className="role-card-faction">{ROLE_FACTIONS[role]}</p>
+                  <h3>{ROLE_LABELS[role]}</h3>
+                  <p>{ROLE_DESCRIPTIONS[role]}</p>
+                </div>
+              </article>
+            ))}
+          </div>
+        </section>
 
         <footer className="page-footer">
           <span>FEITO PARA QUEM CONDUZ A HISTÓRIA</span>
