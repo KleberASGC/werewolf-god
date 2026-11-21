@@ -59,6 +59,8 @@ function getNightRoleForAction(action: NightAction): NightRole {
       return "spellcaster";
     case "cupid-link":
       return "cupid";
+    case "hooker-sleep":
+      return "hooker";
   }
 }
 
@@ -141,6 +143,14 @@ function validateNightAction(
       validateLivingTarget(match, action.targetId);
       if (action.targetId === match.lastSpellcasterTargetId) {
         throw new Error("O Conjurador não pode repetir o alvo em dias consecutivos.");
+      }
+      break;
+    }
+    case "hooker-sleep": {
+      const target = validateLivingTarget(match, action.targetId);
+      const hooker = match.players.find((player) => player.role === "hooker");
+      if (target.id === hooker?.id) {
+        throw new Error("A Quenga não pode escolher a si mesma.");
       }
       break;
     }
@@ -227,7 +237,13 @@ export function submitNightCall(
   if (!groupHasLivingPlayers && action) {
     throw new Error("Uma função sem participantes vivos não pode registrar uma ação.");
   }
-  if (groupHasLivingPlayers && role !== "witch" && role !== "revealer" && !action) {
+  if (
+    groupHasLivingPlayers &&
+    role !== "witch" &&
+    role !== "revealer" &&
+    role !== "hooker" &&
+    !action
+  ) {
     throw new Error("A função precisa registrar sua ação antes de avançar.");
   }
   if (action) {
@@ -286,7 +302,7 @@ export function reviseNightAction(
   if (existingIndex < 0 && !action) {
     throw new Error("Não há ação registrada para remover.");
   }
-  if (role !== "witch" && role !== "revealer" && !action) {
+  if (role !== "witch" && role !== "revealer" && role !== "hooker" && !action) {
     throw new Error("A ação desta função é obrigatória.");
   }
   if (!hasLivingMember(match, role) && action) {
@@ -330,7 +346,13 @@ export function resolveNight(match: MatchState): NightResolution {
     if (!hasLivingMember(match, role) && record) {
       throw new Error("Uma função sem participantes vivos não pode ter ação registrada.");
     }
-    if (hasLivingMember(match, role) && role !== "witch" && role !== "revealer" && !record) {
+    if (
+      hasLivingMember(match, role) &&
+      role !== "witch" &&
+      role !== "revealer" &&
+      role !== "hooker" &&
+      !record
+    ) {
       throw new Error("Uma ação noturna obrigatória não foi registrada.");
     }
     if (record) {
@@ -388,23 +410,34 @@ export function resolveNight(match: MatchState): NightResolution {
       case "spellcaster-silence":
         lastSpellcasterTargetId = action.targetId;
         break;
+      case "hooker-sleep":
       case "cupid-link":
         break;
     }
   }
 
+  const hooker = match.players.find((player) => player.role === "hooker");
+  const hookerAction = match.night.actions.find((record) => record.role === "hooker")?.action;
+  const hookerBedTarget = hookerAction?.kind === "hooker-sleep"
+    ? getPlayer(match, hookerAction.targetId)
+    : undefined;
+  const hookerIsAwayFromHome = hookerBedTarget !== undefined &&
+    hookerBedTarget.role !== "werewolf";
+  const effectiveAttacks = attacks.filter((attack) =>
+    !(hookerIsAwayFromHome && attack.role === "werewolf" && attack.targetId === hooker?.id),
+  );
   const blockedAttackTargetIds = [
     ...new Set(
-      attacks
+      effectiveAttacks
         .filter((attack) => protectionTargetIds.has(attack.targetId))
         .map((attack) => attack.targetId),
     ),
   ];
   const wolfAttackTargetIds = new Set(
-    attacks.filter((attack) => attack.role === "werewolf").map((attack) => attack.targetId),
+    effectiveAttacks.filter((attack) => attack.role === "werewolf").map((attack) => attack.targetId),
   );
   const witchAttackTargetIds = new Set(
-    attacks.filter((attack) => attack.role === "witch").map((attack) => attack.targetId),
+    effectiveAttacks.filter((attack) => attack.role === "witch").map((attack) => attack.targetId),
   );
   const convertedPlayerIds = [...wolfAttackTargetIds].filter((targetId) => {
     const target = getPlayer(match, targetId);
@@ -413,18 +446,32 @@ export function resolveNight(match: MatchState): NightResolution {
       !witchAttackTargetIds.has(targetId);
   });
   const pendingConversion = new Set(convertedPlayerIds);
-  const eliminated = new Set(
-    attacks
-      .filter((attack) => !protectionTargetIds.has(attack.targetId))
-      .map((attack) => attack.targetId)
-      .filter((targetId) => !pendingConversion.has(targetId)),
-  );
   const cupidAction = match.night.actions.find(
     (record) => record.action.kind === "cupid-link",
   )?.action;
   const cupidLinkedPlayerIds = cupidAction?.kind === "cupid-link"
     ? [cupidAction.firstTargetId, cupidAction.secondTargetId] as [string, string]
     : match.cupidLinkedPlayerIds;
+  const hookerEliminatedByNightEffect = hooker &&
+    !protectionTargetIds.has(hooker.id) &&
+    (
+      hookerBedTarget?.role === "werewolf" ||
+      (
+        hookerBedTarget !== undefined &&
+        wolfAttackTargetIds.has(hookerBedTarget.id)
+      )
+    )
+    ? [hooker.id]
+    : [];
+  const eliminated = new Set(
+    [
+      ...effectiveAttacks
+        .filter((attack) => !protectionTargetIds.has(attack.targetId))
+        .map((attack) => attack.targetId)
+        .filter((targetId) => !pendingConversion.has(targetId)),
+      ...hookerEliminatedByNightEffect,
+    ],
+  );
   if (cupidLinkedPlayerIds) {
     const [firstId, secondId] = cupidLinkedPlayerIds;
     if (eliminated.has(firstId) && !protectionTargetIds.has(secondId)) {

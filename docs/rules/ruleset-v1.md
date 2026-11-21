@@ -1,13 +1,13 @@
 # Conjunto de regras v1
 
-> **Estado: aprovado para implementação.** As regras do Conjurador (1.5.0), do Denunciador (1.6.0) e do Cupido (1.7.0) foram aprovadas para implementação. Não preencher lacunas sobre papéis futuros ou comportamentos fora do escopo com regras de outras edições.
+> **Estado: aprovado para implementação.** As regras do Conjurador (1.5.0), do Denunciador (1.6.0), do Cupido (1.7.0) e da Quenga (1.8.0) foram aprovadas para implementação. Não preencher lacunas sobre papéis futuros ou comportamentos fora do escopo com regras de outras edições.
 
 ## 1. Identificação
 
 - **Nome:** Conjunto inicial Werewolf God
-- **Versão:** 1.7.0
+- **Versão:** 1.8.0
 - **Estado:** Aprovado
-- **Papéis cobertos:** Lobisomens, Guarda-costas, Bruxa, Vidente, Denunciador, Lycan, Amaldiçoado, Conjurador, Cupido e Aldeão
+- **Papéis cobertos:** Lobisomens, Guarda-costas, Bruxa, Vidente, Denunciador, Lycan, Amaldiçoado, Conjurador, Cupido, Quenga e Aldeão
 - **Objetivo:** formalizar o conjunto mínimo de regras necessário para a primeira partida jogável.
 
 A versão 1.1.0 acrescentou o Lycan às composições de novas partidas. A versão
@@ -23,9 +23,11 @@ pois pertence aos Aldeões; ser visto como Lobisomem pela Vidente não altera su
 facção. A versão 1.7.0 acrescenta o Cupido, limitado a uma carta, que escolhe
 um par na primeira noite. O vínculo elimina o par quando uma das pessoas
 conectadas morre ou é exilada, respeitando proteções noturnas. As alterações
-são aditivas:
-partidas já salvas mantêm o estado e o comportamento registrados, sem migração
-de dados. O identificador do conjunto permanece `werewolf-god-v1`.
+são aditivas. A versão 1.8.0 acrescenta a Quenga, limitada a uma carta, com
+ação individual opcional depois do Conjurador e do Cupido (quando chamado).
+Partidas e backups anteriores continuam válidos e mantêm seu estado e
+comportamento, sem migração de dados. O identificador do conjunto permanece
+`werewolf-god-v1`.
 
 ## 2. Preparação
 
@@ -41,6 +43,7 @@ de dados. O identificador do conjunto permanece `werewolf-god-v1`.
 - O Conjurador pertence ao time dos Aldeões e age à noite depois do Denunciador, que age depois da Vidente.
 - O Denunciador pertence ao time dos Aldeões, pode haver no máximo um por partida e sua ação individual e opcional ocorre depois da Vidente e antes do Conjurador.
 - O Cupido pertence ao time dos Aldeões, pode haver no máximo um por partida e escolhe duas pessoas diferentes na primeira noite; o par pode incluir o próprio Cupido.
+- A Quenga pertence ao time dos Aldeões e pode haver no máximo uma por partida. Sua escolha individual e opcional ocorre depois do Conjurador e do Cupido na primeira noite.
 
 ### Cópias da mesma função
 
@@ -54,8 +57,8 @@ de dados. O identificador do conjunto permanece `werewolf-god-v1`.
 ## 3. Fases e fluxo
 
 1. **Preparação:** cadastrar jogadores, configurar cartas e duração do dia, validar e sortear os papéis.
-2. **Noite:** o mestre orienta todos a fechar os olhos e chama, na ordem Lobisomens, Guarda-costas, Bruxa, Vidente, Denunciador, Conjurador e Cupido, cada função que foi incluída na composição inicial e possui ação noturna; o Cupido só é chamado na primeira noite.
-3. **Amanhecer:** após as chamadas noturnas (incluindo as do Denunciador e do Conjurador, se estiverem na composição, e a do Cupido na primeira noite), resolver as ações em conjunto, apresentar o resultado privado ao mestre e verificar a vitória.
+2. **Noite:** o mestre orienta todos a fechar os olhos e chama, na ordem Lobisomens, Guarda-costas, Bruxa, Vidente, Denunciador, Conjurador, Cupido e Quenga, cada função incluída na composição inicial que possui ação noturna; o Cupido só é chamado na primeira noite, e a Quenga é chamada todas as noites.
+3. **Amanhecer:** após as chamadas noturnas (incluindo as do Denunciador, Conjurador e Quenga, se estiverem na composição, e a do Cupido na primeira noite), resolver as ações em conjunto, apresentar o resultado privado ao mestre e verificar a vitória.
 4. **Discussão:** se a partida continuar, abrir o dia e iniciar o temporizador configurado.
 5. **Votação:** depois que o mestre encerrar a discussão, registrar um voto por jogador vivo e não exilado na ordem sorteada.
 6. **Resultado:** apurar a votação, aplicar eventual exílio sem revelar o papel e verificar a vitória.
@@ -76,9 +79,10 @@ Todas as funções incluídas na composição inicial que tenham ação noturna 
 | Denunciador | A pessoa viva escolhe se denuncia alguém a cada noite. | Qualquer outro jogador vivo e não exilado; no máximo uma cópia por partida. Lycan conta como não-Lobisomem. | Se o alvo for Lobisomem, ele é eliminado se não estiver protegido; caso contrário, o Denunciador é eliminado se não estiver protegido. |
 | Conjurador | Os Conjuradores vivos escolhem em consenso uma pessoa por noite. | Qualquer jogador vivo, inclusive o próprio Conjurador e integrantes do grupo. Não pode repetir o alvo em dias consecutivos. | O alvo não pode falar do amanhecer até o fim da votação seguinte. Depois de registrar a escolha, o mestre se aproxima sem fazer barulho e toca no ombro do alvo; o alvo continua votando sem falar. |
 | Cupido | Escolhe um par na primeira noite; não é chamado nas noites seguintes. | Duas pessoas vivas e diferentes; pode incluir o próprio Cupido. No máximo uma cópia por partida. | Se uma das pessoas conectadas for eliminada à noite ou exilada por votação, a outra também é eliminada. Proteções noturnas bloqueiam a eliminação do alvo e, se o par for protegido, ele sobrevive enquanto o alvo não protegido morre. Somente o mestre e o Cupido conhecem o par. |
+| Quenga | A Quenga escolhe individualmente com quem dormir ou opta por não escolher ninguém. | Outro jogador vivo e não exilado, inclusive Lobisomem ou Amaldiçoado. No máximo uma Quenga por partida. | Se escolher um Lobisomem, a Quenga morre, a menos que esteja protegida; o Lobisomem não é eliminado. Se escolher alguém não-Lobisomem, evita o ataque dos Lobisomens quando é o alvo; se o ataque atingir a pessoa escolhida, ambas são alvos de eliminação, cada uma sujeita à própria proteção. Outras ações contra a pessoa escolhida não afetam a Quenga. |
 | Aldeão | Nenhuma ação noturna. | — | Participa da discussão e vota enquanto estiver vivo e não exilado. |
 
-As ações de Guarda-costas, Vidente, Conjurador e Cupido são obrigatórias a cada chamada quando há participantes vivos da função e alvo válido. Os usos da Bruxa e do Denunciador são opcionais, mesmo quando disponíveis.
+As ações de Guarda-costas, Vidente, Conjurador e Cupido são obrigatórias a cada chamada quando há participantes vivos da função e alvo válido. Os usos da Bruxa, do Denunciador e da Quenga são opcionais, mesmo quando disponíveis.
 
 ## 5. Resolução noturna
 
@@ -95,6 +99,11 @@ As ações de Guarda-costas, Vidente, Conjurador e Cupido são obrigatórias a c
 - O par escolhido pelo Cupido é persistente e privado. O Cupido conhece sua escolha; os dois jogadores conectados não são informados.
 - Se uma eliminação noturna contra uma pessoa conectada for bloqueada por proteção, o alvo sobrevive e essa ação não elimina ninguém do par. Se uma pessoa conectada morrer sem proteção, o vínculo elimina a outra, salvo se ela também estiver protegida; nesse caso, somente a primeira morre. O vínculo também elimina a pessoa conectada quando a outra é exilada por votação, pois proteções não impedem exílio.
 - O Amaldiçoado só fica com conversão pendente quando é alvo direto dos Lobisomens e sobrevive. Se o vínculo o eliminar antes do despertar — na mesma noite ou depois, inclusive após o exílio do par — a conversão pendente é cancelada.
+- A escolha da Quenga não-Lobisomem a leva para fora de casa durante a noite. Nesse caso, um ataque dos Lobisomens contra ela não elimina ninguém, nem é transferido para a pessoa escolhida; outras ações de eliminação contra ela continuam sendo resolvidas normalmente.
+- Se a Quenga escolher um Lobisomem, ela é eliminada, a menos que esteja protegida. A escolha não elimina nem altera o alvo escolhido.
+- Se os Lobisomens atacarem a pessoa não-Lobisomem com quem a Quenga escolheu dormir, tanto essa pessoa quanto a Quenga são alvos de eliminação. Cada uma pode ser protegida independentemente; proteger uma não protege a outra.
+- A morte conjunta da Quenga só ocorre quando os Lobisomens atacam a pessoa escolhida. Bruxa, Denunciador e outras ações contra essa pessoa não transferem seus efeitos para a Quenga. Se outra ação tiver a própria Quenga como alvo, aplica-se normalmente a regra dessa ação e a proteção pertinente.
+- Se a pessoa escolhida for o Amaldiçoado não convertido e os Lobisomens a atacarem, o Amaldiçoado sobrevive com conversão pendente segundo a regra do Amaldiçoado; a Quenga também é eliminada, salvo se estiver protegida. Se o vínculo do Cupido eliminar o Amaldiçoado antes do despertar, a conversão pendente é cancelada.
 - Depois de registrar a ação do Conjurador, o aplicativo lembra o mestre de se aproximar sem fazer barulho e tocar no ombro do alvo. O mestre mantém a escolha privada e não permite que o alvo fale durante a discussão ou votação. O alvo continua elegível e deve votar sem falar.
 - Ações válidas registradas antes de um agente morrer naquela noite ainda produzem efeito. O agente não pode realizar ações posteriores à eliminação.
 - O mestre vê os alvos, ações e causas privadas. Ao amanhecer, anuncia somente quem foi eliminado ou que ninguém foi eliminado; não revela papéis, ações ou proteções.
@@ -132,6 +141,7 @@ As ações de Guarda-costas, Vidente, Conjurador e Cupido são obrigatórias a c
 - O alvo do Conjurador e o último alvo necessário para validar a repetição são persistidos nas partidas novas; campos ausentes em partidas e backups anteriores permanecem válidos e não recebem valores substitutos.
 - A ação do Denunciador é armazenada no histórico noturno existente. Partidas e backups anteriores continuam válidos, sem migração ou valores substitutos.
 - O par do Cupido é salvo no estado privado da partida, e sua escolha fica no histórico noturno. Partidas e backups anteriores sem esse campo continuam válidos, sem migração ou valores substitutos.
+- A escolha da Quenga é armazenada no histórico noturno existente. A chamada opcional não exige ação registrada quando ela opta por ficar em casa. Partidas e backups anteriores continuam válidos; não há alteração do formato de dados.
 
 ## 9. Cenários de aceitação
 
@@ -170,6 +180,14 @@ As ações de Guarda-costas, Vidente, Conjurador e Cupido são obrigatórias a c
 33. **Eliminação pelo vínculo:** eliminação noturna desprotegida ou exílio de uma pessoa conectada também elimina a outra; proteção contra eliminação noturna salva o alvo do vínculo sem salvar quem não está protegido.
 34. **Amaldiçoado conectado:** se o Amaldiçoado for o par de alguém eliminado enquanto sua conversão estiver pendente — na mesma noite do ataque ou depois, inclusive após exílio do par — o vínculo o elimina e cancela a conversão; sem eliminação do par, permanece Aldeão pendente até ser despertado na noite seguinte.
 35. **Partidas existentes:** carregar e restaurar partidas e backups anteriores sem Cupido, mantendo seus papéis e comportamento sem migração.
+36. **Quenga na composição:** permitir no máximo uma Quenga, distribuí-la como Aldeã e chamá-la depois do Conjurador e do Cupido na primeira noite e depois do Conjurador nas noites seguintes; manter a chamada sem ação se estiver eliminada.
+37. **Escolha opcional e alvos da Quenga:** permitir que escolha qualquer outro jogador vivo e não exilado, inclusive Lobisomem ou Amaldiçoado, ou opte por não escolher ninguém. Recusar a própria Quenga e alvos mortos ou exilados.
+38. **Fora de casa:** sem alvo não-Lobisomem escolhido, um ataque dos Lobisomens contra a Quenga desprotegida a elimina. Se ela escolheu alguém não-Lobisomem, o ataque dos Lobisomens contra ela não elimina ninguém; outros efeitos de eliminação contra ela continuam normais.
+39. **Escolha de Lobisomem:** se a Quenga escolher um Lobisomem, ela morre sem proteção e sobrevive protegida; a escolha não elimina o Lobisomem.
+40. **Ataque ao companheiro:** se os Lobisomens atacarem a pessoa não-Lobisomem escolhida, a Quenga e a pessoa escolhida são eliminadas se desprotegidas. Proteção em uma não protege a outra; testar ambas protegidas, apenas uma protegida e nenhuma protegida.
+41. **Outras eliminações no companheiro:** ações da Bruxa ou do Denunciador contra a pessoa escolhida afetam somente essa pessoa; não causam morte conjunta. Se a Quenga for alvo direto de outra ação, ela é resolvida pelas regras normais dessa ação.
+42. **Amaldiçoado como companheiro:** se a Quenga escolher o Amaldiçoado não convertido e os Lobisomens o atacarem desprotegido, ele sobrevive com conversão pendente e a Quenga desprotegida morre; se o vínculo do Cupido eliminar o Amaldiçoado antes do despertar, a conversão é cancelada.
+43. **Ação e histórico:** permitir revisar ou remover a escolha opcional antes de confirmar a noite e preservar escolhas registradas no histórico de partida, retomada e backup, sem invalidar partidas ou backups anteriores.
 
 Os cenários abaixo são os contratos de aceitação do motor.
 
@@ -185,4 +203,4 @@ Os cenários abaixo são os contratos de aceitação do motor.
 - Regras e cenários revisados pelo responsável: **Sim**
 - Pendências bloqueadoras para o escopo v1: **Nenhuma conhecida**
 - Aprovado para implementação: **Sim**
-- Aprovador/data: **Responsável do projeto / 2026-11-21 (revisão 1.7.0)**
+- Aprovador/data: **Responsável do projeto / 2026-11-21 (revisão 1.8.0)**

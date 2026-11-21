@@ -327,6 +327,68 @@ describe("match persistence", () => {
     await deleteGame(game.id);
   });
 
+  it("round-trips a Quenga action through saved progress and backups", async () => {
+    const players = Array.from({ length: 5 }, (_, index) => ({
+      id: `hooker-player-${index + 1}`,
+      name: `Participante ${index + 1}`,
+    }));
+    const game = createGame({
+      id: "hooker-backup",
+      name: "Partida com Quenga",
+      players,
+      createdAt: "2026-01-05T00:00:00.000Z",
+    });
+    const roles = ["werewolf", "hooker", "bodyguard", "seer", "villager"] as const;
+    let match = createMatch({
+      id: game.id,
+      name: game.name,
+      players,
+      roleCounts: { werewolf: 1, hooker: 1, bodyguard: 1, seer: 1, villager: 1 },
+      dayDurationMinutes: 1,
+    }, () => 0.5);
+    match.players = match.players.map((player, index) => ({
+      ...player,
+      role: roles[index],
+    }));
+
+    match = startMatch(match);
+    match = submitNightCall(match, "werewolf", {
+      kind: "werewolf-attack",
+      targetId: players[4].id,
+    });
+    match = submitNightCall(match, "bodyguard", {
+      kind: "bodyguard-protect",
+      targetId: players[2].id,
+    });
+    match = submitNightCall(match, "seer", {
+      kind: "seer-investigate",
+      targetId: players[4].id,
+    });
+    match = continueAfterSeerResult(match);
+    match = submitNightCall(match, "hooker", {
+      kind: "hooker-sleep",
+      targetId: players[4].id,
+    });
+    match = resolveNight(match).match;
+
+    await saveGameAndMatch(game, match);
+    assert.deepEqual(await getMatch(game.id), match);
+    const backup = await createBackup();
+    assert.deepEqual(
+      backup.games.find((entry) => entry.game.id === game.id)?.match,
+      match,
+    );
+    assert.equal(await importBackup(backup), 1);
+    assert.deepEqual(await getMatch(game.id), match);
+    const nightHistory = match.history[0];
+    assert.ok(nightHistory?.type === "night-resolved");
+    assert.deepEqual(nightHistory.actions.find((record) => record.role === "hooker")?.action, {
+      kind: "hooker-sleep",
+      targetId: players[4].id,
+    });
+    await deleteGame(game.id);
+  });
+
   it("round-trips the Cupido pair and first-night action through backups", async () => {
     const players = Array.from({ length: 5 }, (_, index) => ({
       id: `cupid-player-${index + 1}`,
@@ -510,6 +572,19 @@ describe("match persistence", () => {
       importBackup({
         ...invalidBackup,
         games: [{ game, match: duplicateRevealersMatch }],
+      }),
+      /inválidas, duplicadas ou incompatíveis/,
+    );
+    const duplicateHookersMatch: MatchState = {
+      ...validMatch,
+      players: validMatch.players.map((player, index) =>
+        index < 2 ? { ...player, role: "hooker" } : player,
+      ),
+    };
+    await assert.rejects(
+      importBackup({
+        ...invalidBackup,
+        games: [{ game, match: duplicateHookersMatch }],
       }),
       /inválidas, duplicadas ou incompatíveis/,
     );

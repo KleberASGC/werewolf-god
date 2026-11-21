@@ -201,3 +201,38 @@ componente `ROLE_SUMMARIES` do catálogo do aplicativo.
 - **Se o personagem for eliminado:** a escolha já registrada continua válida.
 - **Decisões pendentes:** nenhuma.
 - **Estado no aplicativo:** implementado.
+
+### Quenga
+
+- **Identificador estável:** `hooker`
+- **Nome exibido:** Quenga
+- **Texto impresso na carta:** Todas as noites, você pode optar por dormir com um jogador. Se esse jogador for um lobisomem, você é eliminada. Se não for: e os lobisomens tentarem te atacar então ninguém morre porque você não estava em casa; se os lobisomens atacarem o jogador que você optou por dormir, morrem vocês dois.
+- **Facção e condição de vitória:** Aldeões; vence quando todos os Lobisomens forem eliminados, conforme a condição de vitória dos Aldeões.
+- **Quantidade permitida na partida:** no máximo 1.
+- **Tipo de ação:** individual.
+- **Fase e ordem de ação:** escolhe durante a noite, depois do Conjurador e antes da resolução conjunta das ações noturnas. A ordem das chamadas não altera a resolução.
+- **Ação:** pode escolher outro jogador vivo e não exilado para dormir com ele, ou optar por não escolher ninguém.
+- **Obrigatoriedade:** opcional, a cada noite em que estiver viva e não exilada.
+- **Alvos válidos:** qualquer outro jogador vivo e não exilado, inclusive um Lobisomem ou o Amaldiçoado.
+- **Pode escolher a si mesma ou alguém do próprio grupo?:** não se aplica escolha de grupo; não pode escolher a si mesma.
+- **Limite de usos:** uma escolha por noite; não há limite por partida.
+- **Condições e restrições:** a escolha não é pública. Se não escolher ninguém, permanece em casa. A proteção aplicável pode impedir sua eliminação, mas não protege automaticamente a pessoa com quem dormiu.
+- **Efeito:**
+  - Se não escolher ninguém, uma eliminação que a tenha como alvo a elimina normalmente, a menos que esteja protegida contra aquela fonte.
+  - Se escolher um Lobisomem, ela é eliminada, a menos que esteja protegida naquela noite. Essa escolha não elimina o Lobisomem.
+  - Se escolher alguém que não seja Lobisomem, um ataque dos Lobisomens contra a Quenga não elimina ninguém: ela estava fora de casa e o ataque não é transferido para a pessoa escolhida.
+  - Se os Lobisomens atacarem a pessoa não-Lobisomem escolhida, a pessoa e a Quenga são alvos de eliminação. Cada uma pode ser protegida independentemente: quem não estiver protegida morre; quem estiver protegida sobrevive.
+  - Se a pessoa escolhida for o Amaldiçoado ainda não convertido e os Lobisomens a atacarem, o Amaldiçoado sobrevive e fica com a conversão pendente conforme a regra do Amaldiçoado; a Quenga também é eliminada, a menos que esteja protegida.
+- **Interações com outros personagens/efeitos:** somente o ataque dos Lobisomens contra a pessoa não-Lobisomem escolhida causa o efeito conjunto. Outras ações de eliminação contra essa pessoa afetam apenas o alvo escolhido. Se outra ação de eliminação tiver a Quenga como alvo, ela é resolvida normalmente contra ela, sujeita às proteções e demais regras dessa ação. Exílio por votação não é afetado por estar fora de casa.
+- **Informação recebida pelo personagem:** nenhuma informação especial.
+- **Informação mostrada ao mestre e ao grupo:** a escolha e seus efeitos são privados para o mestre; o grupo não recebe informação sobre com quem ela dormiu. O mestre anuncia ao amanhecer somente as eliminações, conforme a regra geral.
+- **Se o personagem for eliminado:** a chamada continua; sem Quenga viva não há escolha nem efeito.
+- **Cenários de exemplo:**
+  1. Sem escolher ninguém, a Quenga desprotegida é eliminada se qualquer ação de eliminação a tiver como alvo.
+  2. Escolhe um Lobisomem: a Quenga desprotegida morre; se protegida, sobrevive. O Lobisomem não é eliminado por essa escolha.
+  3. Escolhe um Aldeão e os Lobisomens atacam a Quenga: ninguém morre pelo ataque, inclusive a pessoa escolhida.
+  4. Escolhe João, um Aldeão. Se os Lobisomens atacarem João, sem proteção ambos morrem; se João estiver protegido, só a Quenga desprotegida morre; se a Quenga estiver protegida, João desprotegido morre e ela sobrevive; se ambos estiverem protegidos, ambos sobrevivem.
+  5. Escolhe João, mas a Bruxa ou o Denunciador usa uma ação de eliminação contra ele: somente João é afetado pela ação, conforme suas regras; não há morte conjunta da Quenga.
+  6. Escolhe o Amaldiçoado ainda não convertido e os Lobisomens o atacam sem proteção: o Amaldiçoado sobrevive com conversão pendente e a Quenga desprotegida morre.
+- **Decisões pendentes:** nenhuma sobre os efeitos descritos nesta ficha.
+- **Estado no aplicativo:** implementado.

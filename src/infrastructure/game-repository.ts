@@ -77,6 +77,7 @@ function isAction(value: unknown): boolean {
     "seer-investigate",
     "revealer-denounce",
     "spellcaster-silence",
+    "hooker-sleep",
   ]) &&
     typeof value.targetId === "string";
 }
@@ -158,6 +159,9 @@ function isMatch(value: unknown): value is MatchState {
     isRecord(player) && (player.role === "cursed" || player.convertedFromCursed === true),
   ).length > 1) return false;
   if (value.players.filter((player) => isRecord(player) && player.role === "revealer").length > 1) {
+    return false;
+  }
+  if (value.players.filter((player) => isRecord(player) && player.role === "hooker").length > 1) {
     return false;
   }
   if (value.players.filter((player) => isRecord(player) && player.role === "cupid").length > 1) {

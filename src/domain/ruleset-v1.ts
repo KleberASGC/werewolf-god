@@ -12,6 +12,7 @@ export const ROLE_IDS = [
   "cursed",
   "spellcaster",
   "cupid",
+  "hooker",
   "villager",
 ] as const;
 
@@ -25,6 +26,7 @@ export const NIGHT_ROLE_ORDER = [
   "revealer",
   "spellcaster",
   "cupid",
+  "hooker",
 ] as const;
 
 export type NightRole = (typeof NIGHT_ROLE_ORDER)[number];
@@ -39,6 +41,7 @@ export const ROLE_LABELS: Record<RoleId, string> = {
   cursed: "Amaldiçoado",
   spellcaster: "Conjurador",
   cupid: "Cupido",
+  hooker: "Quenga",
   villager: "Aldeão",
 };
 
@@ -55,6 +58,7 @@ export function hasNightAction(role: RoleId): role is NightRole {
     case "revealer":
     case "spellcaster":
     case "cupid":
+    case "hooker":
       return true;
     case "lycan":
     case "cursed":

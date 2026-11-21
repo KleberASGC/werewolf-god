@@ -150,6 +150,35 @@ describe("createMatch", () => {
     );
   });
 
+  it("allows one Quenga in a role draw and rejects multiple cards", () => {
+    const match = createMatch(
+      {
+        id: "match-hooker",
+        name: "Quenga game",
+        players: players(5),
+        roleCounts: { werewolf: 1, hooker: 1, villager: 3 },
+        dayDurationMinutes: 5,
+      },
+      () => 0,
+    );
+
+    assert.equal(match.players.filter((player) => player.role === "hooker").length, 1);
+    assert.throws(
+      () =>
+        createMatch(
+          {
+            id: "match-multiple-hookers",
+            name: "Multiple Quengas",
+            players: players(5),
+            roleCounts: { werewolf: 1, hooker: 2, villager: 2 },
+            dayDurationMinutes: 5,
+          },
+          () => 0,
+        ),
+      /no máximo uma Quenga/,
+    );
+  });
+
   it("allows one Cupido in a role draw and rejects multiple cards", () => {
     const match = createMatch(
       {
