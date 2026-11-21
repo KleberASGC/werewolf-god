@@ -65,7 +65,7 @@ const ROLE_DESCRIPTIONS: Record<RoleId, string> = {
   witch: "Compartilha um uso de proteção e um de eliminação durante toda a partida; ambos são opcionais.",
   seer: "Investiga uma pessoa por noite e descobre apenas se ela aparece como Lobisomem.",
   revealer: "Toda noite pode denunciar uma pessoa viva. Se o alvo for Lobisomem, o alvo morre; se não for, o Denunciador morre.",
-  lycan: "Faz parte dos Aldeões, não age à noite e aparece como Lobisomem para a Vidente.",
+  lycan: "Faz parte dos Aldeões, mas aparece como Lobisomem para a Vidente.",
   cursed: "Começa como Aldeão. Uma eliminação pelos Lobisomens deixa a conversão pendente; o moderador a efetiva ao despertá-lo discretamente na noite seguinte.",
   spellcaster: "Silencia um jogador durante todo o dia seguinte, não podendo repetir o alvo em dias consecutivos.",
   villager: "Não tem ação noturna; participa da discussão e vota para eliminar Lobisomens.",
