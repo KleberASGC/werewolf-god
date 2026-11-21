@@ -96,7 +96,7 @@ noturna definida pelas regras da partida.
 
 A interface deve apresentar instruções curtas e claras, por exemplo:
 
-**"Acordem os lobisomens."**
+**"Acordem os Lobisomens."**
 
 O moderador lê a instrução em voz alta e conduz a ação presencialmente.
 
@@ -119,37 +119,37 @@ O moderador é o intermediário de todas as ações. Os jogadores apontam ou
 comunicam suas escolhas presencialmente, e o moderador as registra na
 aplicação.
 
-### 5.3. Exemplo: ação dos lobisomens
+### 5.3. Exemplo: ação dos Lobisomens
 
 A aplicação apresenta:
 
-**"Acordem os lobisomens."**
+**"Acordem os Lobisomens."**
 
-O moderador pede que os lobisomens abram os olhos e se reconheçam. Em
+O moderador pede que os Lobisomens abram os olhos e se reconheçam. Em
 seguida, eles escolhem em consenso uma pessoa para atacar.
 
 A aplicação deve apresentar ao moderador a lista de alvos permitidos. No
-exemplo descrito, os lobisomens podem escolher entre os jogadores que
-não são lobisomens.
+exemplo descrito, os Lobisomens podem escolher entre os jogadores que
+não são Lobisomens.
 
 O moderador seleciona o jogador escolhido e registra o ataque.
 
 Depois, avança para a próxima etapa. A aplicação orienta:
 
-**"Peça aos lobisomens que fechem os olhos e voltem a dormir."**
+**"Peça aos Lobisomens que fechem os olhos e voltem a dormir."**
 
-### 5.4. Exemplo: ação do guarda-costas
+### 5.4. Exemplo: ação do Guarda-costas
 
 A aplicação apresenta:
 
-**"Acorde o guarda-costas."**
+**"Acorde o Guarda-costas."**
 
-O moderador pede que o guarda-costas abra os olhos. O jogador aponta
+O moderador pede que o Guarda-costas abra os olhos. O jogador aponta
 para a pessoa que deseja proteger.
 
 O moderador seleciona essa pessoa na aplicação e registra a proteção.
 
-Depois, avança e pede que o guarda-costas volte a dormir.
+Depois, avança e pede que o Guarda-costas volte a dormir.
 
 ### 5.5. Demais funções
 
@@ -193,7 +193,7 @@ resolução definidas para a partida.
 
 Por exemplo, deve ser capaz de considerar situações como:
 
--   Um jogador escolhido pelos lobisomens também ter sido protegido.
+-   Um jogador escolhido pelos Lobisomens também ter sido protegido.
 -   Um jogador receber mais de uma proteção.
 -   Uma habilidade impedir ou modificar o efeito de outra.
 -   Uma ação causar efeitos adicionais ou mortes.

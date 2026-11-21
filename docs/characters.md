@@ -9,6 +9,8 @@ Este catálogo é documentação, não uma configuração carregada pelo aplicat
 Adicionar ou alterar uma ficha não muda o jogo automaticamente: depois de
 definir as regras, peça a implementação para atualizar o conjunto aprovado,
 o motor, a interface e os testes necessários.
+O campo **Texto impresso na carta** registra a descrição exata exibida no
+componente `ROLE_SUMMARIES` do catálogo do aplicativo.
 
 ## Personagens atuais
 
@@ -16,6 +18,8 @@ o motor, a interface e os testes necessários.
 
 - **Identificador:** `werewolf`
 - **Facção:** Lobisomens
+- **Texto impresso na carta:** Todas as noites, acorde junto com os outros
+  Lobisomens e escolha um jogador para eliminar.
 - **Ação:** os Lobisomens vivos agem em grupo e escolhem por consenso um alvo
   durante a noite.
 - **Alvos válidos:** outro jogador vivo e não exilado que não seja Lobisomem.
@@ -33,6 +37,8 @@ o motor, a interface e os testes necessários.
 
 - **Identificador:** `bodyguard`
 - **Facção:** Aldeões
+- **Texto impresso na carta:** Todas as noites, escolha um jogador que não
+  possa ser eliminado naquela noite.
 - **Ação:** os Guarda-costas vivos escolhem em grupo uma pessoa para proteger
   durante a noite.
 - **Alvos válidos:** qualquer jogador vivo e não exilado, inclusive um
@@ -52,6 +58,8 @@ o motor, a interface e os testes necessários.
 
 - **Identificador:** `witch`
 - **Facção:** Aldeões
+- **Texto impresso na carta:** Você pode optar por salvar e/ou eliminar um
+  jogador à noite, uma única vez por jogo.
 - **Ação:** as Bruxas vivas decidem em grupo se usam os poderes disponíveis:
   proteção, eliminação, ambos ou nenhum.
 - **Alvos da proteção:** qualquer jogador vivo e não exilado, inclusive no
@@ -72,6 +80,8 @@ o motor, a interface e os testes necessários.
 
 - **Identificador:** `seer`
 - **Facção:** Aldeões
+- **Texto impresso na carta:** Todas as noites, escolha um jogador para
+  descobrir se ele é um Aldeão ou um Lobisomem.
 - **Ação:** as Videntes vivas escolhem em grupo uma pessoa para investigar a
   cada noite.
 - **Alvos válidos:** outro jogador vivo e não exilado que não seja Vidente.
@@ -90,6 +100,7 @@ o motor, a interface e os testes necessários.
 
 - **Identificador:** `villager`
 - **Facção:** Aldeões
+- **Texto impresso na carta:** Encontre os Lobisomens e elimine-os.
 - **Ação:** nenhuma ação noturna.
 - **Participação:** participa da discussão e vota enquanto estiver vivo e não
   exilado.
@@ -101,6 +112,8 @@ o motor, a interface e os testes necessários.
 
 - **Identificador estável:** `lycan`
 - **Nome exibido:** Lycan
+- **Texto impresso na carta:** Você é um Aldeão, mas, aos olhos do Vidente,
+  parece ser um Lobisomem.
 - **Facção e condição de vitória:** Aldeões
 - **Quantidade permitida na partida:** sem limite individual adicional; vale o total de cartas e jogadores.
 - **Fase e ordem de ação:** nenhuma ação noturna.
@@ -114,6 +127,9 @@ o motor, a interface e os testes necessários.
 
 - **Identificador estável:** `cursed`
 - **Nome exibido:** Amaldiçoado
+- **Texto impresso na carta:** Você faz parte da Facção dos Aldeões, a menos
+  que seja alvo de eliminação pelos Lobisomens; nesse caso, você se torna um
+  Lobisomem.
 - **Facção e condição de vitória:** começa no time dos Aldeões. Se a conversão ficar pendente, permanece Aldeão até ser despertado discretamente com os Lobisomens na noite seguinte; só então passa ao time dos Lobisomens e conta para a condição de vitória dessa facção. Se todos os outros Lobisomens forem eliminados enquanto a conversão estiver pendente, a partida continua e ele será o único Lobisomem ao despertar.
 - **Quantidade permitida:** no máximo um Amaldiçoado por partida.
 - **Ação e momento:** não escolhe alvo nem tem ação noturna. Se a conversão ficar pendente, o mestre o desperta discretamente antes da chamada dos Lobisomens na noite seguinte; só então ele se torna Lobisomem e passa a agir com o grupo.
@@ -129,6 +145,8 @@ o motor, a interface e os testes necessários.
 
 - **Identificador estável:** `spellcaster`
 - **Nome exibido:** Conjurador
+- **Texto impresso na carta:** Todas as noites, escolha um jogador que não
+  poderá falar no dia seguinte.
 - **Facção e condição de vitória:** Aldeões
 - **Quantidade permitida na partida:** sem limite individual adicional; vale o total de cartas e jogadores.
 - **Ação:** os Conjuradores vivos escolhem em consenso um jogador por noite.
@@ -149,6 +167,9 @@ o motor, a interface e os testes necessários.
 
 - **Identificador estável:** `revealer`
 - **Nome exibido:** Denunciador
+- **Texto impresso na carta:** Todas as noites, você pode optar por denunciar
+  um jogador. Se esse jogador for um Lobisomem, ele é eliminado. Se não for,
+  você é eliminado.
 - **Facção e condição de vitória:** Aldeões
 - **Quantidade permitida na partida:** no máximo um.
 - **Tipo de ação:** individual.
