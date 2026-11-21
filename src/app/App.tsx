@@ -70,6 +70,43 @@ const ROLE_DESCRIPTIONS: Record<RoleId, string> = {
   spellcaster: "Silencia um jogador durante todo o dia seguinte, não podendo repetir o alvo em dias consecutivos.",
   villager: "Não tem ação noturna; participa da discussão e vota para eliminar Lobisomens.",
 };
+const ROLE_SUMMARIES: Record<RoleId, string> = {
+  werewolf: "Todas as noites, acorde junto com os outros Lobisomens e escolha um jogador para eliminar.",
+  bodyguard: "Todas as noites, escolha um jogador que não possa ser eliminado naquela noite.",
+  witch: "Você pode optar por salvar e/ou eliminar um jogador à noite, uma única vez por jogo.",
+  seer: "Todas as noites, escolha um jogador para descobrir se ele é um Aldeão ou um Lobisomem.",
+  revealer: "Todas as noites, você pode optar por denunciar um jogador. Se esse jogador for um Lobisomem, ele é eliminado. Se não for, você é eliminado.",
+  lycan: "Você é um Aldeão, mas, aos olhos do Vidente, parece ser um Lobisomem.",
+  cursed: "Você faz parte da Facção dos Aldeões, a menos que seja alvo de eliminação pelos Lobisomens; nesse caso, você se torna um Lobisomem.",
+  spellcaster: "Todas as noites, escolha um jogador que não poderá falar no dia seguinte.",
+  villager: "Encontre os Lobisomens e elimine-os.",
+};
+const ROLE_MORE_INFO: Partial<Record<RoleId, readonly string[]>> = {
+  werewolf: [
+    "Proteção do Guarda-costas ou da Bruxa bloqueia o ataque.",
+    "Se atacar o Amaldiçoado sem proteção e a Bruxa não o atacar, ele sobrevive com conversão pendente. Se a Bruxa também o atacar, ele morre sem conversão.",
+  ],
+  bodyguard: [
+    "Protege de ataques dos Lobisomens, da Bruxa e do Denunciador; não impede exílio nem pode repetir o mesmo alvo em noites seguidas.",
+    "Proteger o Amaldiçoado impede que a conversão fique pendente.",
+  ],
+  witch: [
+    "Cada poder só pode ser usado uma vez; o uso é consumido mesmo se for bloqueado ou redundante. Se usar ambos, escolha alvos diferentes.",
+    "Se atacar o Amaldiçoado na mesma noite que os Lobisomens, ele morre sem conversão. Proteção bloqueia os ataques.",
+  ],
+  seer: [
+    "Não pode investigar outra Vidente. O Lycan aparece como Lobisomem, embora pertença aos Aldeões.",
+    "O Amaldiçoado só aparece como Lobisomem depois de ser despertado, quando a conversão se efetiva.",
+  ],
+  revealer: [
+    "Denunciar um Lobisomem desprotegido o elimina; se o alvo não for Lobisomem, o Denunciador morre, a menos que esteja protegido.",
+    "Proteger o alvo denunciado não salva o Denunciador.",
+  ],
+  spellcaster: [
+    "Não pode silenciar o mesmo alvo em dias seguidos. O alvo continua votando, mas sem falar.",
+    "O silenciamento não bloqueia ações noturnas e continua valendo no dia seguinte mesmo se o alvo for eliminado naquela noite.",
+  ],
+};
 const ROLE_FACTIONS: Record<RoleId, string> = {
   werewolf: "Facção dos Lobisomens",
   bodyguard: "Facção dos Aldeões",
@@ -82,10 +119,10 @@ const ROLE_FACTIONS: Record<RoleId, string> = {
   villager: "Facção dos Aldeões",
 };
 const ROLE_TEAMS = [
-  { id: "werewolves", label: "Time dos lobisomens", roles: ["werewolf"] },
+  { id: "werewolves", label: "Time dos Lobisomens", roles: ["werewolf"] },
   {
     id: "villagers",
-    label: "Time dos aldeões",
+    label: "Time dos Aldeões",
     roles: ["bodyguard", "witch", "seer", "revealer", "lycan", "cursed", "spellcaster", "villager"],
   },
 ] as const satisfies readonly { id: string; label: string; roles: readonly RoleId[] }[];
@@ -554,17 +591,25 @@ function MasterConsole({
   initialMatch,
   initialGame,
   onReplay,
+  onEditPrepared,
   onExit,
 }: {
   initialMatch: MatchState;
   initialGame: Game;
   onReplay: (game: Game, roleCounts: Record<RoleId, number>) => Promise<void>;
+  onEditPrepared: (
+    game: Game,
+    roleCounts: Record<RoleId, number>,
+    restart: boolean,
+    currentMatch: MatchState,
+  ) => Promise<MatchState>;
   onExit: () => void;
 }) {
   const [match, setMatch] = useState(initialMatch);
   const [error, setError] = useState("");
   const [editingRole, setEditingRole] = useState<NightRole | null>(null);
   const [editingReplay, setEditingReplay] = useState(false);
+  const [editingPreparation, setEditingPreparation] = useState(false);
   const [voteChoice, setVoteChoice] = useState("");
   const [storageStatus, setStorageStatus] = useState<"saved" | "saving" | "error">("saved");
   const [storageError, setStorageError] = useState("");
@@ -676,6 +721,26 @@ function MasterConsole({
     }
   }
 
+  async function handlePreparedEdit(
+    game: Game,
+    roleCounts?: Record<RoleId, number>,
+    restart = false,
+  ) {
+    setError("");
+    try {
+      const updatedMatch = await onEditPrepared(
+        game,
+        roleCounts ?? getRoleCounts(match.players),
+        restart,
+        match,
+      );
+      setMatch(updatedMatch);
+      setEditingPreparation(false);
+    } catch (editError: unknown) {
+      setError(errorMessage(editError));
+    }
+  }
+
   function handleVote(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     const voterId = match.voting?.order[match.voting.nextVoterIndex];
@@ -775,34 +840,53 @@ function MasterConsole({
       <fieldset className="console-controls" disabled={storageStatus !== "saved"}>
       {match.phase === "prepared" && (
         <section className="phase-panel">
-          <h3>Distribuição secreta</h3>
-          <p>O sorteio é exibido somente nesta tela do mestre. Entregue as cartas físicas aos participantes.</p>
-          <PlayerRoster match={match} />
-          <button
-            className="secondary-button"
-            onClick={() => transition((current) => {
-              if (current.phase !== "prepared") {
-                throw new Error("O sorteio só pode ser refeito antes de iniciar a partida.");
-              }
-              return createMatch({
-                id: current.id,
-                name: current.name,
-                players: current.players.map(({ id, name }) => ({ id, name })),
-                roleCounts: getRoleCounts(current.players),
-                dayDurationMinutes: current.dayDurationMinutes,
-              });
-            })}
-            type="button"
-          >
-            Sortear funções novamente
-          </button>
-          <button
-            className="primary-button"
-            onClick={() => transition((current) => startMatch(current))}
-            type="button"
-          >
-            Iniciar a partida
-          </button>
+          {editingPreparation ? (
+            <GameEditor
+              game={initialGame}
+              match={match}
+              onCancel={() => setEditingPreparation(false)}
+              onSave={handlePreparedEdit}
+              submitLabel="Salvar alterações"
+            />
+          ) : (
+            <>
+              <h3>Distribuição secreta</h3>
+              <p>O sorteio é exibido somente nesta tela do mestre. Entregue as cartas físicas aos participantes.</p>
+              <PlayerRoster match={match} />
+              <button
+                className="secondary-button"
+                onClick={() => setEditingPreparation(true)}
+                type="button"
+              >
+                Editar partida
+              </button>
+              <button
+                className="secondary-button"
+                onClick={() => transition((current) => {
+                  if (current.phase !== "prepared") {
+                    throw new Error("O sorteio só pode ser refeito antes de iniciar a partida.");
+                  }
+                  return createMatch({
+                    id: current.id,
+                    name: current.name,
+                    players: current.players.map(({ id, name }) => ({ id, name })),
+                    roleCounts: getRoleCounts(current.players),
+                    dayDurationMinutes: current.dayDurationMinutes,
+                  });
+                })}
+                type="button"
+              >
+                Sortear funções novamente
+              </button>
+              <button
+                className="primary-button"
+                onClick={() => transition((current) => startMatch(current))}
+                type="button"
+              >
+                Iniciar a partida
+              </button>
+            </>
+          )}
         </section>
       )}
 
@@ -828,7 +912,6 @@ function MasterConsole({
                 ))}
             </ul>
           </div>
-          <CursedIdentityNotice match={match} />
           {editingRole ? (
             <NightActionForm
               key={`revise-${editingRole}`}
@@ -1222,23 +1305,6 @@ function PlayerRoster({ match }: { match: MatchState }) {
   );
 }
 
-function CursedIdentityNotice({ match }: { match: MatchState }) {
-  const cursed = match.players.find((player) =>
-    player.status === "alive" &&
-    player.role === "cursed" &&
-    !player.pendingCursedConversion,
-  );
-  if (!cursed) return null;
-
-  return (
-    <p className="message">
-      <strong>Instrução privada ao mestre:</strong> sinalize em particular a{" "}
-      {cursed.name} que ainda é Aldeão (sinal negativo). Não informe a conversão
-      antes de despertá-lo com os Lobisomens.
-    </p>
-  );
-}
-
 function VoteOutcome({ match }: { match: MatchState }) {
   const entry = [...match.history].reverse().find((item) => item.type === "vote-resolved");
   if (!entry || entry.type !== "vote-resolved") return null;
@@ -1321,7 +1387,11 @@ function GameEditor({
     try {
       const rosterChanged = players.length !== game.players.length ||
         players.some((player) => !game.players.some((savedPlayer) => savedPlayer.id === player.id));
-      const restart = !!match && (restartOnSave || rosterChanged);
+      const currentRoleCounts = match ? getRoleCounts(match.players) : null;
+      const roleCountsChanged = !!currentRoleCounts && ROLE_IDS.some(
+        (role) => roleCounts[role] !== currentRoleCounts[role],
+      );
+      const restart = !!match && (restartOnSave || rosterChanged || roleCountsChanged);
       if (restart && !window.confirm(
         "Esta ação iniciará uma nova partida com novo sorteio. O progresso atual será substituído. Continuar?",
       )) return;
@@ -1610,6 +1680,36 @@ function App() {
     setActiveMatch(match);
   }
 
+  async function savePreparedEdit(
+    game: Game,
+    roleCounts: Record<RoleId, number>,
+    restart: boolean,
+    currentMatch: MatchState,
+  ): Promise<MatchState> {
+    const updatedMatch = restart
+      ? makeMatch(game, roleCounts, currentMatch.dayDurationMinutes)
+      : {
+          ...currentMatch,
+          name: game.name,
+          players: currentMatch.players.map((player) => {
+            const editedPlayer = game.players.find(({ id }) => id === player.id);
+            if (!editedPlayer) {
+              throw new Error("Um participante da partida não está presente no cadastro atualizado.");
+            }
+            return { ...player, name: editedPlayer.name };
+          }),
+        };
+    await saveGameAndMatch(game, updatedMatch);
+    setGames((currentGames) =>
+      currentGames
+        .map((savedGame) => savedGame.id === game.id ? game : savedGame)
+        .sort((left, right) => right.updatedAt.localeCompare(left.updatedAt)),
+    );
+    setSelectedGame(game);
+    setSelectedMatch(updatedMatch);
+    return updatedMatch;
+  }
+
   async function removeSelectedGame() {
     if (!selectedGame) return;
     if (!window.confirm(`Excluir a partida "${selectedGame.name}" e seu cadastro deste dispositivo?`)) {
@@ -1727,6 +1827,7 @@ function App() {
             key={`${activeMatch.id}-${activeMatch.phase}-${activeMatch.history.length}`}
             initialGame={initialGame}
             initialMatch={activeMatch}
+            onEditPrepared={savePreparedEdit}
             onExit={() => setActiveMatch(null)}
             onReplay={saveReplay}
           />
@@ -1981,7 +2082,7 @@ function App() {
             <p className="eyebrow">GUIA RÁPIDO</p>
             <h2 id="catalog-title">Personagens da vila</h2>
             <p>
-              Conheça as funções disponíveis e o que cada personagem faz. As ilustrações
+              Veja em poucas palavras o papel de cada personagem. As ilustrações
               são originais e não alteram as regras aprovadas do jogo.
             </p>
           </div>
@@ -1994,7 +2095,18 @@ function App() {
                 <div className="role-card-copy">
                   <p className="role-card-faction">{ROLE_FACTIONS[role]}</p>
                   <h3>{ROLE_LABELS[role]}</h3>
-                  <p>{ROLE_DESCRIPTIONS[role]}</p>
+                  <p className="role-card-summary">{ROLE_SUMMARIES[role]}</p>
+                  {ROLE_MORE_INFO[role] && (
+                    <details
+                      aria-label={`Mais informações sobre ${ROLE_LABELS[role]}`}
+                      className="role-card-details"
+                    >
+                      <summary>Ler mais</summary>
+                      <ul>
+                        {ROLE_MORE_INFO[role]?.map((detail) => <li key={detail}>{detail}</li>)}
+                      </ul>
+                    </details>
+                  )}
                 </div>
               </article>
             ))}

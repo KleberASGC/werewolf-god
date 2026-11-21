@@ -37,9 +37,9 @@ Por exemplo:
 
 1. O mestre inicia a fase noturna.
 2. A aplicação apresenta qual personagem ou grupo deve agir.
-3. O mestre registra que o guarda-costas protegeu o jogador João.
+3. O mestre registra que o Guarda-costas protegeu o jogador João.
 4. O mestre registra que o vidente investigou o jogador Pedro.
-5. Os lobisomens escolhem uma vítima.
+5. Os Lobisomens escolhem uma vítima.
 6. A aplicação processa todas as ações de acordo com as regras configuradas.
 7. A aplicação apresenta ao mestre o resultado da noite, indicando mortes, proteções, investigações e demais acontecimentos relevantes.
 

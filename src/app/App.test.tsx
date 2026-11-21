@@ -195,11 +195,11 @@ it("shows the release label and can redraw roles before the match starts", async
   assert.ok(screen.getByRole("link", { name: /Werewolf Moderator, início/ }));
   assert.ok(screen.getByText(`v${packageVersion} · ${releaseCodename}`));
   assert.equal(
-    screen.getByRole("group", { name: "Time dos lobisomens" }).querySelectorAll(".role-count").length,
+    screen.getByRole("group", { name: "Time dos Lobisomens" }).querySelectorAll(".role-count").length,
     1,
   );
   assert.equal(
-    screen.getByRole("group", { name: "Time dos aldeões" }).querySelectorAll(".role-count").length,
+    screen.getByRole("group", { name: "Time dos Aldeões" }).querySelectorAll(".role-count").length,
     8,
   );
   await createMatchThroughForm("Novo sorteio");
@@ -233,7 +233,69 @@ it("shows the release label and can redraw roles before the match starts", async
   await screen.findByRole("heading", { name: "Nova partida" });
 });
 
-it("shows role help and the illustrated character catalog", async () => {
+it("edits participants and role counts from the preparation screen", async () => {
+  await renderApp();
+  await createMatchThroughForm("Preparação editável");
+
+  clickButton("Editar partida");
+  fillInput("Nome da partida", "Preparação atualizada");
+  fillInput("Nome do participante editado 1", "Ana");
+  clickLastButton("Adicionar participante");
+  fillInput("Nome do participante editado 6", "Eva");
+  fireEvent.change(screen.getByRole("spinbutton", { name: "Quantidade de Guarda-costas" }), {
+    target: { value: "2" },
+  });
+  fireEvent.change(screen.getByRole("spinbutton", { name: "Quantidade de Aldeão" }), {
+    target: { value: "1" },
+  });
+  clickButton("Salvar alterações");
+  await screen.findByRole("button", { name: "Editar partida" });
+  const game = (await listGames())[0];
+  assert.ok(game);
+  assert.equal(game.name, "Preparação atualizada");
+  assert.deepEqual(game.players.map(({ name }) => name), [
+    "Ana",
+    "Jogador 2",
+    "Jogador 3",
+    "Jogador 4",
+    "Jogador 5",
+    "Eva",
+  ]);
+  const match = await getMatch(game.id);
+  assert.equal(match?.phase, "prepared");
+  assert.equal(match?.players.length, 6);
+  assert.deepEqual(
+    match?.players.reduce<Record<string, number>>((counts, player) => {
+      counts[player.role] = (counts[player.role] ?? 0) + 1;
+      return counts;
+    }, {}),
+    { werewolf: 1, bodyguard: 2, witch: 1, seer: 1, villager: 1 },
+  );
+});
+
+it("restarts the prepared draw when only the role composition changes", async () => {
+  await renderApp();
+  await createMatchThroughForm("Composição editável");
+
+  clickButton("Editar partida");
+  fireEvent.change(screen.getByRole("spinbutton", { name: "Quantidade de Vidente" }), {
+    target: { value: "0" },
+  });
+  fireEvent.change(screen.getByRole("spinbutton", { name: "Quantidade de Aldeão" }), {
+    target: { value: "2" },
+  });
+  clickButton("Salvar alterações");
+  await screen.findByRole("button", { name: "Editar partida" });
+
+  const game = (await listGames())[0];
+  assert.ok(game);
+  const match = await getMatch(game.id);
+  assert.equal(match?.phase, "prepared");
+  assert.equal(match?.players.filter((player) => player.role === "seer").length, 0);
+  assert.equal(match?.players.filter((player) => player.role === "villager").length, 2);
+});
+
+it("shows concise role summaries with optional interaction details", async () => {
   await renderApp();
 
   const werewolfHelp = document.querySelector(
@@ -249,10 +311,56 @@ it("shows role help and the illustrated character catalog", async () => {
   const catalogLink = screen.getByRole("link", { name: "Personagens" });
   assert.equal(catalogLink.getAttribute("href"), "#personagens");
   assert.ok(screen.getByRole("heading", { name: "Personagens da vila" }));
+  assert.ok(screen.getByText("Todas as noites, acorde junto com os outros Lobisomens e escolha um jogador para eliminar."));
+  assert.equal(screen.queryByRole("link", { name: "Interações" }), null);
+  assert.equal(screen.queryByRole("heading", { name: "Interações entre personagens" }), null);
   for (const role of ["Lobisomem", "Guarda-costas", "Bruxa", "Vidente", "Denunciador", "Lycan", "Amaldiçoado", "Conjurador", "Aldeão"]) {
     assert.ok(screen.getByRole("heading", { level: 3, name: role }));
   }
   assert.equal(document.querySelectorAll(".role-illustration").length, 9);
+  assert.equal(document.querySelectorAll(".role-card-details").length, 6);
+  for (const role of ["lycan", "cursed", "villager"]) {
+    assert.equal(document.querySelector(`.role-card-${role} .role-card-details`), null);
+  }
+
+  const werewolfMore = document.querySelector(".role-card-werewolf .role-card-details summary");
+  assert.ok(werewolfMore);
+  fireEvent.click(werewolfMore);
+  assert.ok(screen.getByText("Proteção do Guarda-costas ou da Bruxa bloqueia o ataque."));
+});
+
+it("does not show the removed private instruction to the Cursed player", async () => {
+  const game = createGame({
+    id: "amaldiçoado-instruction-ui",
+    name: "Amaldiçoado",
+    players: Array.from({ length: 5 }, (_, index) => ({
+      id: `cursed-instruction-ui-${index + 1}`,
+      name: `Jogador ${index + 1}`,
+    })),
+    createdAt: "2026-01-01T00:00:00.000Z",
+  });
+  const prepared = createMatch({
+    id: game.id,
+    name: game.name,
+    players: game.players,
+    roleCounts: { werewolf: 1, cursed: 1, bodyguard: 1, witch: 1, seer: 1 },
+    dayDurationMinutes: 5,
+  });
+  const match = startMatch({
+    ...prepared,
+    players: prepared.players.map((player, index) => ({
+      ...player,
+      role: (["werewolf", "cursed", "bodyguard", "witch", "seer"] as const)[index],
+    })),
+  });
+  await saveGameAndMatch(game, match);
+  await renderApp();
+
+  await screen.findByRole("button", { name: /Amaldiçoado/ });
+  await clickGameAndWaitForDetails(/Amaldiçoado/, "Retomar partida");
+  clickButton("Retomar partida");
+  await screen.findByRole("heading", { name: /Chamar: Lobisomem/ });
+  assert.equal(screen.queryByText(/Instrução privada ao mestre/), null);
 });
 
 it("keeps a Cursed conversion secret until the moderator wakes them with the Wolves", async () => {
@@ -516,8 +624,8 @@ it("edits a saved game roster by replacing its prepared match and role draw", as
   await screen.findByRole("button", { name: /Partida editável/ });
   await clickGameAndWaitForDetails(/Partida editável/, "Editar cadastro");
   clickButton("Editar cadastro");
-  const editorWerewolfTeam = screen.getAllByRole("group", { name: "Time dos lobisomens" }).at(-1);
-  const editorVillagerTeam = screen.getAllByRole("group", { name: "Time dos aldeões" }).at(-1);
+  const editorWerewolfTeam = screen.getAllByRole("group", { name: "Time dos Lobisomens" }).at(-1);
+  const editorVillagerTeam = screen.getAllByRole("group", { name: "Time dos Aldeões" }).at(-1);
   assert.ok(editorWerewolfTeam);
   assert.ok(editorVillagerTeam);
   assert.equal(

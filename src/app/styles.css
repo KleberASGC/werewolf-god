@@ -853,11 +853,44 @@ select:focus-visible {
   font-weight: 600;
 }
 
-.role-card-copy > p:last-child {
+.role-card-summary {
   margin: 8px 0 0;
   color: #aab1a6;
   font-size: 11px;
   line-height: 1.55;
+}
+
+.role-card-details {
+  margin-top: 11px;
+}
+
+.role-card-details summary {
+  width: fit-content;
+  color: var(--green);
+  cursor: pointer;
+  font-size: 11px;
+  line-height: 1.5;
+}
+
+.role-card-details summary:hover {
+  color: #e6eadf;
+}
+
+.role-card-details summary:focus-visible {
+  outline: 2px solid var(--green);
+  outline-offset: 3px;
+}
+
+.role-card-details ul {
+  margin: 8px 0 0;
+  padding-left: 16px;
+  color: #aab1a6;
+  font-size: 10px;
+  line-height: 1.6;
+}
+
+.role-card-details li + li {
+  margin-top: 5px;
 }
 
 .duration-field {
