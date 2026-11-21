@@ -26,7 +26,7 @@ O público inicial é a pessoa que conduz uma partida presencial. O MVP é otimi
 - Uma partida tem de 5 a 75 jogadores; cópias repetidas agem como um grupo e registram uma ação conjunta. Os usos da Bruxa são compartilhados pelo grupo e opcionais.
 - O mestre configura a quantidade de participantes e de cartas de cada função; deve haver ao menos um Lobisomem e menos Lobisomens que participantes não Lobisomens.
 - A soma das cartas é igual ao número de participantes; a aplicação sorteia uma função para cada jogador e o mestre distribui as cartas físicas. O mapeamento é privado do mestre.
-- A ordem fixa das chamadas noturnas é Lobisomens, Guarda-costas, Bruxa e Vidente; após a ação da Vidente, o mestre encerra a noite e anuncia o amanhecer.
+- A ordem fixa das chamadas noturnas é Lobisomens, Guarda-costas, Bruxa, Vidente, Denunciador e Conjurador; após as chamadas previstas para a composição, o mestre anuncia o amanhecer.
 - Toda função incluída na composição inicial que tenha ação noturna é chamada em todas as noites, mesmo que não haja participantes vivos.
 - O MVP deve automatizar um conjunto pequeno de personagens, depois que suas mecânicas forem definidas.
 - A aplicação é uma ferramenta para o mestre em partidas presenciais; experiência móvel e custo operacional baixo são prioridades.

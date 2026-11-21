@@ -266,6 +266,67 @@ describe("match persistence", () => {
     await deleteGame(game.id);
   });
 
+  it("round-trips a Denunciador action through saved progress and backups", async () => {
+    const players = Array.from({ length: 5 }, (_, index) => ({
+      id: `revealer-player-${index + 1}`,
+      name: `Participante ${index + 1}`,
+    }));
+    const game = createGame({
+      id: "revealer-backup",
+      name: "Partida com Denunciador",
+      players,
+      createdAt: "2026-01-05T00:00:00.000Z",
+    });
+    const roles = ["werewolf", "revealer", "bodyguard", "witch", "seer"] as const;
+    let match = createMatch({
+      id: game.id,
+      name: game.name,
+      players,
+      roleCounts: { werewolf: 1, revealer: 1, bodyguard: 1, witch: 1, seer: 1 },
+      dayDurationMinutes: 1,
+    }, () => 0.5);
+    match.players = match.players.map((player, index) => ({
+      ...player,
+      role: roles[index],
+    }));
+
+    match = startMatch(match);
+    match = submitNightCall(match, "werewolf", {
+      kind: "werewolf-attack",
+      targetId: players[4].id,
+    });
+    match = submitNightCall(match, "bodyguard", {
+      kind: "bodyguard-protect",
+      targetId: players[3].id,
+    });
+    match = submitNightCall(match, "witch");
+    match = submitNightCall(match, "seer", {
+      kind: "seer-investigate",
+      targetId: players[1].id,
+    });
+    match = continueAfterSeerResult(match);
+    match = submitNightCall(match, "revealer", {
+      kind: "revealer-denounce",
+      targetId: players[0].id,
+    });
+    match = resolveNight(match).match;
+
+    await saveGameAndMatch(game, match);
+    assert.deepEqual(await getMatch(game.id), match);
+    const backup = await createBackup();
+    assert.deepEqual(
+      backup.games.find((entry) => entry.game.id === game.id)?.match,
+      match,
+    );
+    assert.equal(await importBackup(backup), 1);
+    const restored = await getMatch(game.id);
+    assert.deepEqual(restored, match);
+    const nightHistory = restored?.history[0];
+    assert.ok(nightHistory?.type === "night-resolved");
+    assert.ok(nightHistory.actions.some((record) => record.role === "revealer"));
+    await deleteGame(game.id);
+  });
+
   it("does not partially save a game record when progress persistence fails", async () => {
     const players = Array.from({ length: 5 }, (_, index) => ({ id: `${index}`, name: `P${index}` }));
     const game = createGame({ id: "failure", name: "Falha", players, createdAt: "2026-01-01T00:00:00.000Z" });
@@ -375,6 +436,26 @@ describe("match persistence", () => {
     };
 
     await assert.rejects(importBackup(invalidBackup), /inválidas, duplicadas ou incompatíveis/);
+    const validMatch = createMatch({
+      id: game.id,
+      name: game.name,
+      players,
+      roleCounts: { werewolf: 1, villager: 4 },
+      dayDurationMinutes: 5,
+    });
+    const duplicateRevealersMatch: MatchState = {
+      ...validMatch,
+      players: validMatch.players.map((player, index) =>
+        index < 2 ? { ...player, role: "revealer" } : player,
+      ),
+    };
+    await assert.rejects(
+      importBackup({
+        ...invalidBackup,
+        games: [{ game, match: duplicateRevealersMatch }],
+      }),
+      /inválidas, duplicadas ou incompatíveis/,
+    );
     assert.deepEqual(await listGames(), [game]);
     await deleteGame(game.id);
   });

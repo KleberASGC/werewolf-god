@@ -67,7 +67,13 @@ function isAction(value: unknown): boolean {
   if (value.kind === "witch") {
     return isOptionalString(value.protectTargetId) && isOptionalString(value.eliminateTargetId);
   }
-  return isOneOf(value.kind, ["werewolf-attack", "bodyguard-protect", "seer-investigate", "spellcaster-silence"]) &&
+  return isOneOf(value.kind, [
+    "werewolf-attack",
+    "bodyguard-protect",
+    "seer-investigate",
+    "revealer-denounce",
+    "spellcaster-silence",
+  ]) &&
     typeof value.targetId === "string";
 }
 
@@ -131,6 +137,9 @@ function isMatch(value: unknown): value is MatchState {
   if (value.players.filter((player) =>
     isRecord(player) && (player.role === "cursed" || player.convertedFromCursed === true),
   ).length > 1) return false;
+  if (value.players.filter((player) => isRecord(player) && player.role === "revealer").length > 1) {
+    return false;
+  }
   if (value.discussion !== undefined && (!isRecord(value.discussion) ||
       !isOneOf(value.discussion.status, ["running", "paused", "ended", "expired"]) ||
       typeof value.discussion.remainingMs !== "number" || !Number.isFinite(value.discussion.remainingMs) ||

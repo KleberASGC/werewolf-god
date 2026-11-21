@@ -52,6 +52,8 @@ function getNightRoleForAction(action: NightAction): NightRole {
       return "witch";
     case "seer-investigate":
       return "seer";
+    case "revealer-denounce":
+      return "revealer";
     case "spellcaster-silence":
       return "spellcaster";
   }
@@ -121,6 +123,14 @@ function validateNightAction(
       const target = validateLivingTarget(match, action.targetId);
       if (target.role === "seer") {
         throw new Error("A Vidente não pode investigar alguém do próprio grupo.");
+      }
+      break;
+    }
+    case "revealer-denounce": {
+      const target = validateLivingTarget(match, action.targetId);
+      const revealer = match.players.find((player) => player.role === "revealer");
+      if (target.id === revealer?.id) {
+        throw new Error("O Denunciador não pode escolher a si mesmo.");
       }
       break;
     }
@@ -203,7 +213,7 @@ export function submitNightCall(
   if (!groupHasLivingPlayers && action) {
     throw new Error("Uma função sem participantes vivos não pode registrar uma ação.");
   }
-  if (groupHasLivingPlayers && role !== "witch" && !action) {
+  if (groupHasLivingPlayers && role !== "witch" && role !== "revealer" && !action) {
     throw new Error("A função precisa registrar sua ação antes de avançar.");
   }
   if (action) {
@@ -262,7 +272,7 @@ export function reviseNightAction(
   if (existingIndex < 0 && !action) {
     throw new Error("Não há ação registrada para remover.");
   }
-  if (role !== "witch" && !action) {
+  if (role !== "witch" && role !== "revealer" && !action) {
     throw new Error("A ação desta função é obrigatória.");
   }
   if (!hasLivingMember(match, role) && action) {
@@ -306,7 +316,7 @@ export function resolveNight(match: MatchState): NightResolution {
     if (!hasLivingMember(match, role) && record) {
       throw new Error("Uma função sem participantes vivos não pode ter ação registrada.");
     }
-    if (hasLivingMember(match, role) && role !== "witch" && !record) {
+    if (hasLivingMember(match, role) && role !== "witch" && role !== "revealer" && !record) {
       throw new Error("Uma ação noturna obrigatória não foi registrada.");
     }
     if (record) {
@@ -315,7 +325,7 @@ export function resolveNight(match: MatchState): NightResolution {
   }
 
   const protectionTargetIds = new Set<string>();
-  const attacks: Array<{ role: "werewolf" | "witch"; targetId: string }> = [];
+  const attacks: Array<{ role: "werewolf" | "witch" | "revealer"; targetId: string }> = [];
   const investigations = match.night.actions.flatMap((record) => {
     if (record.action.kind === "seer-investigate") {
       const target = getPlayer(match, record.action.targetId);
@@ -349,6 +359,18 @@ export function resolveNight(match: MatchState): NightResolution {
         break;
       case "seer-investigate":
         break;
+      case "revealer-denounce": {
+        const revealer = match.players.find((player) => player.role === "revealer");
+        if (!revealer) {
+          throw new Error("A ação do Denunciador não tem um participante correspondente.");
+        }
+        const target = getPlayer(match, action.targetId);
+        attacks.push({
+          role: "revealer",
+          targetId: target.role === "werewolf" ? target.id : revealer.id,
+        });
+        break;
+      }
       case "spellcaster-silence":
         lastSpellcasterTargetId = action.targetId;
         break;
