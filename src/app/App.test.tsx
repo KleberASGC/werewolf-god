@@ -200,7 +200,7 @@ it("shows the release label and can redraw roles before the match starts", async
   );
   assert.equal(
     screen.getByRole("group", { name: "Time dos Aldeões" }).querySelectorAll(".role-count").length,
-    8,
+    9,
   );
   await createMatchThroughForm("Novo sorteio");
 
@@ -245,8 +245,11 @@ it("edits participants and role counts from the preparation screen", async () =>
   fireEvent.change(screen.getByRole("spinbutton", { name: "Quantidade de Guarda-costas" }), {
     target: { value: "2" },
   });
-  fireEvent.change(screen.getByRole("spinbutton", { name: "Quantidade de Aldeão" }), {
+  fireEvent.change(screen.getByRole("spinbutton", { name: "Quantidade de Quenga" }), {
     target: { value: "1" },
+  });
+  fireEvent.change(screen.getByRole("spinbutton", { name: "Quantidade de Aldeão" }), {
+    target: { value: "0" },
   });
   clickButton("Salvar alterações");
   await screen.findByRole("button", { name: "Editar partida" });
@@ -269,7 +272,7 @@ it("edits participants and role counts from the preparation screen", async () =>
       counts[player.role] = (counts[player.role] ?? 0) + 1;
       return counts;
     }, {}),
-    { werewolf: 1, bodyguard: 2, witch: 1, seer: 1, villager: 1 },
+    { werewolf: 1, bodyguard: 2, witch: 1, seer: 1, hooker: 1 },
   );
 });
 
@@ -314,11 +317,11 @@ it("shows concise role summaries with optional interaction details", async () =>
   assert.ok(screen.getByText("Todas as noites, acorde junto com os outros Lobisomens e escolha um jogador para eliminar."));
   assert.equal(screen.queryByRole("link", { name: "Interações" }), null);
   assert.equal(screen.queryByRole("heading", { name: "Interações entre personagens" }), null);
-  for (const role of ["Lobisomem", "Guarda-costas", "Bruxa", "Vidente", "Denunciador", "Lycan", "Amaldiçoado", "Conjurador", "Aldeão"]) {
+  for (const role of ["Lobisomem", "Guarda-costas", "Bruxa", "Vidente", "Denunciador", "Lycan", "Amaldiçoado", "Conjurador", "Quenga", "Aldeão"]) {
     assert.ok(screen.getByRole("heading", { level: 3, name: role }));
   }
-  assert.equal(document.querySelectorAll(".role-illustration").length, 9);
-  assert.equal(document.querySelectorAll(".role-card-details").length, 6);
+  assert.equal(document.querySelectorAll(".role-illustration").length, 10);
+  assert.equal(document.querySelectorAll(".role-card-details").length, 7);
   for (const role of ["lycan", "cursed", "villager"]) {
     assert.equal(document.querySelector(`.role-card-${role} .role-card-details`), null);
   }
@@ -327,6 +330,74 @@ it("shows concise role summaries with optional interaction details", async () =>
   assert.ok(werewolfMore);
   fireEvent.click(werewolfMore);
   assert.ok(screen.getByText("Proteção do Guarda-costas ou da Bruxa bloqueia o ataque."));
+});
+
+it("records the Quenga's private individual choice and exposes the optional skip", async () => {
+  const players = Array.from({ length: 5 }, (_, index) => ({
+    id: `hooker-ui-${index + 1}`,
+    name: ["Lobo", "Guarda", "Bruxa", "Vidente", "Quenga"][index],
+  }));
+  const game = createGame({
+    id: "hooker-ui",
+    name: "Quenga individual",
+    players,
+    createdAt: "2026-01-01T00:00:00.000Z",
+  });
+  const roles = ["werewolf", "bodyguard", "witch", "seer", "hooker"] as const;
+  const prepared = createMatch({
+    id: game.id,
+    name: game.name,
+    players,
+    roleCounts: { werewolf: 1, bodyguard: 1, witch: 1, seer: 1, hooker: 1 },
+    dayDurationMinutes: 5,
+  });
+  let match: MatchState = {
+    ...prepared,
+    players: prepared.players.map((player, index) => ({
+      ...player,
+      role: roles[index],
+    })),
+  };
+  match = startMatch(match);
+  match = submitNightCall(match, "werewolf", {
+    kind: "werewolf-attack",
+    targetId: players[1].id,
+  });
+  match = submitNightCall(match, "bodyguard", {
+    kind: "bodyguard-protect",
+    targetId: players[2].id,
+  });
+  match = submitNightCall(match, "witch");
+  match = submitNightCall(match, "seer", {
+    kind: "seer-investigate",
+    targetId: players[0].id,
+  });
+  match = continueAfterSeerResult(match);
+  await saveGameAndMatch(game, match);
+  await renderApp();
+
+  await screen.findByRole("button", { name: /Quenga individual/ });
+  await clickGameAndWaitForDetails(/Quenga individual/, "Retomar partida");
+  clickButton("Retomar partida");
+
+  await screen.findByRole("heading", { name: /Chamar: Quenga/ });
+  assert.ok(screen.getByText(/escolha individual dela/));
+  assert.ok(screen.getByRole("button", { name: "Não dormir com ninguém esta noite" }));
+  const selfChoice = radioInputs("night-target").find(
+    (input) => selectedPlayerName(input) === "Quenga",
+  );
+  assert.ok(selfChoice?.disabled);
+  chooseRadio("night-target", (input) => selectedPlayerName(input) === "Guarda");
+  clickButton("Registrar chamada e avançar");
+  await screen.findByRole("heading", { name: "Revisar ações antes de confirmar" });
+  await waitForSavedProgress();
+
+  const saved = await getMatch(game.id);
+  assert.deepEqual(saved?.night?.actions.find((record) => record.role === "hooker")?.action, {
+    kind: "hooker-sleep",
+    targetId: players[1].id,
+  });
+  assert.ok(screen.getByText(/Dormiu com Guarda/));
 });
 
 it("does not show the removed private instruction to the Cursed player", async () => {
@@ -634,7 +705,7 @@ it("edits a saved game roster by replacing its prepared match and role draw", as
   );
   assert.equal(
     editorVillagerTeam.querySelectorAll(".role-count").length,
-    8,
+    9,
   );
   fillInput("Nome do participante editado 1", "Ana");
   clickButton("Remover participante editado 5");

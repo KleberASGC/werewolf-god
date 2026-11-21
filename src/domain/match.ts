@@ -55,13 +55,19 @@ export interface RevealerAction {
   targetId: string;
 }
 
+export interface HookerAction {
+  kind: "hooker-sleep";
+  targetId: string;
+}
+
 export type NightAction =
   | WerewolfAction
   | BodyguardAction
   | WitchAction
   | SeerAction
   | RevealerAction
-  | SpellcasterAction;
+  | SpellcasterAction
+  | HookerAction;
 
 export interface NightActionRecord {
   role: NightRole;

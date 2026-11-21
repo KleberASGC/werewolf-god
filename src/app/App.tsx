@@ -56,6 +56,7 @@ const INITIAL_ROLE_COUNTS: Record<RoleId, number> = {
   lycan: 0,
   cursed: 0,
   spellcaster: 0,
+  hooker: 0,
   villager: 1,
 };
 const RELEASE_LABEL = `v${packageVersion} · ${releaseCodename}`;
@@ -68,6 +69,7 @@ const ROLE_DESCRIPTIONS: Record<RoleId, string> = {
   lycan: "Faz parte dos Aldeões, mas aparece como Lobisomem para a Vidente.",
   cursed: "Começa como Aldeão. Uma eliminação pelos Lobisomens deixa a conversão pendente; o moderador a efetiva ao despertá-lo discretamente na noite seguinte.",
   spellcaster: "Silencia um jogador durante todo o dia seguinte, não podendo repetir o alvo em dias consecutivos.",
+  hooker: "À noite, pode dormir com outro jogador. Evita o ataque dos Lobisomens quando é o alvo, mas pode morrer junto com quem escolheu.",
   villager: "Não tem ação noturna; participa da discussão e vota para eliminar Lobisomens.",
 };
 const ROLE_SUMMARIES: Record<RoleId, string> = {
@@ -79,6 +81,7 @@ const ROLE_SUMMARIES: Record<RoleId, string> = {
   lycan: "Você é um Aldeão, mas, aos olhos do Vidente, parece ser um Lobisomem.",
   cursed: "Você faz parte da Facção dos Aldeões, a menos que seja alvo de eliminação pelos Lobisomens; nesse caso, você se torna um Lobisomem.",
   spellcaster: "Todas as noites, escolha um jogador que não poderá falar no dia seguinte.",
+  hooker: "Todas as noites, você pode optar por dormir com um jogador. Se esse jogador for um lobisomem, você é eliminada. Se não for: e os lobisomens tentarem te atacar então ninguém morre porque você não estava em casa; se os lobisomens atacarem o jogador que você optou por dormir, morrem vocês dois.",
   villager: "Encontre os Lobisomens e elimine-os.",
 };
 const ROLE_MORE_INFO: Partial<Record<RoleId, readonly string[]>> = {
@@ -106,6 +109,11 @@ const ROLE_MORE_INFO: Partial<Record<RoleId, readonly string[]>> = {
     "Não pode silenciar o mesmo alvo em dias seguidos. O alvo continua votando, mas sem falar.",
     "O silenciamento não bloqueia ações noturnas e continua valendo no dia seguinte mesmo se o alvo for eliminado naquela noite.",
   ],
+  hooker: [
+    "Se não escolher ninguém, permanece em casa. Se escolher um Lobisomem, morre, a menos que esteja protegida; essa escolha não elimina o Lobisomem.",
+    "Se escolher alguém que não seja Lobisomem, o ataque dos Lobisomens contra a Quenga não elimina ninguém. Se atacarem a pessoa escolhida, ambas são alvos, mas cada uma pode ser protegida independentemente.",
+    "Somente ataques dos Lobisomens contra a pessoa escolhida causam morte conjunta. Outras ações contra essa pessoa a afetam normalmente, sem transferir o efeito à Quenga.",
+  ],
 };
 const ROLE_FACTIONS: Record<RoleId, string> = {
   werewolf: "Facção dos Lobisomens",
@@ -116,6 +124,7 @@ const ROLE_FACTIONS: Record<RoleId, string> = {
   lycan: "Facção dos Aldeões",
   cursed: "Aldeões; Lobisomens se convertido",
   spellcaster: "Facção dos Aldeões",
+  hooker: "Facção dos Aldeões",
   villager: "Facção dos Aldeões",
 };
 const ROLE_TEAMS = [
@@ -123,7 +132,7 @@ const ROLE_TEAMS = [
   {
     id: "villagers",
     label: "Time dos Aldeões",
-    roles: ["bodyguard", "witch", "seer", "revealer", "lycan", "cursed", "spellcaster", "villager"],
+    roles: ["bodyguard", "witch", "seer", "revealer", "lycan", "cursed", "spellcaster", "hooker", "villager"],
   },
 ] as const satisfies readonly { id: string; label: string; roles: readonly RoleId[] }[];
 
@@ -148,7 +157,7 @@ function RoleCountField({
       <input
         id={inputId}
         aria-label={`Quantidade de ${ROLE_LABELS[role]}`}
-        max={role === "cursed" || role === "revealer" ? 1 : 75}
+        max={role === "cursed" || role === "revealer" || role === "hooker" ? 1 : 75}
         min={0}
         onChange={(event) => onChange(Number(event.target.value))}
         type="number"
@@ -234,6 +243,13 @@ function RoleIllustration({ role }: { role: RoleId }) {
           <path d="m27 36 4 9 10 1-8 7 2 10-8-5-9 5 3-10-8-7 10-1 4-9Z" />
         </>
       )}
+      {role === "hooker" && (
+        <>
+          <path d="M22 78h76M28 66v27m64-27v27M28 70h64V52H38v18" />
+          <circle cx="49" cy="43" r="8" />
+          <path d="M57 45h27m-13-7 7 7-7 7M91 21l3 8 8 3-8 3-3 8-3-8-8-3 8-3 3-8Z" />
+        </>
+      )}
       {role === "spellcaster" && (
         <>
           <circle cx="60" cy="60" r="43" />
@@ -280,6 +296,7 @@ function getRoleCounts(players: MatchPlayer[]): Record<RoleId, number> {
     lycan: 0,
     cursed: 0,
     spellcaster: 0,
+    hooker: 0,
     villager: 0,
   });
 }
@@ -300,6 +317,8 @@ function formatNightAction(match: MatchState, action: NightAction): string {
       return `Denúncia: ${playerName(match, action.targetId)}`;
     case "spellcaster-silence":
       return `Silenciamento: ${playerName(match, action.targetId)}`;
+    case "hooker-sleep":
+      return `Dormiu com ${playerName(match, action.targetId)}`;
     case "witch":
       return [
         action.protectTargetId
@@ -406,6 +425,9 @@ function NightActionForm({
     if (targetRole === "revealer") {
       return player.id !== match.players.find((candidate) => candidate.role === "revealer")?.id;
     }
+    if (targetRole === "hooker") {
+      return player.id !== match.players.find((candidate) => candidate.role === "hooker")?.id;
+    }
     if (targetRole === "bodyguard") return player.id !== match.lastBodyguardTargetId;
     if (targetRole === "spellcaster") return player.id !== match.lastSpellcasterTargetId;
     return true;
@@ -421,6 +443,10 @@ function NightActionForm({
       targetRole === "revealer" &&
       player.id === match.players.find((candidate) => candidate.role === "revealer")?.id
     ) return "O Denunciador não pode escolher a si mesmo";
+    if (
+      targetRole === "hooker" &&
+      player.id === match.players.find((candidate) => candidate.role === "hooker")?.id
+    ) return "A Quenga não pode escolher a si mesma";
     if (targetRole === "bodyguard" && player.id === match.lastBodyguardTargetId) return "Protegido na noite anterior";
     if (targetRole === "spellcaster" && player.id === match.lastSpellcasterTargetId) return "Silenciado no dia anterior";
     if (targetRole === "witch" && player.role === "witch") return "Não pode eliminar alguém do próprio grupo";
@@ -458,6 +484,8 @@ function NightActionForm({
       nextAction = { kind: "seer-investigate", targetId };
     } else if (role === "revealer") {
       nextAction = { kind: "revealer-denounce", targetId };
+    } else if (role === "hooker") {
+      nextAction = { kind: "hooker-sleep", targetId };
     } else {
       nextAction = { kind: "spellcaster-silence", targetId };
     }
@@ -542,7 +570,9 @@ function NightActionForm({
         ? "Pessoa investigada"
         : role === "revealer"
           ? "Pessoa denunciada"
-          : "Pessoa silenciada no dia seguinte";
+          : role === "spellcaster"
+            ? "Pessoa silenciada no dia seguinte"
+            : "Pessoa com quem a Quenga dormirá";
 
   return (
     <form className="action-form" onSubmit={handleSubmit}>
@@ -555,6 +585,11 @@ function NightActionForm({
       {role === "revealer" && (
         <p className="field-hint">
           A denúncia é opcional. Se o alvo não for Lobisomem, o Denunciador será eliminado, salvo se estiver protegido.
+        </p>
+      )}
+      {role === "hooker" && (
+        <p className="field-hint">
+          A escolha é opcional. Se escolher alguém que não seja Lobisomem, o ataque dos Lobisomens contra você é evitado.
         </p>
       )}
       {allowedTargets.length === 0 && (
@@ -576,6 +611,11 @@ function NightActionForm({
         {role === "revealer" && (
           <button className="secondary-button" onClick={() => submitAction()} type="button">
             Não denunciar esta noite
+          </button>
+        )}
+        {role === "hooker" && (
+          <button className="secondary-button" onClick={() => submitAction()} type="button">
+            Não dormir com ninguém esta noite
           </button>
         )}
         <button className="primary-button" disabled={allowedTargets.length === 0} type="submit">
@@ -897,7 +937,9 @@ function MasterConsole({
           <p>
             {currentRole === "revealer"
               ? "Chame o Denunciador e registre a escolha individual dele."
-              : "Oriente o grupo a agir em conjunto e registre uma única escolha final."}
+              : currentRole === "hooker"
+                ? "Chame a Quenga para registrar a escolha individual dela. A ação é opcional."
+                : "Oriente o grupo a agir em conjunto e registre uma única escolha final."}
           </p>
           <div className="called-role-players">
             <p className="detail-label">JOGADORES DESTA FUNÇÃO</p>

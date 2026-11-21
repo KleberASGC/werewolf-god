@@ -8,6 +8,7 @@ ações, resultados, informações ou condições de vitória.
 
 - **Identificador estável:** `[id-em-ingles]`
 - **Nome exibido:** [nome]
+- **Texto impresso na carta:** [exatamente como está impresso na carta física (traduzido pt-BR)]
 - **Facção e condição de vitória:** [facção; como essa facção vence]
 - **Quantidade permitida na partida:** [mínimo/máximo ou regra de composição]
 - **Tipo de ação:** [individual / grupo / nenhuma]

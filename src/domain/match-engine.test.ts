@@ -155,6 +155,187 @@ describe("night flow and resolution", () => {
     assert.equal(afterElimination.night?.actions.some((record) => record.role === "revealer"), false);
   });
 
+  it("calls the optional Quenga after the Conjurador and accepts no choice", () => {
+    const match = createFixture(["werewolf", "hooker", "spellcaster", "seer", "villager"]);
+    const started = startMatch(match);
+
+    assert.deepEqual(started.night?.schedule, ["werewolf", "seer", "spellcaster", "hooker"]);
+    const pending = recordNight(match, {
+      werewolf: { kind: "werewolf-attack", targetId: "player-5" },
+      seer: { kind: "seer-investigate", targetId: "player-2" },
+      spellcaster: { kind: "spellcaster-silence", targetId: "player-5" },
+    });
+
+    assert.equal(pending.phase, "night-resolution");
+    assert.equal(pending.night?.actions.some((record) => record.role === "hooker"), false);
+
+    const eliminatedQuenga = createFixture(["werewolf", "hooker", "bodyguard", "seer", "villager"]);
+    eliminatedQuenga.players[1].status = "dead";
+    const afterElimination = recordNight(eliminatedQuenga, {
+      werewolf: { kind: "werewolf-attack", targetId: "player-5" },
+      bodyguard: { kind: "bodyguard-protect", targetId: "player-4" },
+      seer: { kind: "seer-investigate", targetId: "player-5" },
+    });
+    assert.ok(afterElimination.night?.schedule.includes("hooker"));
+    assert.equal(afterElimination.night?.actions.some((record) => record.role === "hooker"), false);
+  });
+
+  it("rejects a Quenga choosing herself and allows removing her optional choice in review", () => {
+    const match = createFixture(["werewolf", "hooker", "bodyguard", "seer", "villager"]);
+    let pending = startMatch(match);
+    pending = submitNightCall(pending, "werewolf", {
+      kind: "werewolf-attack",
+      targetId: "player-5",
+    });
+    pending = submitNightCall(pending, "bodyguard", {
+      kind: "bodyguard-protect",
+      targetId: "player-4",
+    });
+    pending = submitNightCall(pending, "seer", {
+      kind: "seer-investigate",
+      targetId: "player-5",
+    });
+    pending = continueAfterSeerResult(pending);
+    assert.throws(
+      () => submitNightCall(pending, "hooker", {
+        kind: "hooker-sleep",
+        targetId: "player-2",
+      }),
+      /não pode escolher a si mesma/,
+    );
+    pending = submitNightCall(pending, "hooker", {
+      kind: "hooker-sleep",
+      targetId: "player-5",
+    });
+
+    const revised = reviseNightAction(pending, "hooker");
+    assert.equal(revised.night?.actions.some((record) => record.role === "hooker"), false);
+  });
+
+  it("evades a Werewolf attack on the Quenga when she sleeps with a non-Werewolf", () => {
+    const match = createFixture(["werewolf", "hooker", "bodyguard", "seer", "villager"]);
+    const pending = recordNight(match, {
+      werewolf: { kind: "werewolf-attack", targetId: "player-2" },
+      bodyguard: { kind: "bodyguard-protect", targetId: "player-5" },
+      seer: { kind: "seer-investigate", targetId: "player-5" },
+      hooker: { kind: "hooker-sleep", targetId: "player-5" },
+    });
+    const result = resolveNight(pending);
+
+    assert.deepEqual(result.eliminatedPlayerIds, []);
+    assert.deepEqual(result.blockedAttackTargetIds, []);
+    assert.deepEqual(result.publicAnnouncement, { kind: "no-deaths" });
+  });
+
+  it("is eliminated by a Werewolf attack when she stays home", () => {
+    const match = createFixture(["werewolf", "hooker", "bodyguard", "seer", "villager"]);
+    const result = resolveNight(recordNight(match, {
+      werewolf: { kind: "werewolf-attack", targetId: "player-2" },
+      bodyguard: { kind: "bodyguard-protect", targetId: "player-4" },
+      seer: { kind: "seer-investigate", targetId: "player-5" },
+    }));
+
+    assert.deepEqual(result.eliminatedPlayerIds, ["player-2"]);
+  });
+
+  it("eliminates the Quenga for sleeping with a Werewolf unless she is protected", () => {
+    const match = createFixture(["werewolf", "hooker", "bodyguard", "seer", "villager"]);
+    const pending = recordNight(match, {
+      werewolf: { kind: "werewolf-attack", targetId: "player-5" },
+      bodyguard: { kind: "bodyguard-protect", targetId: "player-2" },
+      seer: { kind: "seer-investigate", targetId: "player-5" },
+      hooker: { kind: "hooker-sleep", targetId: "player-1" },
+    });
+    const result = resolveNight(pending);
+
+    assert.deepEqual(result.eliminatedPlayerIds, ["player-5"]);
+    assert.equal(result.match.players.find((player) => player.id === "player-2")?.status, "alive");
+  });
+
+  it("eliminates the Quenga even when her companion is protected from the Werewolves", () => {
+    const match = createFixture(["werewolf", "hooker", "bodyguard", "seer", "villager"]);
+    const pending = recordNight(match, {
+      werewolf: { kind: "werewolf-attack", targetId: "player-5" },
+      bodyguard: { kind: "bodyguard-protect", targetId: "player-5" },
+      seer: { kind: "seer-investigate", targetId: "player-5" },
+      hooker: { kind: "hooker-sleep", targetId: "player-5" },
+    });
+    const result = resolveNight(pending);
+
+    assert.deepEqual(result.eliminatedPlayerIds, ["player-2"]);
+    assert.equal(result.match.players.find((player) => player.id === "player-5")?.status, "alive");
+  });
+
+  it("eliminates both the Quenga and an unprotected companion attacked by Werewolves", () => {
+    const match = createFixture(["werewolf", "hooker", "bodyguard", "seer", "villager"]);
+    const result = resolveNight(recordNight(match, {
+      werewolf: { kind: "werewolf-attack", targetId: "player-5" },
+      bodyguard: { kind: "bodyguard-protect", targetId: "player-4" },
+      seer: { kind: "seer-investigate", targetId: "player-5" },
+      hooker: { kind: "hooker-sleep", targetId: "player-5" },
+    }));
+
+    assert.deepEqual(result.eliminatedPlayerIds, ["player-5", "player-2"]);
+  });
+
+  it("protecting the Quenga does not protect the companion attacked by Werewolves", () => {
+    const match = createFixture(["werewolf", "hooker", "bodyguard", "seer", "villager"]);
+    const pending = recordNight(match, {
+      werewolf: { kind: "werewolf-attack", targetId: "player-5" },
+      bodyguard: { kind: "bodyguard-protect", targetId: "player-2" },
+      seer: { kind: "seer-investigate", targetId: "player-5" },
+      hooker: { kind: "hooker-sleep", targetId: "player-5" },
+    });
+    const result = resolveNight(pending);
+
+    assert.deepEqual(result.eliminatedPlayerIds, ["player-5"]);
+    assert.equal(result.match.players.find((player) => player.id === "player-2")?.status, "alive");
+  });
+
+  it("protecting both the Quenga and her companion blocks both eliminations", () => {
+    const match = createFixture(["werewolf", "hooker", "bodyguard", "witch", "villager"]);
+    const result = resolveNight(recordNight(match, {
+      werewolf: { kind: "werewolf-attack", targetId: "player-5" },
+      bodyguard: { kind: "bodyguard-protect", targetId: "player-5" },
+      witch: { kind: "witch", protectTargetId: "player-2" },
+      hooker: { kind: "hooker-sleep", targetId: "player-5" },
+    }));
+
+    assert.deepEqual(result.eliminatedPlayerIds, []);
+    assert.deepEqual(result.blockedAttackTargetIds, ["player-5"]);
+    assert.deepEqual(result.protectedPlayerIds, ["player-5", "player-2"]);
+  });
+
+  it("does not transfer a non-Werewolf elimination against the Quenga's companion", () => {
+    const match = createFixture(["werewolf", "hooker", "witch", "seer", "villager"]);
+    const pending = recordNight(match, {
+      werewolf: { kind: "werewolf-attack", targetId: "player-4" },
+      witch: { kind: "witch", eliminateTargetId: "player-5" },
+      seer: { kind: "seer-investigate", targetId: "player-5" },
+      hooker: { kind: "hooker-sleep", targetId: "player-5" },
+    });
+    const result = resolveNight(pending);
+
+    assert.deepEqual(result.eliminatedPlayerIds, ["player-4", "player-5"]);
+    assert.equal(result.match.players.find((player) => player.id === "player-2")?.status, "alive");
+  });
+
+  it("keeps the Cursed alive with pending conversion when the Quenga dies beside him", () => {
+    const match = createFixture(["werewolf", "hooker", "cursed", "bodyguard", "seer"]);
+    const pending = recordNight(match, {
+      werewolf: { kind: "werewolf-attack", targetId: "player-3" },
+      bodyguard: { kind: "bodyguard-protect", targetId: "player-4" },
+      seer: { kind: "seer-investigate", targetId: "player-3" },
+      hooker: { kind: "hooker-sleep", targetId: "player-3" },
+    });
+    const result = resolveNight(pending);
+
+    assert.deepEqual(result.eliminatedPlayerIds, ["player-2"]);
+    assert.deepEqual(result.pendingCursedConversionPlayerIds, ["player-3"]);
+    assert.equal(result.match.players.find((player) => player.id === "player-3")?.status, "alive");
+    assert.equal(result.match.players.find((player) => player.id === "player-3")?.pendingCursedConversion, true);
+  });
+
   it("eliminates an unprotected Werewolf denounced by the Denunciador", () => {
     const match = createFixture(["werewolf", "revealer", "bodyguard", "witch", "villager"]);
     const pending = recordNight(match, {

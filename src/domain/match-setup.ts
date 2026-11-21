@@ -81,6 +81,7 @@ export function createMatch(
     lycan: input.roleCounts.lycan ?? 0,
     cursed: input.roleCounts.cursed ?? 0,
     spellcaster: input.roleCounts.spellcaster ?? 0,
+    hooker: input.roleCounts.hooker ?? 0,
     villager: input.roleCounts.villager ?? 0,
   };
 
@@ -103,6 +104,9 @@ export function createMatch(
   }
   if (counts.revealer > 1) {
     throw new Error("A partida pode ter no máximo um Denunciador.");
+  }
+  if (counts.hooker > 1) {
+    throw new Error("A partida pode ter no máximo uma Quenga.");
   }
   if (
     !Number.isInteger(input.dayDurationMinutes) ||
