@@ -50,6 +50,12 @@ export interface SpellcasterAction {
   targetId: string;
 }
 
+export interface CupidAction {
+  kind: "cupid-link";
+  firstTargetId: string;
+  secondTargetId: string;
+}
+
 export interface RevealerAction {
   kind: "revealer-denounce";
   targetId: string;
@@ -61,7 +67,8 @@ export type NightAction =
   | WitchAction
   | SeerAction
   | RevealerAction
-  | SpellcasterAction;
+  | SpellcasterAction
+  | CupidAction;
 
 export interface NightActionRecord {
   role: NightRole;
@@ -133,6 +140,7 @@ export interface VoteHistoryEntry {
   annulVotes: number;
   counts: Record<string, number>;
   exiledPlayerId?: string;
+  linkedEliminatedPlayerIds?: string[];
 }
 
 export type MatchHistoryEntry = NightHistoryEntry | VoteHistoryEntry;
@@ -151,6 +159,7 @@ export interface MatchState {
   witchResources: WitchResources;
   lastBodyguardTargetId?: string;
   lastSpellcasterTargetId?: string;
+  cupidLinkedPlayerIds?: [string, string];
   history: MatchHistoryEntry[];
   winner?: WinningTeam;
 }
@@ -175,5 +184,6 @@ export interface VoteResolution {
   counts: Record<string, number>;
   annulVotes: number;
   exiledPlayerId?: string;
+  linkedEliminatedPlayerIds?: string[];
   winner?: WinningTeam;
 }

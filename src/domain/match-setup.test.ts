@@ -150,6 +150,38 @@ describe("createMatch", () => {
     );
   });
 
+  it("allows one Cupido in a role draw and rejects multiple cards", () => {
+    const match = createMatch(
+      {
+        id: "match-cupid",
+        name: "Cupid game",
+        players: players(5),
+        roleCounts: { werewolf: 1, cupid: 1, villager: 3 },
+        dayDurationMinutes: 5,
+      },
+      () => 0,
+    );
+
+    assert.deepEqual(
+      match.players.map((player) => player.role).sort(),
+      ["cupid", "villager", "villager", "villager", "werewolf"],
+    );
+    assert.throws(
+      () =>
+        createMatch(
+          {
+            id: "match-multiple-cupids",
+            name: "Multiple Cupids",
+            players: players(5),
+            roleCounts: { werewolf: 1, cupid: 2, villager: 2 },
+            dayDurationMinutes: 5,
+          },
+          () => 0,
+        ),
+      /no máximo um Cupido/,
+    );
+  });
+
   it("rejects invalid player counts and role compositions", () => {
     const base = {
       id: "match-1",

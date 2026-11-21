@@ -25,6 +25,7 @@ import type {
   NightAction,
   NightHistoryEntry,
   VoteChoice,
+  VoteHistoryEntry,
 } from "../domain/match";
 import { createMatch, type PlayerInput } from "../domain/match-setup";
 import {
@@ -56,6 +57,7 @@ const INITIAL_ROLE_COUNTS: Record<RoleId, number> = {
   lycan: 0,
   cursed: 0,
   spellcaster: 0,
+  cupid: 0,
   villager: 1,
 };
 const RELEASE_LABEL = `v${packageVersion} · ${releaseCodename}`;
@@ -68,6 +70,7 @@ const ROLE_DESCRIPTIONS: Record<RoleId, string> = {
   lycan: "Faz parte dos Aldeões, mas aparece como Lobisomem para a Vidente.",
   cursed: "Começa como Aldeão. Uma eliminação pelos Lobisomens deixa a conversão pendente; o moderador a efetiva ao despertá-lo discretamente na noite seguinte.",
   spellcaster: "Silencia um jogador durante todo o dia seguinte, não podendo repetir o alvo em dias consecutivos.",
+  cupid: "Na primeira noite, escolhe dois jogadores conectados. Se um deles for eliminado, o outro também será eliminado.",
   villager: "Não tem ação noturna; participa da discussão e vota para eliminar Lobisomens.",
 };
 const ROLE_SUMMARIES: Record<RoleId, string> = {
@@ -79,6 +82,7 @@ const ROLE_SUMMARIES: Record<RoleId, string> = {
   lycan: "Você é um Aldeão, mas, aos olhos do Vidente, parece ser um Lobisomem.",
   cursed: "Você faz parte da Facção dos Aldeões, a menos que seja alvo de eliminação pelos Lobisomens; nesse caso, você se torna um Lobisomem.",
   spellcaster: "Todas as noites, escolha um jogador que não poderá falar no dia seguinte.",
+  cupid: "Na primeira noite, escolha dois jogadores para ficarem conectados. Se um deles for eliminado, o outro também será eliminado.",
   villager: "Encontre os Lobisomens e elimine-os.",
 };
 const ROLE_MORE_INFO: Partial<Record<RoleId, readonly string[]>> = {
@@ -106,6 +110,12 @@ const ROLE_MORE_INFO: Partial<Record<RoleId, readonly string[]>> = {
     "Não pode silenciar o mesmo alvo em dias seguidos. O alvo continua votando, mas sem falar.",
     "O silenciamento não bloqueia ações noturnas e continua valendo no dia seguinte mesmo se o alvo for eliminado naquela noite.",
   ],
+  cupid: [
+    "Pode escolher a si próprio uma vez. O Cupido e o mestre conhecem o par; os jogadores conectados não são informados.",
+    "Se uma proteção bloquear a eliminação do alvo, nenhum dos dois morre por essa ação. Se o alvo morrer e o par estiver protegido, somente o alvo morre.",
+    "O vínculo também elimina o par quando um dos conectados é exilado por votação.",
+    "Se o par estiver conectado ao Amaldiçoado, o ataque dos Lobisomens deixa a conversão pendente até o despertar; se o vínculo o eliminar antes disso, a conversão é cancelada.",
+  ],
 };
 const ROLE_FACTIONS: Record<RoleId, string> = {
   werewolf: "Facção dos Lobisomens",
@@ -116,6 +126,7 @@ const ROLE_FACTIONS: Record<RoleId, string> = {
   lycan: "Facção dos Aldeões",
   cursed: "Aldeões; Lobisomens se convertido",
   spellcaster: "Facção dos Aldeões",
+  cupid: "Facção dos Aldeões",
   villager: "Facção dos Aldeões",
 };
 const ROLE_TEAMS = [
@@ -123,7 +134,7 @@ const ROLE_TEAMS = [
   {
     id: "villagers",
     label: "Time dos Aldeões",
-    roles: ["bodyguard", "witch", "seer", "revealer", "lycan", "cursed", "spellcaster", "villager"],
+    roles: ["bodyguard", "witch", "seer", "revealer", "lycan", "cursed", "spellcaster", "cupid", "villager"],
   },
 ] as const satisfies readonly { id: string; label: string; roles: readonly RoleId[] }[];
 
@@ -148,7 +159,7 @@ function RoleCountField({
       <input
         id={inputId}
         aria-label={`Quantidade de ${ROLE_LABELS[role]}`}
-        max={role === "cursed" || role === "revealer" ? 1 : 75}
+        max={role === "cursed" || role === "revealer" || role === "cupid" ? 1 : 75}
         min={0}
         onChange={(event) => onChange(Number(event.target.value))}
         type="number"
@@ -242,6 +253,12 @@ function RoleIllustration({ role }: { role: RoleId }) {
           <path d="m51 69 18 16m0-16L51 85" />
         </>
       )}
+      {role === "cupid" && (
+        <>
+          <path d="M60 99 24 65C1 43 15 20 36 23c11 1 19 10 24 20 5-10 13-19 24-20 21-3 35 20 12 42L60 99Z" />
+          <path d="m23 47 19 4m-9-10-10 10 10 10m64-14-19 4m9-10 10 10-10 10" />
+        </>
+      )}
       {role === "villager" && (
         <>
           <circle cx="60" cy="43" r="20" />
@@ -280,12 +297,26 @@ function getRoleCounts(players: MatchPlayer[]): Record<RoleId, number> {
     lycan: 0,
     cursed: 0,
     spellcaster: 0,
+    cupid: 0,
     villager: 0,
   });
 }
 
 function playerName(match: MatchState, playerId: string): string {
   return match.players.find((player) => player.id === playerId)?.name ?? "Participante";
+}
+
+function formatVoteAnnouncement(match: MatchState, entry?: VoteHistoryEntry): string {
+  if (!entry || entry.outcome !== "exiled" || !entry.exiledPlayerId) {
+    return "a votação foi anulada; ninguém saiu da partida.";
+  }
+  const departedPlayerIds = [
+    entry.exiledPlayerId,
+    ...(entry.linkedEliminatedPlayerIds ?? []),
+  ];
+  return `${departedPlayerIds.map((id) => playerName(match, id)).join(", ")} ${
+    departedPlayerIds.length === 1 ? "saiu" : "saíram"
+  } da partida. Não revele os papéis.`;
 }
 
 function formatNightAction(match: MatchState, action: NightAction): string {
@@ -300,6 +331,8 @@ function formatNightAction(match: MatchState, action: NightAction): string {
       return `Denúncia: ${playerName(match, action.targetId)}`;
     case "spellcaster-silence":
       return `Silenciamento: ${playerName(match, action.targetId)}`;
+    case "cupid-link":
+      return `Vínculo: ${playerName(match, action.firstTargetId)} e ${playerName(match, action.secondTargetId)}`;
     case "witch":
       return [
         action.protectTargetId
@@ -389,7 +422,12 @@ function NightActionForm({
 }) {
   const action = initialAction;
   const [targetId, setTargetId] = useState(
-    action && "targetId" in action ? action.targetId : "",
+    action?.kind === "cupid-link"
+      ? action.firstTargetId
+      : action && "targetId" in action ? action.targetId : "",
+  );
+  const [secondTargetId, setSecondTargetId] = useState(
+    action?.kind === "cupid-link" ? action.secondTargetId : "",
   );
   const [protectTargetId, setProtectTargetId] = useState(
     action?.kind === "witch" ? action.protectTargetId ?? "" : "",
@@ -414,7 +452,11 @@ function NightActionForm({
   function unavailableReason(player: MatchPlayer, targetRole: NightRole, otherTargetId = ""): string {
     if (player.status === "dead") return "Eliminado";
     if (player.status === "exiled") return "Exilado";
-    if (player.id === otherTargetId) return "Escolha outro alvo para usar os dois poderes";
+    if (player.id === otherTargetId) {
+      return targetRole === "cupid"
+        ? "Escolha outra pessoa para formar o par"
+        : "Escolha outro alvo para usar os dois poderes";
+    }
     if (targetRole === "werewolf" && player.role === "werewolf") return "Não pode escolher outro Lobisomem";
     if (targetRole === "seer" && player.role === "seer") return "Não pode investigar alguém do próprio grupo";
     if (
@@ -458,6 +500,12 @@ function NightActionForm({
       nextAction = { kind: "seer-investigate", targetId };
     } else if (role === "revealer") {
       nextAction = { kind: "revealer-denounce", targetId };
+    } else if (role === "cupid") {
+      nextAction = {
+        kind: "cupid-link",
+        firstTargetId: targetId,
+        secondTargetId,
+      };
     } else {
       nextAction = { kind: "spellcaster-silence", targetId };
     }
@@ -528,6 +576,51 @@ function NightActionForm({
         {error && <p className="message error-message" role="alert">{error}</p>}
         <div className="button-row">
           <button className="primary-button" type="submit">{submitLabel}</button>
+          {onCancel && <button className="secondary-button" onClick={onCancel} type="button">Cancelar</button>}
+        </div>
+      </form>
+    );
+  }
+
+  if (role === "cupid") {
+    const secondAllowedTargets = match.players.filter((player) =>
+      isAllowedTarget(player, role, targetId),
+    );
+    return (
+      <form className="action-form" onSubmit={handleSubmit}>
+        <p className="field-hint">
+          Escolha duas pessoas diferentes, podendo incluir o próprio Cupido. O Cupido e o mestre conhecem o par; não informe os jogadores conectados.
+        </p>
+        <PlayerPicker
+          id="cupid-first-target"
+          label="Primeiro jogador conectado"
+          isAllowed={(player) => isAllowedTarget(player, role, secondTargetId)}
+          onChange={(id) => {
+            setTargetId(id);
+            if (id === secondTargetId) setSecondTargetId("");
+          }}
+          players={match.players}
+          unavailableReason={(player) => unavailableReason(player, role, secondTargetId)}
+          value={targetId}
+        />
+        <PlayerPicker
+          id="cupid-second-target"
+          label="Segundo jogador conectado"
+          isAllowed={(player) => isAllowedTarget(player, role, targetId)}
+          onChange={setSecondTargetId}
+          players={match.players}
+          unavailableReason={(player) => unavailableReason(player, role, targetId)}
+          value={secondTargetId}
+        />
+        {error && <p className="message error-message" role="alert">{error}</p>}
+        <div className="button-row">
+          <button
+            className="primary-button"
+            disabled={secondAllowedTargets.length === 0}
+            type="submit"
+          >
+            {submitLabel}
+          </button>
           {onCancel && <button className="secondary-button" onClick={onCancel} type="button">Cancelar</button>}
         </div>
       </form>
@@ -897,7 +990,9 @@ function MasterConsole({
           <p>
             {currentRole === "revealer"
               ? "Chame o Denunciador e registre a escolha individual dele."
-              : "Oriente o grupo a agir em conjunto e registre uma única escolha final."}
+              : currentRole === "cupid"
+                ? "Chame o Cupido para escolher o par. Ele conhece a escolha; não informe os jogadores conectados."
+                : "Oriente o grupo a agir em conjunto e registre uma única escolha final."}
           </p>
           <div className="called-role-players">
             <p className="detail-label">JOGADORES DESTA FUNÇÃO</p>
@@ -1205,9 +1300,10 @@ function MasterConsole({
           <VoteOutcome match={match} />
           <p className="public-script">
             <strong>Para anunciar:</strong>{" "}
-            {latestVote?.type === "vote-resolved" && latestVote.outcome === "exiled"
-              ? `${playerName(match, latestVote.exiledPlayerId!)} saiu da partida. Não revele o papel.`
-              : "a votação foi anulada; ninguém saiu da partida."}
+            {formatVoteAnnouncement(
+              match,
+              latestVote?.type === "vote-resolved" ? latestVote : undefined,
+            )}
           </p>
           <PlayerRoster match={match} />
           <button className="primary-button" onClick={() => transition((current) => startNextNight(current))} type="button">
@@ -1222,6 +1318,12 @@ function MasterConsole({
           <p className="public-script">
             <strong>Para anunciar:</strong> vitória dos {match.winner === "werewolves" ? "Lobisomens" : "Aldeões"}.
           </p>
+          {match.history.at(-1)?.type === "vote-resolved" && latestVote?.outcome === "exiled" && (
+            <p className="public-script">
+              <strong>Resultado da última votação:</strong>{" "}
+              {formatVoteAnnouncement(match, latestVote)}
+            </p>
+          )}
           {latestNight && <p>Eliminados nesta noite: {latestNight.eliminatedPlayerIds.map((id) => playerName(match, id)).join(", ") || "ninguém"}.</p>}
           <PlayerRoster match={match} />
           {editingReplay ? (
@@ -1273,6 +1375,9 @@ function MasterConsole({
                 ) : (
                   <>
                     <span>Resultado: {entry.outcome === "exiled" ? `exílio de ${playerName(match, entry.exiledPlayerId!)}` : "anulada"}.</span>
+                    {(entry.linkedEliminatedPlayerIds?.length ?? 0) > 0 && (
+                      <span>Eliminado pelo vínculo: {entry.linkedEliminatedPlayerIds?.map((id) => playerName(match, id)).join(", ")}.</span>
+                    )}
                     <span>Votos para anular: {entry.annulVotes}.</span>
                   </>
                 )}
