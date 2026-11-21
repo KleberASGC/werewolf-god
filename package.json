@@ -1,8 +1,8 @@
 {
   "name": "werewolf-god",
   "private": true,
-  "version": "1.6.0",
-  "codename": "Silent Howl",
+  "version": "1.7.0",
+  "codename": "Darkwood Whisper",
   "type": "module",
   "scripts": {
     "dev": "vite",
