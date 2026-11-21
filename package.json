@@ -1,8 +1,8 @@
 {
   "name": "werewolf-god",
   "private": true,
-  "version": "1.4.0",
-  "codename": "Shadow Pact",
+  "version": "1.5.0",
+  "codename": "Blood Moon",
   "type": "module",
   "scripts": {
     "dev": "vite",
