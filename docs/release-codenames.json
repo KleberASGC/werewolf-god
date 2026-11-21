@@ -1,6 +1,5 @@
 {
   "available": [
-    "Blood Moon",
     "Silent Howl",
     "Darkwood Whisper",
     "Wolf's Oath",
@@ -40,6 +39,7 @@
     "Lunar Veil",
     "Crimson Moon",
     "Midnight Howl",
-    "Shadow Pact"
+    "Shadow Pact",
+    "Blood Moon"
   ]
 }
