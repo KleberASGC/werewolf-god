@@ -389,6 +389,63 @@ describe("match persistence", () => {
     await deleteGame(game.id);
   });
 
+  it("round-trips the Cupido pair and first-night action through backups", async () => {
+    const players = Array.from({ length: 5 }, (_, index) => ({
+      id: `cupid-player-${index + 1}`,
+      name: `Participante ${index + 1}`,
+    }));
+    const game = createGame({
+      id: "cupid-backup",
+      name: "Partida com Cupido",
+      players,
+      createdAt: "2026-01-06T00:00:00.000Z",
+    });
+    const roles = ["werewolf", "cupid", "bodyguard", "seer", "villager"] as const;
+    let match = createMatch({
+      id: game.id,
+      name: game.name,
+      players,
+      roleCounts: { werewolf: 1, cupid: 1, bodyguard: 1, seer: 1, villager: 1 },
+      dayDurationMinutes: 1,
+    }, () => 0.5);
+    match.players = match.players.map((player, index) => ({
+      ...player,
+      role: roles[index],
+    }));
+
+    match = startMatch(match);
+    match = submitNightCall(match, "werewolf", {
+      kind: "werewolf-attack",
+      targetId: players[4].id,
+    });
+    match = submitNightCall(match, "bodyguard", {
+      kind: "bodyguard-protect",
+      targetId: players[4].id,
+    });
+    match = submitNightCall(match, "seer", {
+      kind: "seer-investigate",
+      targetId: players[0].id,
+    });
+    match = continueAfterSeerResult(match);
+    match = submitNightCall(match, "cupid", {
+      kind: "cupid-link",
+      firstTargetId: players[1].id,
+      secondTargetId: players[4].id,
+    });
+    match = resolveNight(match).match;
+
+    await saveGameAndMatch(game, match);
+    assert.deepEqual(await getMatch(game.id), match);
+    const backup = await createBackup();
+    assert.deepEqual(
+      backup.games.find((entry) => entry.game.id === game.id)?.match,
+      match,
+    );
+    assert.equal(await importBackup(backup), 1);
+    assert.deepEqual(await getMatch(game.id), match);
+    await deleteGame(game.id);
+  });
+
   it("does not partially save a game record when progress persistence fails", async () => {
     const players = Array.from({ length: 5 }, (_, index) => ({ id: `${index}`, name: `P${index}` }));
     const game = createGame({ id: "failure", name: "Falha", players, createdAt: "2026-01-01T00:00:00.000Z" });

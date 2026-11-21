@@ -200,7 +200,7 @@ it("shows the release label and can redraw roles before the match starts", async
   );
   assert.equal(
     screen.getByRole("group", { name: "Time dos Aldeões" }).querySelectorAll(".role-count").length,
-    9,
+    10,
   );
   await createMatchThroughForm("Novo sorteio");
 
@@ -317,11 +317,11 @@ it("shows concise role summaries with optional interaction details", async () =>
   assert.ok(screen.getByText("Todas as noites, acorde junto com os outros Lobisomens e escolha um jogador para eliminar."));
   assert.equal(screen.queryByRole("link", { name: "Interações" }), null);
   assert.equal(screen.queryByRole("heading", { name: "Interações entre personagens" }), null);
-  for (const role of ["Lobisomem", "Guarda-costas", "Bruxa", "Vidente", "Denunciador", "Lycan", "Amaldiçoado", "Conjurador", "Quenga", "Aldeão"]) {
+  for (const role of ["Lobisomem", "Guarda-costas", "Bruxa", "Vidente", "Denunciador", "Lycan", "Amaldiçoado", "Conjurador", "Cupido", "Quenga", "Aldeão"]) {
     assert.ok(screen.getByRole("heading", { level: 3, name: role }));
   }
-  assert.equal(document.querySelectorAll(".role-illustration").length, 10);
-  assert.equal(document.querySelectorAll(".role-card-details").length, 7);
+  assert.equal(document.querySelectorAll(".role-illustration").length, 11);
+  assert.equal(document.querySelectorAll(".role-card-details").length, 8);
   for (const role of ["lycan", "cursed", "villager"]) {
     assert.equal(document.querySelector(`.role-card-${role} .role-card-details`), null);
   }
@@ -398,6 +398,62 @@ it("records the Quenga's private individual choice and exposes the optional skip
     targetId: players[1].id,
   });
   assert.ok(screen.getByText(/Dormiu com Guarda/));
+});
+
+it("registers the private Cupido pair from the moderator interface", async () => {
+  await renderApp();
+  await waitFor(() => {
+    const button = screen.getByRole("button", { name: /Sortear papéis e preparar/ }) as HTMLButtonElement;
+    assert.equal(button.disabled, false);
+  });
+
+  fillInput("Nome da partida", "Cupido");
+  for (let index = 1; index <= 5; index += 1) {
+    fillInput(`Nome do participante ${index}`, `Jogador ${index}`);
+  }
+  for (const [role, count] of [
+    ["Guarda-costas", 0],
+    ["Bruxa", 0],
+    ["Vidente", 0],
+    ["Cupido", 1],
+    ["Aldeão", 3],
+  ] as const) {
+    fireEvent.change(screen.getByRole("spinbutton", { name: `Quantidade de ${role}` }), {
+      target: { value: String(count) },
+    });
+  }
+  clickButton(/Sortear papéis e preparar/);
+  await screen.findByRole("heading", { name: "Preparação" });
+  await waitForSavedProgress();
+
+  const cupid = getRoleHolder("Cupido");
+  clickButton("Iniciar a partida");
+  await screen.findByRole("heading", { name: /Chamar: Lobisomem/ });
+  await waitForSavedProgress();
+  const victim = chooseRadio("night-target", (input) => selectedPlayerName(input) !== cupid);
+  clickButton("Registrar chamada e avançar");
+
+  await screen.findByRole("heading", { name: /Chamar: Cupido/ });
+  await waitForSavedProgress();
+  assert.ok(document.body.textContent?.includes("não informe os jogadores conectados"));
+  chooseRadio("cupid-first-target", (input) => selectedPlayerName(input) === cupid);
+  const partner = chooseRadio(
+    "cupid-second-target",
+    (input) => selectedPlayerName(input) !== cupid && selectedPlayerName(input) !== victim,
+  );
+  clickButton("Registrar chamada e avançar");
+  await screen.findByRole("heading", { name: "Revisar ações antes de confirmar" });
+  assert.ok(document.body.textContent?.includes(`Vínculo: ${cupid} e ${partner}`));
+  clickButton("Confirmar resolução da noite");
+  await screen.findByRole("heading", { name: "Resultado privado da noite" });
+  await waitForSavedProgress();
+
+  const saved = await getMatch((await listGames())[0].id);
+  assert.ok(saved);
+  assert.deepEqual(saved.cupidLinkedPlayerIds, [
+    saved.players.find((player) => player.name === cupid)?.id,
+    saved.players.find((player) => player.name === partner)?.id,
+  ]);
 });
 
 it("does not show the removed private instruction to the Cursed player", async () => {
@@ -705,7 +761,7 @@ it("edits a saved game roster by replacing its prepared match and role draw", as
   );
   assert.equal(
     editorVillagerTeam.querySelectorAll(".role-count").length,
-    9,
+    10,
   );
   fillInput("Nome do participante editado 1", "Ana");
   clickButton("Remover participante editado 5");

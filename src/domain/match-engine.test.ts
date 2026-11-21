@@ -126,6 +126,266 @@ function otherPlayerChoice(match: MatchState, voterId: string): VoteChoice {
 }
 
 describe("night flow and resolution", () => {
+  it("calls Cupido only on the first night and persists a distinct selected pair", () => {
+    const fixture = createFixture(["werewolf", "cupid", "bodyguard", "seer", "villager"]);
+    const started = startMatch(fixture);
+    assert.deepEqual(started.night?.schedule, [
+      "werewolf",
+      "bodyguard",
+      "seer",
+      "cupid",
+    ]);
+
+    let pending = submitNightCall(started, "werewolf", {
+      kind: "werewolf-attack",
+      targetId: "player-5",
+    });
+    pending = submitNightCall(pending, "bodyguard", {
+      kind: "bodyguard-protect",
+      targetId: "player-4",
+    });
+    pending = submitNightCall(pending, "seer", {
+      kind: "seer-investigate",
+      targetId: "player-1",
+    });
+    pending = continueAfterSeerResult(pending);
+    assert.throws(() => submitNightCall(pending, "cupid"), /precisa registrar sua ação/);
+    assert.throws(
+      () => submitNightCall(pending, "cupid", {
+        kind: "cupid-link",
+        firstTargetId: "player-2",
+        secondTargetId: "player-2",
+      }),
+      /dois jogadores diferentes/,
+    );
+    pending = submitNightCall(pending, "cupid", {
+      kind: "cupid-link",
+      firstTargetId: "player-2",
+      secondTargetId: "player-5",
+    });
+
+    const firstNight = resolveNight(pending).match;
+    assert.deepEqual(firstNight.cupidLinkedPlayerIds, ["player-2", "player-5"]);
+    const voting = startVoting(
+      endDiscussion(startDiscussion(firstNight, 0), 0),
+      () => 0.5,
+    );
+    const filledVotes = castAllVotes(voting, () => ({ kind: "annul" }));
+    const nextNight = startNextNight(resolveVoting(filledVotes).match);
+    assert.equal(nextNight.night?.schedule.includes("cupid"), false);
+  });
+
+  it("does not eliminate a connected pair when the attacked member is protected", () => {
+    const result = resolveNight(recordNight(
+      createFixture(["werewolf", "cupid", "bodyguard", "seer", "villager"]),
+      {
+        werewolf: { kind: "werewolf-attack", targetId: "player-5" },
+        bodyguard: { kind: "bodyguard-protect", targetId: "player-5" },
+        seer: { kind: "seer-investigate", targetId: "player-1" },
+        cupid: {
+          kind: "cupid-link",
+          firstTargetId: "player-5",
+          secondTargetId: "player-4",
+        },
+      },
+    ));
+
+    assert.deepEqual(result.eliminatedPlayerIds, []);
+    assert.deepEqual(result.blockedAttackTargetIds, ["player-5"]);
+  });
+
+  it("eliminates an unprotected connected player but spares a protected partner", () => {
+    const result = resolveNight(recordNight(
+      createFixture(["werewolf", "cupid", "bodyguard", "seer", "villager"]),
+      {
+        werewolf: { kind: "werewolf-attack", targetId: "player-5" },
+        bodyguard: { kind: "bodyguard-protect", targetId: "player-4" },
+        seer: { kind: "seer-investigate", targetId: "player-1" },
+        cupid: {
+          kind: "cupid-link",
+          firstTargetId: "player-5",
+          secondTargetId: "player-4",
+        },
+      },
+    ));
+
+    assert.deepEqual(result.eliminatedPlayerIds, ["player-5"]);
+    assert.equal(result.match.players.find((player) => player.id === "player-4")?.status, "alive");
+  });
+
+  it("eliminates both connected players when an unprotected attack kills one", () => {
+    const result = resolveNight(recordNight(
+      createFixture(["werewolf", "cupid", "bodyguard", "seer", "villager"]),
+      {
+        werewolf: { kind: "werewolf-attack", targetId: "player-5" },
+        bodyguard: { kind: "bodyguard-protect", targetId: "player-1" },
+        seer: { kind: "seer-investigate", targetId: "player-1" },
+        cupid: {
+          kind: "cupid-link",
+          firstTargetId: "player-5",
+          secondTargetId: "player-4",
+        },
+      },
+    ));
+
+    assert.deepEqual(result.eliminatedPlayerIds, ["player-5", "player-4"]);
+  });
+
+  it("eliminates an unprotected partner and cancels a Cursed conversion", () => {
+    const result = resolveNight(recordNight(
+      createFixture(["werewolf", "cursed", "witch", "bodyguard", "cupid"]),
+      {
+        werewolf: { kind: "werewolf-attack", targetId: "player-2" },
+        bodyguard: { kind: "bodyguard-protect", targetId: "player-4" },
+        witch: { kind: "witch", eliminateTargetId: "player-5" },
+        cupid: {
+          kind: "cupid-link",
+          firstTargetId: "player-2",
+          secondTargetId: "player-5",
+        },
+      },
+    ));
+
+    assert.deepEqual(result.eliminatedPlayerIds, ["player-5", "player-2"]);
+    assert.deepEqual(result.pendingCursedConversionPlayerIds, []);
+    assert.equal(result.match.players.find((player) => player.id === "player-2")?.status, "dead");
+  });
+
+  it("keeps the connected partner alive while the Cursed conversion is pending", () => {
+    const result = resolveNight(recordNight(
+      createFixture(["werewolf", "cursed", "cupid", "bodyguard", "seer"]),
+      {
+        werewolf: { kind: "werewolf-attack", targetId: "player-2" },
+        bodyguard: { kind: "bodyguard-protect", targetId: "player-4" },
+        seer: { kind: "seer-investigate", targetId: "player-1" },
+        cupid: {
+          kind: "cupid-link",
+          firstTargetId: "player-2",
+          secondTargetId: "player-3",
+        },
+      },
+    ));
+
+    assert.deepEqual(result.eliminatedPlayerIds, []);
+    assert.deepEqual(result.pendingCursedConversionPlayerIds, ["player-2"]);
+    assert.equal(result.match.players.find((player) => player.id === "player-2")?.status, "alive");
+    assert.equal(result.match.players.find((player) => player.id === "player-3")?.status, "alive");
+  });
+
+  it("cancels a pending Cursed conversion when the connected partner is exiled", () => {
+    const fixture = createFixture(["werewolf", "cursed", "cupid", "bodyguard", "seer"]);
+    const firstNight = resolveNight(recordNight(fixture, {
+      werewolf: { kind: "werewolf-attack", targetId: "player-2" },
+      bodyguard: { kind: "bodyguard-protect", targetId: "player-4" },
+      seer: { kind: "seer-investigate", targetId: "player-1" },
+      cupid: {
+        kind: "cupid-link",
+        firstTargetId: "player-2",
+        secondTargetId: "player-3",
+      },
+    })).match;
+    assert.equal(firstNight.players.find((player) => player.id === "player-2")?.pendingCursedConversion, true);
+
+    const voting = startVoting(
+      endDiscussion(startDiscussion(firstNight, 0), 0),
+      () => 0.5,
+    );
+    const filledVotes = castAllVotes(voting, (voterId) =>
+      voterId === "player-3"
+        ? { kind: "player", playerId: "player-2" }
+        : { kind: "player", playerId: "player-3" },
+    );
+    const result = resolveVoting(filledVotes);
+
+    assert.equal(result.exiledPlayerId, "player-3");
+    assert.deepEqual(result.linkedEliminatedPlayerIds, ["player-2"]);
+    assert.equal(result.match.players.find((player) => player.id === "player-2")?.status, "dead");
+    assert.equal(result.match.players.find((player) => player.id === "player-2")?.pendingCursedConversion, undefined);
+  });
+
+  it("keeps the Cupid bond after the Cursed awakens and eliminates both connected players", () => {
+    const fixture = createFixture([
+      "werewolf",
+      "cursed",
+      "cupid",
+      "bodyguard",
+      "seer",
+      "villager",
+    ]);
+    const firstNight = resolveNight(recordNight(fixture, {
+      werewolf: { kind: "werewolf-attack", targetId: "player-2" },
+      bodyguard: { kind: "bodyguard-protect", targetId: "player-4" },
+      seer: { kind: "seer-investigate", targetId: "player-1" },
+      cupid: {
+        kind: "cupid-link",
+        firstTargetId: "player-2",
+        secondTargetId: "player-6",
+      },
+    })).match;
+    const voting = startVoting(
+      endDiscussion(startDiscussion(firstNight, 0), 0),
+      () => 0.5,
+    );
+    const noExile = castAllVotes(voting, () => ({ kind: "annul" }));
+    const nextNight = awakenCursed(startNextNight(resolveVoting(noExile).match));
+
+    let pending = submitNightCall(nextNight, "werewolf", {
+      kind: "werewolf-attack",
+      targetId: "player-6",
+    });
+    pending = submitNightCall(pending, "bodyguard", {
+      kind: "bodyguard-protect",
+      targetId: "player-5",
+    });
+    pending = submitNightCall(pending, "seer", {
+      kind: "seer-investigate",
+      targetId: "player-1",
+    });
+    pending = continueAfterSeerResult(pending);
+    const result = resolveNight(pending);
+
+    assert.deepEqual(result.eliminatedPlayerIds, ["player-6", "player-2"]);
+    assert.equal(result.match.players.find((player) => player.id === "player-2")?.role, "werewolf");
+    assert.equal(result.match.players.find((player) => player.id === "player-2")?.status, "dead");
+    assert.equal(result.match.players.find((player) => player.id === "player-6")?.status, "dead");
+  });
+
+  it("eliminates the connected partner after an exile and checks victory afterward", () => {
+    const fixture = createFixture([
+      "werewolf",
+      "werewolf",
+      "cupid",
+      "villager",
+      "villager",
+      "bodyguard",
+    ]);
+    const firstNight = resolveNight(recordNight(fixture, {
+      werewolf: { kind: "werewolf-attack", targetId: "player-4" },
+      bodyguard: { kind: "bodyguard-protect", targetId: "player-4" },
+      cupid: {
+        kind: "cupid-link",
+        firstTargetId: "player-3",
+        secondTargetId: "player-5",
+      },
+    })).match;
+    const voting = startVoting(
+      endDiscussion(startDiscussion(firstNight, 0), 0),
+      () => 0.5,
+    );
+    const filledVotes = castAllVotes(voting, (voterId) =>
+      voterId === "player-3"
+        ? { kind: "player", playerId: "player-5" }
+        : { kind: "player", playerId: "player-3" },
+    );
+    const result = resolveVoting(filledVotes);
+
+    assert.equal(result.exiledPlayerId, "player-3");
+    assert.deepEqual(result.linkedEliminatedPlayerIds, ["player-5"]);
+    assert.equal(result.match.players.find((player) => player.id === "player-3")?.status, "exiled");
+    assert.equal(result.match.players.find((player) => player.id === "player-5")?.status, "dead");
+    assert.equal(result.winner, "werewolves");
+  });
+
   it("calls the optional Denunciador after the Seer and allows skipping the action", () => {
     const match = createFixture(["werewolf", "seer", "revealer", "spellcaster", "villager"]);
     const started = startMatch(match);
@@ -334,6 +594,25 @@ describe("night flow and resolution", () => {
     assert.deepEqual(result.pendingCursedConversionPlayerIds, ["player-3"]);
     assert.equal(result.match.players.find((player) => player.id === "player-3")?.status, "alive");
     assert.equal(result.match.players.find((player) => player.id === "player-3")?.pendingCursedConversion, true);
+  });
+
+  it("cancels the Cursed conversion when the Quenga and her Cupid-linked companion die", () => {
+    const match = createFixture(["werewolf", "hooker", "cursed", "cupid", "villager"]);
+    const pending = recordNight(match, {
+      werewolf: { kind: "werewolf-attack", targetId: "player-3" },
+      cupid: {
+        kind: "cupid-link",
+        firstTargetId: "player-2",
+        secondTargetId: "player-3",
+      },
+      hooker: { kind: "hooker-sleep", targetId: "player-3" },
+    });
+    const result = resolveNight(pending);
+
+    assert.deepEqual(result.eliminatedPlayerIds, ["player-2", "player-3"]);
+    assert.deepEqual(result.pendingCursedConversionPlayerIds, []);
+    assert.equal(result.match.players.find((player) => player.id === "player-3")?.status, "dead");
+    assert.equal(result.match.players.find((player) => player.id === "player-3")?.pendingCursedConversion, undefined);
   });
 
   it("eliminates an unprotected Werewolf denounced by the Denunciador", () => {

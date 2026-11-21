@@ -67,6 +67,10 @@ function isAction(value: unknown): boolean {
   if (value.kind === "witch") {
     return isOptionalString(value.protectTargetId) && isOptionalString(value.eliminateTargetId);
   }
+  if (value.kind === "cupid-link") {
+    return typeof value.firstTargetId === "string" &&
+      typeof value.secondTargetId === "string";
+  }
   return isOneOf(value.kind, [
     "werewolf-attack",
     "bodyguard-protect",
@@ -98,7 +102,19 @@ function isHistoryEntry(value: unknown): boolean {
     isOneOf(value.outcome, ["annulled-majority", "annulled-tie", "annulled-plurality", "exiled"]) &&
     Number.isInteger(value.annulVotes) && isRecord(value.counts) &&
     Object.values(value.counts).every((count) => Number.isInteger(count)) &&
-    isOptionalString(value.exiledPlayerId);
+    isOptionalString(value.exiledPlayerId) &&
+    (value.linkedEliminatedPlayerIds === undefined ||
+      isStringArray(value.linkedEliminatedPlayerIds));
+}
+
+function isPlayerIdPair(value: unknown, players: unknown[]): boolean {
+  if (!Array.isArray(value) || value.length !== 2 ||
+      typeof value[0] !== "string" || typeof value[1] !== "string" ||
+      value[0] === value[1]) return false;
+  const playerIds = new Set(
+    players.filter(isRecord).map((player) => player.id),
+  );
+  return playerIds.has(value[0]) && playerIds.has(value[1]);
 }
 
 function isMatch(value: unknown): value is MatchState {
@@ -119,6 +135,10 @@ function isMatch(value: unknown): value is MatchState {
       typeof value.witchResources.eliminationUsed !== "boolean" ||
       !isOptionalString(value.lastBodyguardTargetId) ||
       !isOptionalString(value.lastSpellcasterTargetId) ||
+      (value.cupidLinkedPlayerIds !== undefined &&
+        (!isPlayerIdPair(value.cupidLinkedPlayerIds, value.players) ||
+          !value.players.some((player: unknown) =>
+            isRecord(player) && player.role === "cupid"))) ||
       !Array.isArray(value.history) || !value.history.every(isHistoryEntry) ||
       (value.winner !== undefined && !isOneOf(value.winner, ["werewolves", "villagers"]))) return false;
 
@@ -142,6 +162,9 @@ function isMatch(value: unknown): value is MatchState {
     return false;
   }
   if (value.players.filter((player) => isRecord(player) && player.role === "hooker").length > 1) {
+    return false;
+  }
+  if (value.players.filter((player) => isRecord(player) && player.role === "cupid").length > 1) {
     return false;
   }
   if (value.discussion !== undefined && (!isRecord(value.discussion) ||

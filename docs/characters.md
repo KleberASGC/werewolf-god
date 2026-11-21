@@ -184,6 +184,24 @@ componente `ROLE_SUMMARIES` do catálogo do aplicativo.
 - **Decisões pendentes:** nenhuma.
 - **Estado no aplicativo:** implementado.
 
+### Cupido
+
+- **Identificador estável:** `cupid`
+- **Nome exibido:** Cupido
+- **Texto impresso na carta:** Na primeira noite, escolha dois jogadores para ficarem conectados. Se um deles for eliminado, o outro também será eliminado.
+- **Facção e condição de vitória:** Aldeões; vence com o time dos Aldeões.
+- **Quantidade permitida na partida:** no máximo um.
+- **Tipo de ação:** individual, uma única vez.
+- **Fase e ordem de ação:** escolha obrigatória na primeira noite, depois do Conjurador. O Cupido não é chamado nas noites seguintes.
+- **Alvos válidos:** duas pessoas vivas e diferentes; o Cupido pode ser um dos alvos.
+- **Efeito:** se uma das pessoas conectadas for eliminada à noite ou exilada por votação, a outra também será eliminada.
+- **Proteções:** se uma ação noturna contra uma pessoa conectada for bloqueada por proteção, o alvo sobrevive e essa ação não elimina ninguém do par. Se o alvo morrer e o par estiver protegido, o alvo morre e o par sobrevive. Proteções não impedem a eliminação do par por exílio.
+- **Interação com o Amaldiçoado:** se ele for alvo direto dos Lobisomens e sobreviver, a conversão fica pendente até ser despertado na noite seguinte. Se o vínculo o eliminar antes desse despertar — na mesma noite ou depois, inclusive após o exílio do par — a conversão pendente é cancelada.
+- **Informação recebida pelo personagem:** o Cupido conhece o par que escolheu. O mestre também conhece o par; os jogadores conectados não são informados.
+- **Se o personagem for eliminado:** a escolha já registrada continua válida.
+- **Decisões pendentes:** nenhuma.
+- **Estado no aplicativo:** implementado.
+
 ### Quenga
 
 - **Identificador estável:** `hooker`

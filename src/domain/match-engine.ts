@@ -36,8 +36,9 @@ function getLivingPlayers(match: MatchState): MatchPlayer[] {
   return match.players.filter((player) => player.status === "alive");
 }
 
-function getNightSchedule(match: MatchState): NightRole[] {
+function getNightSchedule(match: MatchState, round: number): NightRole[] {
   return NIGHT_ROLE_ORDER.filter((role) =>
+    (role !== "cupid" || round === 1) &&
     match.players.some((player) => player.role === role),
   );
 }
@@ -56,6 +57,8 @@ function getNightRoleForAction(action: NightAction): NightRole {
       return "revealer";
     case "spellcaster-silence":
       return "spellcaster";
+    case "cupid-link":
+      return "cupid";
     case "hooker-sleep":
       return "hooker";
   }
@@ -151,6 +154,17 @@ function validateNightAction(
       }
       break;
     }
+    case "cupid-link": {
+      if (match.round !== 1 || match.cupidLinkedPlayerIds) {
+        throw new Error("O Cupido só pode escolher o par na primeira noite.");
+      }
+      validateLivingTarget(match, action.firstTargetId);
+      validateLivingTarget(match, action.secondTargetId);
+      if (action.firstTargetId === action.secondTargetId) {
+        throw new Error("O Cupido deve escolher dois jogadores diferentes.");
+      }
+      break;
+    }
   }
 }
 
@@ -192,7 +206,7 @@ export function startMatch(match: MatchState): MatchState {
     phase: "night",
     round: 1,
     night: {
-      schedule: getNightSchedule(match),
+      schedule: getNightSchedule(match, 1),
       nextCallIndex: 0,
       actions: [],
     },
@@ -397,6 +411,7 @@ export function resolveNight(match: MatchState): NightResolution {
         lastSpellcasterTargetId = action.targetId;
         break;
       case "hooker-sleep":
+      case "cupid-link":
         break;
     }
   }
@@ -430,8 +445,13 @@ export function resolveNight(match: MatchState): NightResolution {
       !protectionTargetIds.has(targetId) &&
       !witchAttackTargetIds.has(targetId);
   });
-  const pendingCursedConversionPlayerIds = convertedPlayerIds;
-  const pendingConversion = new Set(pendingCursedConversionPlayerIds);
+  const pendingConversion = new Set(convertedPlayerIds);
+  const cupidAction = match.night.actions.find(
+    (record) => record.action.kind === "cupid-link",
+  )?.action;
+  const cupidLinkedPlayerIds = cupidAction?.kind === "cupid-link"
+    ? [cupidAction.firstTargetId, cupidAction.secondTargetId] as [string, string]
+    : match.cupidLinkedPlayerIds;
   const hookerEliminatedByNightEffect = hooker &&
     !protectionTargetIds.has(hooker.id) &&
     (
@@ -443,18 +463,27 @@ export function resolveNight(match: MatchState): NightResolution {
     )
     ? [hooker.id]
     : [];
-  const eliminatedPlayerIds = [
-    ...new Set(
-      [
-        ...effectiveAttacks
-          .filter((attack) => !protectionTargetIds.has(attack.targetId))
-          .map((attack) => attack.targetId)
-          .filter((targetId) => !pendingConversion.has(targetId)),
-        ...hookerEliminatedByNightEffect,
-      ],
-    ),
-  ];
-  const eliminated = new Set(eliminatedPlayerIds);
+  const eliminated = new Set(
+    [
+      ...effectiveAttacks
+        .filter((attack) => !protectionTargetIds.has(attack.targetId))
+        .map((attack) => attack.targetId)
+        .filter((targetId) => !pendingConversion.has(targetId)),
+      ...hookerEliminatedByNightEffect,
+    ],
+  );
+  if (cupidLinkedPlayerIds) {
+    const [firstId, secondId] = cupidLinkedPlayerIds;
+    if (eliminated.has(firstId) && !protectionTargetIds.has(secondId)) {
+      eliminated.add(secondId);
+    }
+    if (eliminated.has(secondId) && !protectionTargetIds.has(firstId)) {
+      eliminated.add(firstId);
+    }
+  }
+  for (const playerId of eliminated) pendingConversion.delete(playerId);
+  const eliminatedPlayerIds = [...eliminated];
+  const pendingCursedConversionPlayerIds = [...pendingConversion];
   const players = match.players.map((player) =>
     pendingConversion.has(player.id)
       ? { ...player, pendingCursedConversion: true as const }
@@ -493,6 +522,7 @@ export function resolveNight(match: MatchState): NightResolution {
     },
     lastBodyguardTargetId,
     lastSpellcasterTargetId,
+    ...(cupidAction?.kind === "cupid-link" ? { cupidLinkedPlayerIds } : {}),
     history: appendHistory(match.history, historyEntry),
     ...(winner ? { winner } : {}),
   };
@@ -743,17 +773,36 @@ export function resolveVoting(match: MatchState): VoteResolution {
     exiledPlayerId = topChoices[0].key;
   }
 
+  const linkedPlayerId = exiledPlayerId && match.cupidLinkedPlayerIds?.includes(exiledPlayerId)
+    ? match.cupidLinkedPlayerIds?.find((playerId) => playerId !== exiledPlayerId)
+    : undefined;
+  const linkedEliminatedPlayerIds = linkedPlayerId && match.players.some(
+    (player) => player.id === linkedPlayerId && player.status === "alive",
+  )
+    ? [linkedPlayerId]
+    : [];
+  const linkedEliminated = new Set(linkedEliminatedPlayerIds);
   const players = exiledPlayerId
-    ? match.players.map((player) =>
-        player.id === exiledPlayerId
-          ? {
-              ...player,
-              status: "exiled" as const,
-              eliminatedAtRound: match.round,
-              eliminationCause: "vote" as const,
-            }
-          : player,
-      )
+    ? match.players.map((player) => {
+        if (player.id === exiledPlayerId) {
+          return {
+            ...player,
+            status: "exiled" as const,
+            eliminatedAtRound: match.round,
+            eliminationCause: "vote" as const,
+          };
+        }
+        if (linkedEliminated.has(player.id)) {
+          const { pendingCursedConversion: _pending, ...rest } = player;
+          return {
+            ...rest,
+            status: "dead" as const,
+            eliminatedAtRound: match.round,
+            eliminationCause: "vote" as const,
+          };
+        }
+        return player;
+      })
     : match.players;
   const winner = exiledPlayerId ? determineWinner(players) : undefined;
   const historyEntry: VoteHistoryEntry = {
@@ -763,6 +812,7 @@ export function resolveVoting(match: MatchState): VoteResolution {
     annulVotes,
     counts,
     ...(exiledPlayerId ? { exiledPlayerId } : {}),
+    ...(linkedEliminatedPlayerIds.length ? { linkedEliminatedPlayerIds } : {}),
   };
   const nextMatch: MatchState = {
     ...match,
@@ -778,6 +828,7 @@ export function resolveVoting(match: MatchState): VoteResolution {
     counts,
     annulVotes,
     ...(exiledPlayerId ? { exiledPlayerId } : {}),
+    ...(linkedEliminatedPlayerIds.length ? { linkedEliminatedPlayerIds } : {}),
     ...(winner ? { winner } : {}),
   };
 }
@@ -795,7 +846,7 @@ export function startNextNight(match: MatchState): MatchState {
     phase: "night",
     round,
     night: {
-      schedule: getNightSchedule(match),
+      schedule: getNightSchedule(match, round),
       nextCallIndex: 0,
       actions: [],
       ...(awakeningRequired ? { awakeningRequired: true } : {}),

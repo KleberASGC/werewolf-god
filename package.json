@@ -1,8 +1,8 @@
 {
   "name": "werewolf-god",
   "private": true,
-  "version": "1.4.0",
-  "codename": "Shadow Pact",
+  "version": "1.6.0",
+  "codename": "Silent Howl",
   "type": "module",
   "scripts": {
     "dev": "vite",
