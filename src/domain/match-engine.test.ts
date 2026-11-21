@@ -126,6 +126,101 @@ function otherPlayerChoice(match: MatchState, voterId: string): VoteChoice {
 }
 
 describe("night flow and resolution", () => {
+  it("calls the optional Denunciador after the Seer and allows skipping the action", () => {
+    const match = createFixture(["werewolf", "seer", "revealer", "spellcaster", "villager"]);
+    const started = startMatch(match);
+
+    assert.deepEqual(started.night?.schedule, ["werewolf", "seer", "revealer", "spellcaster"]);
+    const pending = recordNight(match, {
+      werewolf: { kind: "werewolf-attack", targetId: "player-5" },
+      seer: { kind: "seer-investigate", targetId: "player-3" },
+      spellcaster: { kind: "spellcaster-silence", targetId: "player-5" },
+    });
+
+    assert.equal(pending.phase, "night-resolution");
+    assert.equal(pending.night?.actions.some((record) => record.role === "revealer"), false);
+
+    const eliminatedRevealer = {
+      ...match,
+      players: match.players.map((player) =>
+        player.role === "revealer" ? { ...player, status: "dead" as const } : player,
+      ),
+    };
+    const afterElimination = recordNight(eliminatedRevealer, {
+      werewolf: { kind: "werewolf-attack", targetId: "player-5" },
+      seer: { kind: "seer-investigate", targetId: "player-5" },
+      spellcaster: { kind: "spellcaster-silence", targetId: "player-5" },
+    });
+    assert.ok(afterElimination.night?.schedule.includes("revealer"));
+    assert.equal(afterElimination.night?.actions.some((record) => record.role === "revealer"), false);
+  });
+
+  it("eliminates an unprotected Werewolf denounced by the Denunciador", () => {
+    const match = createFixture(["werewolf", "revealer", "bodyguard", "witch", "villager"]);
+    const pending = recordNight(match, {
+      werewolf: { kind: "werewolf-attack", targetId: "player-5" },
+      bodyguard: { kind: "bodyguard-protect", targetId: "player-4" },
+      revealer: { kind: "revealer-denounce", targetId: "player-1" },
+    });
+    const result = resolveNight(pending);
+
+    assert.deepEqual(result.eliminatedPlayerIds, ["player-5", "player-1"]);
+    assert.equal(result.winner, "villagers");
+  });
+
+  it("blocks a Denunciador's correct accusation when the Werewolf is protected", () => {
+    const match = createFixture(["werewolf", "revealer", "bodyguard", "witch", "villager"]);
+    const result = resolveNight(recordNight(match, {
+      werewolf: { kind: "werewolf-attack", targetId: "player-5" },
+      bodyguard: { kind: "bodyguard-protect", targetId: "player-1" },
+      revealer: { kind: "revealer-denounce", targetId: "player-1" },
+    }));
+
+    assert.deepEqual(result.eliminatedPlayerIds, ["player-5"]);
+    assert.deepEqual(result.blockedAttackTargetIds, ["player-1"]);
+  });
+
+  it("treats a Lycan as a non-Werewolf and protects the Denunciador from a false accusation", () => {
+    const match = createFixture(["werewolf", "revealer", "bodyguard", "lycan", "villager"]);
+    const pending = recordNight(match, {
+      werewolf: { kind: "werewolf-attack", targetId: "player-5" },
+      bodyguard: { kind: "bodyguard-protect", targetId: "player-2" },
+      revealer: { kind: "revealer-denounce", targetId: "player-4" },
+    });
+    const result = resolveNight(pending);
+
+    assert.deepEqual(result.eliminatedPlayerIds, ["player-5"]);
+    assert.deepEqual(result.blockedAttackTargetIds, ["player-2"]);
+  });
+
+  it("rejects self-denunciation and allows removing an optional action in review", () => {
+    const match = createFixture(["werewolf", "revealer", "bodyguard", "witch", "villager"]);
+    let pending = startMatch(match);
+    pending = submitNightCall(pending, "werewolf", {
+      kind: "werewolf-attack",
+      targetId: "player-5",
+    });
+    pending = submitNightCall(pending, "bodyguard", {
+      kind: "bodyguard-protect",
+      targetId: "player-4",
+    });
+    pending = submitNightCall(pending, "witch");
+    assert.throws(
+      () => submitNightCall(pending, "revealer", {
+        kind: "revealer-denounce",
+        targetId: "player-2",
+      }),
+      /não pode escolher a si mesmo/,
+    );
+    pending = submitNightCall(pending, "revealer", {
+      kind: "revealer-denounce",
+      targetId: "player-1",
+    });
+    const revised = reviseNightAction(pending, "revealer");
+
+    assert.equal(revised.night?.actions.some((record) => record.role === "revealer"), false);
+  });
+
   it("calls configured night roles in order and resolves attacks with protection", () => {
     const fixture = createFixture();
     const pending = recordNight(fixture, {

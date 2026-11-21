@@ -77,6 +77,7 @@ export function createMatch(
     bodyguard: input.roleCounts.bodyguard ?? 0,
     witch: input.roleCounts.witch ?? 0,
     seer: input.roleCounts.seer ?? 0,
+    revealer: input.roleCounts.revealer ?? 0,
     lycan: input.roleCounts.lycan ?? 0,
     cursed: input.roleCounts.cursed ?? 0,
     spellcaster: input.roleCounts.spellcaster ?? 0,
@@ -99,6 +100,9 @@ export function createMatch(
   }
   if (counts.cursed > 1) {
     throw new Error("A partida pode ter no máximo um Amaldiçoado.");
+  }
+  if (counts.revealer > 1) {
+    throw new Error("A partida pode ter no máximo um Denunciador.");
   }
   if (
     !Number.isInteger(input.dayDurationMinutes) ||

@@ -118,6 +118,38 @@ describe("createMatch", () => {
     assert.equal(match.rulesetId, "werewolf-god-v1");
   });
 
+  it("allows one Denunciador in a role draw and rejects multiple cards", () => {
+    const match = createMatch(
+      {
+        id: "match-revealer",
+        name: "Denunciador game",
+        players: players(5),
+        roleCounts: { werewolf: 1, revealer: 1, villager: 3 },
+        dayDurationMinutes: 5,
+      },
+      () => 0,
+    );
+
+    assert.deepEqual(
+      match.players.map((player) => player.role).sort(),
+      ["revealer", "villager", "villager", "villager", "werewolf"],
+    );
+    assert.throws(
+      () =>
+        createMatch(
+          {
+            id: "match-multiple-revealers",
+            name: "Multiple Revealers",
+            players: players(5),
+            roleCounts: { werewolf: 1, revealer: 2, villager: 2 },
+            dayDurationMinutes: 5,
+          },
+          () => 0,
+        ),
+      /no máximo um Denunciador/,
+    );
+  });
+
   it("rejects invalid player counts and role compositions", () => {
     const base = {
       id: "match-1",

@@ -132,7 +132,7 @@ o motor, a interface e os testes necessários.
 - **Facção e condição de vitória:** Aldeões
 - **Quantidade permitida na partida:** sem limite individual adicional; vale o total de cartas e jogadores.
 - **Ação:** os Conjuradores vivos escolhem em consenso um jogador por noite.
-- **Ordem:** depois da Vidente.
+- **Ordem:** depois do Denunciador, que age depois da Vidente.
 - **Obrigatoriedade:** obrigatória quando há ao menos um Conjurador vivo.
 - **Alvos válidos:** qualquer jogador vivo, inclusive o próprio Conjurador e integrantes do grupo.
 - **Limite de usos:** não se aplica
@@ -142,5 +142,23 @@ o motor, a interface e os testes necessários.
 - **Informação recebida pelo personagem:** não se aplica
 - **Sinalização:** depois de registrar a escolha, o mestre se aproxima sem fazer barulho e toca no ombro do alvo. O sinal de silenciamento é explicado previamente a todos, mas o mestre não revela publicamente quem foi escolhido.
 - **Se o personagem for eliminado:** a chamada da função continua. Se não houver Conjuradores vivos, não há escolha nem efeito.
+- **Decisões pendentes:** nenhuma.
+- **Estado no aplicativo:** implementado.
+
+### Denunciador
+
+- **Identificador estável:** `revealer`
+- **Nome exibido:** Denunciador
+- **Facção e condição de vitória:** Aldeões
+- **Quantidade permitida na partida:** no máximo um.
+- **Tipo de ação:** individual.
+- **Fase e ordem de ação:** age à noite, depois da Vidente e antes do Conjurador.
+- **Ação:** pode denunciar uma pessoa viva, diferente de si, a cada noite.
+- **Obrigatoriedade:** opcional enquanto estiver vivo e não exilado; não há limite de usos.
+- **Alvos válidos:** qualquer outro jogador vivo e não exilado. O Lycan conta como não-Lobisomem para esta ação.
+- **Efeito:** se o alvo for Lobisomem, ele é eliminado, a menos que esteja protegido. Se não for Lobisomem, o Denunciador é eliminado, a menos que esteja protegido. A proteção do alvo não impede a eliminação do Denunciador.
+- **Interações com outros personagens/efeitos:** as proteções do Guarda-costas ou da Bruxa bloqueiam a eliminação da pessoa protegida, tanto quando o Denunciador acerta o Lobisomem quanto quando denuncia alguém que não é Lobisomem.
+- **Informação recebida pelo personagem:** nenhuma informação especial; recebe o mesmo resultado do amanhecer que os demais.
+- **Se o personagem for eliminado:** a chamada continua; sem Denunciador vivo não há escolha nem efeito.
 - **Decisões pendentes:** nenhuma.
 - **Estado no aplicativo:** implementado.

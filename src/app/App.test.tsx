@@ -200,7 +200,7 @@ it("shows the release label and can redraw roles before the match starts", async
   );
   assert.equal(
     screen.getByRole("group", { name: "Time dos aldeões" }).querySelectorAll(".role-count").length,
-    7,
+    8,
   );
   await createMatchThroughForm("Novo sorteio");
 
@@ -249,10 +249,10 @@ it("shows role help and the illustrated character catalog", async () => {
   const catalogLink = screen.getByRole("link", { name: "Personagens" });
   assert.equal(catalogLink.getAttribute("href"), "#personagens");
   assert.ok(screen.getByRole("heading", { name: "Personagens da vila" }));
-  for (const role of ["Lobisomem", "Guarda-costas", "Bruxa", "Vidente", "Lycan", "Amaldiçoado", "Conjurador", "Aldeão"]) {
+  for (const role of ["Lobisomem", "Guarda-costas", "Bruxa", "Vidente", "Denunciador", "Lycan", "Amaldiçoado", "Conjurador", "Aldeão"]) {
     assert.ok(screen.getByRole("heading", { level: 3, name: role }));
   }
-  assert.equal(document.querySelectorAll(".role-illustration").length, 8);
+  assert.equal(document.querySelectorAll(".role-illustration").length, 9);
 });
 
 it("keeps a Cursed conversion secret until the moderator wakes them with the Wolves", async () => {
@@ -316,6 +316,136 @@ it("keeps a Cursed conversion secret until the moderator wakes them with the Wol
   await screen.findByRole("heading", { name: /Chamar: Lobisomem/ });
   await waitForSavedProgress();
   assert.equal((await getMatch(game.id))?.players.find((player) => player.id === "cursed-ui-2")?.role, "werewolf");
+});
+
+it("records the Denunciador action privately and resolves an unprotected Werewolf", async () => {
+  const players = Array.from({ length: 5 }, (_, index) => ({
+    id: `revealer-ui-${index + 1}`,
+    name: `Participante ${index + 1}`,
+  }));
+  const game = createGame({
+    id: "revealer-ui",
+    name: "Denunciador",
+    players,
+    createdAt: "2026-01-01T00:00:00.000Z",
+  });
+  const roles = ["werewolf", "bodyguard", "witch", "seer", "revealer"] as const;
+  const prepared = createMatch({
+    id: game.id,
+    name: game.name,
+    players,
+    roleCounts: { werewolf: 1, bodyguard: 1, witch: 1, seer: 1, revealer: 1 },
+    dayDurationMinutes: 5,
+  });
+  let match: MatchState = {
+    ...prepared,
+    players: prepared.players.map((player, index) => ({
+      ...player,
+      role: roles[index],
+    })),
+  };
+  const werewolf = match.players.find((player) => player.role === "werewolf")!;
+  const revealer = match.players.find((player) => player.role === "revealer")!;
+  match = startMatch(match);
+  match = submitNightCall(match, "werewolf", {
+    kind: "werewolf-attack",
+    targetId: "revealer-ui-3",
+  });
+  match = submitNightCall(match, "bodyguard", {
+    kind: "bodyguard-protect",
+    targetId: "revealer-ui-3",
+  });
+  match = submitNightCall(match, "witch");
+  match = submitNightCall(match, "seer", {
+    kind: "seer-investigate",
+    targetId: revealer.id,
+  });
+  match = continueAfterSeerResult(match);
+  await saveGameAndMatch(game, match);
+  await renderApp();
+
+  await screen.findByRole("button", { name: /Denunciador/ });
+  await clickGameAndWaitForDetails(/Denunciador/, "Retomar partida");
+  clickButton("Retomar partida");
+  await screen.findByRole("heading", { name: /Chamar: Denunciador/ });
+
+  const targetInputs = radioInputs("night-target");
+  const selfInput = targetInputs.find((input) => selectedPlayerName(input) === revealer.name);
+  const werewolfInput = targetInputs.find((input) => selectedPlayerName(input) === werewolf.name);
+  assert.ok(selfInput?.disabled);
+  assert.ok(werewolfInput && !werewolfInput.disabled);
+  fireEvent.click(werewolfInput);
+  clickButton("Registrar chamada e avançar");
+
+  await screen.findByRole("heading", { name: "Revisar ações antes de confirmar" });
+  assert.ok(screen.getByText(`Denúncia: ${werewolf.name}`));
+  await waitForSavedProgress();
+  clickButton("Confirmar resolução da noite");
+  await screen.findByRole("heading", { level: 2, name: "Partida encerrada" });
+  const resolved = await getMatch(game.id);
+  assert.equal(resolved?.winner, "villagers");
+  assert.deepEqual(resolved?.history[0]?.type === "night-resolved"
+    ? resolved.history[0].eliminatedPlayerIds
+    : [], [werewolf.id]);
+  assert.ok(resolved?.history[0]?.type === "night-resolved" &&
+    resolved.history[0].actions.some((record) => record.role === "revealer"));
+});
+
+it("lets the Denunciador skip a night action in the moderator interface", async () => {
+  const players = Array.from({ length: 5 }, (_, index) => ({
+    id: `revealer-skip-${index + 1}`,
+    name: `Participante ${index + 1}`,
+  }));
+  const game = createGame({
+    id: "revealer-skip-ui",
+    name: "Denunciador opcional",
+    players,
+    createdAt: "2026-01-01T00:00:00.000Z",
+  });
+  const roles = ["werewolf", "bodyguard", "witch", "seer", "revealer"] as const;
+  const prepared = createMatch({
+    id: game.id,
+    name: game.name,
+    players,
+    roleCounts: { werewolf: 1, bodyguard: 1, witch: 1, seer: 1, revealer: 1 },
+    dayDurationMinutes: 5,
+  });
+  let match: MatchState = {
+    ...prepared,
+    players: prepared.players.map((player, index) => ({
+      ...player,
+      role: roles[index],
+    })),
+  };
+  match = startMatch(match);
+  match = submitNightCall(match, "werewolf", {
+    kind: "werewolf-attack",
+    targetId: players[4].id,
+  });
+  match = submitNightCall(match, "bodyguard", {
+    kind: "bodyguard-protect",
+    targetId: players[4].id,
+  });
+  match = submitNightCall(match, "witch");
+  match = submitNightCall(match, "seer", {
+    kind: "seer-investigate",
+    targetId: players[4].id,
+  });
+  match = continueAfterSeerResult(match);
+  await saveGameAndMatch(game, match);
+  await renderApp();
+
+  await screen.findByRole("button", { name: /Denunciador opcional/ });
+  await clickGameAndWaitForDetails(/Denunciador opcional/, "Retomar partida");
+  clickButton("Retomar partida");
+  await screen.findByRole("heading", { name: /Chamar: Denunciador/ });
+  clickButton("Não denunciar esta noite");
+
+  await screen.findByRole("heading", { name: "Revisar ações antes de confirmar" });
+  const saved = await getMatch(game.id);
+  assert.equal(saved?.night?.actions.some((record) => record.role === "revealer"), false);
+  clickButton("Confirmar resolução da noite");
+  await screen.findByRole("heading", { name: "Resultado privado da noite" });
 });
 
 it("confirms restarting from an active phase and returns to role distribution", async () => {
@@ -396,7 +526,7 @@ it("edits a saved game roster by replacing its prepared match and role draw", as
   );
   assert.equal(
     editorVillagerTeam.querySelectorAll(".role-count").length,
-    7,
+    8,
   );
   fillInput("Nome do participante editado 1", "Ana");
   clickButton("Remover participante editado 5");

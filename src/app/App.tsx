@@ -52,6 +52,7 @@ const INITIAL_ROLE_COUNTS: Record<RoleId, number> = {
   bodyguard: 1,
   witch: 1,
   seer: 1,
+  revealer: 0,
   lycan: 0,
   cursed: 0,
   spellcaster: 0,
@@ -63,6 +64,7 @@ const ROLE_DESCRIPTIONS: Record<RoleId, string> = {
   bodyguard: "Protege uma pessoa de ataques noturnos. Não pode proteger o mesmo alvo em noites consecutivas.",
   witch: "Compartilha um uso de proteção e um de eliminação durante toda a partida; ambos são opcionais.",
   seer: "Investiga uma pessoa por noite e descobre apenas se ela aparece como Lobisomem.",
+  revealer: "Toda noite pode denunciar uma pessoa viva. Se o alvo for Lobisomem, o alvo morre; se não for, o Denunciador morre.",
   lycan: "Faz parte dos Aldeões, não age à noite e aparece como Lobisomem para a Vidente.",
   cursed: "Começa como Aldeão. Uma eliminação pelos Lobisomens deixa a conversão pendente; o moderador a efetiva ao despertá-lo discretamente na noite seguinte.",
   spellcaster: "Silencia um jogador durante todo o dia seguinte, não podendo repetir o alvo em dias consecutivos.",
@@ -73,6 +75,7 @@ const ROLE_FACTIONS: Record<RoleId, string> = {
   bodyguard: "Facção dos Aldeões",
   witch: "Facção dos Aldeões",
   seer: "Facção dos Aldeões",
+  revealer: "Facção dos Aldeões",
   lycan: "Facção dos Aldeões",
   cursed: "Aldeões; Lobisomens se convertido",
   spellcaster: "Facção dos Aldeões",
@@ -83,7 +86,7 @@ const ROLE_TEAMS = [
   {
     id: "villagers",
     label: "Time dos aldeões",
-    roles: ["bodyguard", "witch", "seer", "lycan", "cursed", "spellcaster", "villager"],
+    roles: ["bodyguard", "witch", "seer", "revealer", "lycan", "cursed", "spellcaster", "villager"],
   },
 ] as const satisfies readonly { id: string; label: string; roles: readonly RoleId[] }[];
 
@@ -108,7 +111,7 @@ function RoleCountField({
       <input
         id={inputId}
         aria-label={`Quantidade de ${ROLE_LABELS[role]}`}
-        max={role === "cursed" ? 1 : 75}
+        max={role === "cursed" || role === "revealer" ? 1 : 75}
         min={0}
         onChange={(event) => onChange(Number(event.target.value))}
         type="number"
@@ -175,6 +178,13 @@ function RoleIllustration({ role }: { role: RoleId }) {
           <circle cx="60" cy="60" r="5" />
         </>
       )}
+      {role === "revealer" && (
+        <>
+          <path d="M17 60s16-27 43-27 43 27 43 27-16 27-43 27-43-27-43-27Z" />
+          <circle cx="60" cy="60" r="13" />
+          <path d="M60 52v11m0 8h.1M91 25l4 9 10 1-8 7 2 10-8-5-9 5 3-10-8-7 10-1 4-9Z" />
+        </>
+      )}
       {role === "lycan" && (
         <>
           <path d="M77 18c-6 7-10 17-10 28 0 24 19 43 43 43 2 0 4 0 6-.4-8 17-26 29-46 29-28 0-51-23-51-51 0-27 21-49 48-51-1 1-1 2-1 2Z" />
@@ -229,6 +239,7 @@ function getRoleCounts(players: MatchPlayer[]): Record<RoleId, number> {
     bodyguard: 0,
     witch: 0,
     seer: 0,
+    revealer: 0,
     lycan: 0,
     cursed: 0,
     spellcaster: 0,
@@ -248,6 +259,8 @@ function formatNightAction(match: MatchState, action: NightAction): string {
       return `Proteção: ${playerName(match, action.targetId)}`;
     case "seer-investigate":
       return `Investigação: ${playerName(match, action.targetId)}`;
+    case "revealer-denounce":
+      return `Denúncia: ${playerName(match, action.targetId)}`;
     case "spellcaster-silence":
       return `Silenciamento: ${playerName(match, action.targetId)}`;
     case "witch":
@@ -353,6 +366,9 @@ function NightActionForm({
     if (player.status !== "alive" || player.id === otherTargetId) return false;
     if (targetRole === "werewolf") return player.role !== "werewolf";
     if (targetRole === "seer") return player.role !== "seer";
+    if (targetRole === "revealer") {
+      return player.id !== match.players.find((candidate) => candidate.role === "revealer")?.id;
+    }
     if (targetRole === "bodyguard") return player.id !== match.lastBodyguardTargetId;
     if (targetRole === "spellcaster") return player.id !== match.lastSpellcasterTargetId;
     return true;
@@ -364,6 +380,10 @@ function NightActionForm({
     if (player.id === otherTargetId) return "Escolha outro alvo para usar os dois poderes";
     if (targetRole === "werewolf" && player.role === "werewolf") return "Não pode escolher outro Lobisomem";
     if (targetRole === "seer" && player.role === "seer") return "Não pode investigar alguém do próprio grupo";
+    if (
+      targetRole === "revealer" &&
+      player.id === match.players.find((candidate) => candidate.role === "revealer")?.id
+    ) return "O Denunciador não pode escolher a si mesmo";
     if (targetRole === "bodyguard" && player.id === match.lastBodyguardTargetId) return "Protegido na noite anterior";
     if (targetRole === "spellcaster" && player.id === match.lastSpellcasterTargetId) return "Silenciado no dia anterior";
     if (targetRole === "witch" && player.role === "witch") return "Não pode eliminar alguém do próprio grupo";
@@ -372,9 +392,17 @@ function NightActionForm({
 
   const allowedTargets = match.players.filter((player) => isAllowedTarget(player, role));
 
+  function submitAction(nextAction?: NightAction) {
+    setError("");
+    try {
+      onSubmit(nextAction);
+    } catch (submitError: unknown) {
+      setError(errorMessage(submitError));
+    }
+  }
+
   function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    setError("");
 
     let nextAction: NightAction | undefined;
     if (role === "witch") {
@@ -391,15 +419,13 @@ function NightActionForm({
       nextAction = { kind: "bodyguard-protect", targetId };
     } else if (role === "seer") {
       nextAction = { kind: "seer-investigate", targetId };
+    } else if (role === "revealer") {
+      nextAction = { kind: "revealer-denounce", targetId };
     } else {
       nextAction = { kind: "spellcaster-silence", targetId };
     }
 
-    try {
-      onSubmit(nextAction);
-    } catch (submitError: unknown) {
-      setError(errorMessage(submitError));
-    }
+    submitAction(nextAction);
   }
 
   if (role === "witch" && match.players.some(
@@ -477,7 +503,9 @@ function NightActionForm({
       ? "Pessoa protegida"
       : role === "seer"
         ? "Pessoa investigada"
-        : "Pessoa silenciada no dia seguinte";
+        : role === "revealer"
+          ? "Pessoa denunciada"
+          : "Pessoa silenciada no dia seguinte";
 
   return (
     <form className="action-form" onSubmit={handleSubmit}>
@@ -485,6 +513,11 @@ function NightActionForm({
         <p className="field-hint">
           Depois de registrar a escolha, aproxime-se sem fazer barulho e toque no ombro do alvo.
           A pessoa continua votando, mas não pode falar até o fim da votação.
+        </p>
+      )}
+      {role === "revealer" && (
+        <p className="field-hint">
+          A denúncia é opcional. Se o alvo não for Lobisomem, o Denunciador será eliminado, salvo se estiver protegido.
         </p>
       )}
       {allowedTargets.length === 0 && (
@@ -503,6 +536,11 @@ function NightActionForm({
       />
       {error && <p className="message error-message" role="alert">{error}</p>}
       <div className="button-row">
+        {role === "revealer" && (
+          <button className="secondary-button" onClick={() => submitAction()} type="button">
+            Não denunciar esta noite
+          </button>
+        )}
         <button className="primary-button" disabled={allowedTargets.length === 0} type="submit">
           {submitLabel}
         </button>
@@ -772,7 +810,11 @@ function MasterConsole({
         <section className="phase-panel">
           <p className="step-number">{String(match.night!.nextCallIndex + 1).padStart(2, "0")}</p>
           <h3>Chamar: {ROLE_LABELS[currentRole]}</h3>
-          <p>Oriente o grupo a agir em conjunto e registre uma única escolha final.</p>
+          <p>
+            {currentRole === "revealer"
+              ? "Chame o Denunciador e registre a escolha individual dele."
+              : "Oriente o grupo a agir em conjunto e registre uma única escolha final."}
+          </p>
           <div className="called-role-players">
             <p className="detail-label">JOGADORES DESTA FUNÇÃO</p>
             <ul>

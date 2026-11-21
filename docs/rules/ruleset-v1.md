@@ -1,13 +1,13 @@
 # Conjunto de regras v1
 
-> **Estado: aprovado para implementação.** As regras do Conjurador foram revisadas pelo responsável do projeto em 2026-11-18. Não preencher lacunas sobre papéis futuros ou comportamentos fora do escopo com regras de outras edições.
+> **Estado: aprovado para implementação.** As regras do Conjurador (1.5.0) e do Denunciador (1.6.0) foram aprovadas para implementação. Não preencher lacunas sobre papéis futuros ou comportamentos fora do escopo com regras de outras edições.
 
 ## 1. Identificação
 
 - **Nome:** Conjunto inicial Werewolf God
-- **Versão:** 1.5.0
+- **Versão:** 1.6.0
 - **Estado:** Aprovado
-- **Papéis cobertos:** Lobisomens, Guarda-costas, Bruxa, Vidente, Lycan, Amaldiçoado, Conjurador e Aldeão
+- **Papéis cobertos:** Lobisomens, Guarda-costas, Bruxa, Vidente, Denunciador, Lycan, Amaldiçoado, Conjurador e Aldeão
 - **Objetivo:** formalizar o conjunto mínimo de regras necessário para a primeira partida jogável.
 
 A versão 1.1.0 acrescentou o Lycan às composições de novas partidas. A versão
@@ -16,7 +16,11 @@ A versão 1.1.0 acrescentou o Lycan às composições de novas partidas. A vers�
 o desperta discretamente com os Lobisomens na noite seguinte. A versão 1.4.0
 esclarece que uma conversão pendente impede a vitória dos Aldeões quando todos
 os outros Lobisomens forem eliminados ou exilados. A versão 1.5.0 acrescenta
-o Conjurador às composições de novas partidas. As alterações são aditivas:
+o Conjurador às composições de novas partidas. A versão 1.6.0 acrescenta o
+Denunciador, limitado a uma carta, com ação individual opcional depois da
+Vidente e antes do Conjurador. Para essa ação, Lycan conta como não-Lobisomem,
+pois pertence aos Aldeões; ser visto como Lobisomem pela Vidente não altera sua
+facção. As alterações são aditivas:
 partidas já salvas mantêm o estado e o comportamento registrados, sem migração
 de dados. O identificador do conjunto permanece `werewolf-god-v1`.
 
@@ -31,7 +35,8 @@ de dados. O identificador do conjunto permanece `werewolf-god-v1`.
 - Todos os papéis não Lobisomem começam no time dos Aldeões. Os Lobisomens formam o outro time; o Amaldiçoado pode mudar de time conforme a regra de conversão abaixo.
 - O Lycan pertence ao time dos Aldeões, não age à noite e aparece como Lobisomem somente no resultado da investigação da Vidente.
 - A composição pode incluir no máximo um Amaldiçoado. Ele começa no time dos Aldeões. Se os Lobisomens o atacarem sem proteção e a Bruxa não o atacar na mesma noite, sobrevive e a conversão fica pendente, conhecida somente pelo mestre. Na noite seguinte, antes da chamada dos Lobisomens, o mestre o desperta discretamente; somente nesse momento ele passa ao time dos Lobisomens e fica sabendo da conversão.
-- O Conjurador pertence ao time dos Aldeões e age à noite depois da Vidente.
+- O Conjurador pertence ao time dos Aldeões e age à noite depois do Denunciador, que age depois da Vidente.
+- O Denunciador pertence ao time dos Aldeões, pode haver no máximo um por partida e sua ação individual e opcional ocorre depois da Vidente e antes do Conjurador.
 
 ### Cópias da mesma função
 
@@ -45,8 +50,8 @@ de dados. O identificador do conjunto permanece `werewolf-god-v1`.
 ## 3. Fases e fluxo
 
 1. **Preparação:** cadastrar jogadores, configurar cartas e duração do dia, validar e sortear os papéis.
-2. **Noite:** o mestre orienta todos a fechar os olhos e chama, na ordem Lobisomens, Guarda-costas, Bruxa, Vidente e Conjurador, cada função que foi incluída na composição inicial e possui ação noturna.
-3. **Amanhecer:** após as chamadas noturnas (incluindo a do Conjurador, se estiver na composição), resolver as ações em conjunto, apresentar o resultado privado ao mestre e verificar a vitória.
+2. **Noite:** o mestre orienta todos a fechar os olhos e chama, na ordem Lobisomens, Guarda-costas, Bruxa, Vidente, Denunciador e Conjurador, cada função que foi incluída na composição inicial e possui ação noturna.
+3. **Amanhecer:** após as chamadas noturnas (incluindo as do Denunciador e do Conjurador, se estiverem na composição), resolver as ações em conjunto, apresentar o resultado privado ao mestre e verificar a vitória.
 4. **Discussão:** se a partida continuar, abrir o dia e iniciar o temporizador configurado.
 5. **Votação:** depois que o mestre encerrar a discussão, registrar um voto por jogador vivo e não exilado na ordem sorteada.
 6. **Resultado:** apurar a votação, aplicar eventual exílio sem revelar o papel e verificar a vitória.
@@ -64,15 +69,16 @@ Todas as funções incluídas na composição inicial que tenham ação noturna 
 | Vidente | Escolhe uma pessoa para investigar por noite. | Outro jogador vivo e não exilado; não pode escolher uma Vidente do grupo. | Informa somente se o alvo é Lobisomem ou Lycan, sem revelar o papel exato. O mestre sinaliza “L” com a mão para Lobisomem ou Lycan, ou balança o indicador para “não é Lobisomem”. |
 | Lycan | Nenhuma ação noturna. | — | Pertence ao time dos Aldeões e participa da discussão e votação como os demais jogadores vivos; para a Vidente, aparece como Lobisomem. |
 | Amaldiçoado | Nenhuma ação noturna; depois de uma conversão pendente, o mestre o desperta discretamente antes da chamada dos Lobisomens na noite seguinte. | No máximo um por partida. A conversão fica pendente se for alvo do ataque dos Lobisomens sem proteção e sem ataque simultâneo da Bruxa; só se efetiva quando o mestre o desperta na noite seguinte. | Começa Aldeão. Até ser despertado, permanece no time dos Aldeões e somente o mestre sabe da conversão pendente. Ao ser despertado, passa ao time dos Lobisomens e fica sabendo; a partir daí, a Vidente o vê como Lobisomem. |
+| Denunciador | A pessoa viva escolhe se denuncia alguém a cada noite. | Qualquer outro jogador vivo e não exilado; no máximo uma cópia por partida. Lycan conta como não-Lobisomem. | Se o alvo for Lobisomem, ele é eliminado se não estiver protegido; caso contrário, o Denunciador é eliminado se não estiver protegido. |
 | Conjurador | Os Conjuradores vivos escolhem em consenso uma pessoa por noite. | Qualquer jogador vivo, inclusive o próprio Conjurador e integrantes do grupo. Não pode repetir o alvo em dias consecutivos. | O alvo não pode falar do amanhecer até o fim da votação seguinte. Depois de registrar a escolha, o mestre se aproxima sem fazer barulho e toca no ombro do alvo; o alvo continua votando sem falar. |
 | Aldeão | Nenhuma ação noturna. | — | Participa da discussão e vota enquanto estiver vivo e não exilado. |
 
-As ações de Guarda-costas, Vidente e Conjurador são obrigatórias a cada chamada quando há participantes vivos da função e alvo válido. Os usos da Bruxa são opcionais, mesmo quando disponíveis.
+As ações de Guarda-costas, Vidente e Conjurador são obrigatórias a cada chamada quando há participantes vivos da função e alvo válido. Os usos da Bruxa e do Denunciador são opcionais, mesmo quando disponíveis.
 
 ## 5. Resolução noturna
 
 - Todas as ações aceitas são resolvidas em conjunto; a ordem de chamada não muda seus efeitos.
-- Uma proteção do Guarda-costas ou da Bruxa bloqueia qualquer ataque noturno dos Lobisomens ou da Bruxa contra o alvo protegido.
+- Uma proteção do Guarda-costas ou da Bruxa bloqueia eliminações noturnas causadas pelos Lobisomens, pela Bruxa ou pelo Denunciador contra a pessoa protegida.
 - Proteções simultâneas no mesmo alvo são redundantes, mas o uso de proteção da Bruxa continua consumido.
 - Se Lobisomens e Bruxa atacarem o mesmo alvo sem proteção, esse jogador é eliminado uma única vez; se protegido, sobrevive aos ataques.
 - Se Lobisomens atacarem o Amaldiçoado sem proteção e a Bruxa não o atacar nessa noite, ele permanece vivo como Aldeão e a conversão fica pendente. O estado pendente não é mostrado ao personagem nem ao grupo; somente o mestre tem essa informação.
@@ -80,6 +86,7 @@ As ações de Guarda-costas, Vidente e Conjurador são obrigatórias a cada cham
 - A Vidente o vê como não Lobisomem na noite do ataque inicial e também enquanto a conversão estiver pendente. Depois que o mestre o desperta com os Lobisomens, ele aparece como Lobisomem para investigações posteriores. A conversão só é registrada como efetiva na noite do despertar.
 - A proteção não impede exílio diurno.
 - A ação do Conjurador não altera a resolução de ataques, proteções ou investigações; o alvo é silenciado no dia seguinte, mesmo que sua própria ação noturna o elimine.
+- Se o Denunciador escolher um Lobisomem, esse Lobisomem é eliminado se não estiver protegido. Se escolher qualquer outro papel, inclusive Lycan, o próprio Denunciador é eliminado se não estiver protegido; a proteção do alvo denunciado não o salva. Ações e proteções são resolvidas em conjunto, então uma proteção ao Denunciador pode impedir essa eliminação mesmo que ele tenha denunciado alguém incorretamente.
 - Depois de registrar a ação do Conjurador, o aplicativo lembra o mestre de se aproximar sem fazer barulho e tocar no ombro do alvo. O mestre mantém a escolha privada e não permite que o alvo fale durante a discussão ou votação. O alvo continua elegível e deve votar sem falar.
 - Ações válidas registradas antes de um agente morrer naquela noite ainda produzem efeito. O agente não pode realizar ações posteriores à eliminação.
 - O mestre vê os alvos, ações e causas privadas. Ao amanhecer, anuncia somente quem foi eliminado ou que ninguém foi eliminado; não revela papéis, ações ou proteções.
@@ -115,6 +122,7 @@ As ações de Guarda-costas, Vidente e Conjurador são obrigatórias a cada cham
 - Correções depois de uma noite ou votação concluída não fazem parte desta versão; o comportamento precisa ser definido antes de ser implementado.
 - A aplicação salva e retoma a partida localmente no mesmo dispositivo. Não há conta, serviço remoto ou sincronização neste escopo.
 - O alvo do Conjurador e o último alvo necessário para validar a repetição são persistidos nas partidas novas; campos ausentes em partidas e backups anteriores permanecem válidos e não recebem valores substitutos.
+- A ação do Denunciador é armazenada no histórico noturno existente. Partidas e backups anteriores continuam válidos, sem migração ou valores substitutos.
 
 ## 9. Cenários de aceitação
 
@@ -141,9 +149,13 @@ As ações de Guarda-costas, Vidente e Conjurador são obrigatórias a cada cham
 21. **Lycan:** permitir sua inclusão na composição, não agendá-lo para uma ação noturna e informar “Lobisomem” quando a Vidente investigar um Lycan; sua facção e condição de vitória continuam sendo as dos Aldeões.
 22. **Amaldiçoado:** limitar a uma carta na composição; iniciar como Aldeão; após ataque desprotegido dos Lobisomens, manter conversão pendente e secreta até o mestre despertá-lo discretamente na noite seguinte antes da chamada do grupo; contar como Aldeão e aparecer como não Lobisomem para a Vidente até esse despertar; passar então ao time dos Lobisomens e aparecer como Lobisomem nas investigações posteriores; preservar estado e histórico em salvamentos e backups.
 23. **Último Lobisomem e Amaldiçoado pendente:** se todos os Lobisomens restantes forem eliminados ou exilados, não declarar vitória dos Aldeões enquanto o Amaldiçoado com conversão pendente estiver vivo; continuar até despertá-lo discretamente, tornando-o o único Lobisomem.
-24. **Conjurador:** permitir uma ação coletiva obrigatória depois da Vidente; escolher qualquer jogador vivo, inclusive a si próprio ou alguém do grupo, mas não repetir o alvo em dias consecutivos. O alvo fica sem falar até o fim da votação, continua votando sem falar, e depois de registrar a ação o aplicativo lembra o mestre de se aproximar sem fazer barulho e tocar no ombro do alvo, sem revelar publicamente quem foi escolhido.
+24. **Conjurador:** permitir uma ação coletiva obrigatória depois da chamada do Denunciador (e, portanto, depois da Vidente); escolher qualquer jogador vivo, inclusive a si próprio ou alguém do grupo, mas não repetir o alvo em dias consecutivos. O alvo fica sem falar até o fim da votação, continua votando sem falar, e depois de registrar a ação o aplicativo lembra o mestre de se aproximar sem fazer barulho e tocar no ombro do alvo, sem revelar publicamente quem foi escolhido.
 25. **Chamadas do Conjurador:** incluir a chamada em todas as noites quando houver ao menos uma cópia na composição, inclusive se todas estiverem eliminadas; sem Conjuradores vivos, não registrar ação nem escolher alvo.
 26. **Partidas existentes:** carregar e restaurar partidas e backups anteriores sem Conjurador, mantendo seus papéis e comportamento sem migração.
+27. **Denunciador na composição:** permitir no máximo uma carta, distribuí-la como Aldeão e agendar sua chamada depois da Vidente e antes do Conjurador em todas as noites da partida; sem Denunciador vivo, manter a chamada sem ação.
+28. **Denúncia opcional e alvos:** permitir que o Denunciador vivo não use o poder; quando usado, aceitar qualquer outro jogador vivo e não exilado, nunca a si próprio. Um Lycan é não-Lobisomem para a denúncia.
+29. **Resultado e proteção da denúncia:** denúncia de Lobisomem elimina o alvo, salvo se protegido; denúncia de não-Lobisomem elimina o Denunciador, salvo se protegido. A proteção do alvo não impede a eliminação do Denunciador; eliminar o Denunciador não cancela uma ação já registrada nem revela publicamente papéis ou causas.
+30. **Compatibilidade do Denunciador:** salvar, retomar, exportar e importar ações do Denunciador; continuar carregando partidas e backups anteriores sem Denunciador sem migração.
 
 Os cenários abaixo são os contratos de aceitação do motor.
 
@@ -159,4 +171,4 @@ Os cenários abaixo são os contratos de aceitação do motor.
 - Regras e cenários revisados pelo responsável: **Sim**
 - Pendências bloqueadoras para o escopo v1: **Nenhuma conhecida**
 - Aprovado para implementação: **Sim**
-- Aprovador/data: **Responsável do projeto / 2026-11-18 (revisão 1.5.0)**
+- Aprovador/data: **Responsável do projeto / 2026-11-21 (revisão 1.6.0)**

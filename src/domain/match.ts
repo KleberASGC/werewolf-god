@@ -50,11 +50,17 @@ export interface SpellcasterAction {
   targetId: string;
 }
 
+export interface RevealerAction {
+  kind: "revealer-denounce";
+  targetId: string;
+}
+
 export type NightAction =
   | WerewolfAction
   | BodyguardAction
   | WitchAction
   | SeerAction
+  | RevealerAction
   | SpellcasterAction;
 
 export interface NightActionRecord {
