@@ -1,8 +1,8 @@
 {
   "name": "werewolf-god",
   "private": true,
-  "version": "1.8.0",
-  "codename": "Wolf's Oath",
+  "version": "1.9.0",
+  "codename": "Moonlit Secrets",
   "type": "module",
   "scripts": {
     "dev": "vite",
