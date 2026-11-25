@@ -12,7 +12,7 @@ export type MatchPhase =
   | "voting"
   | "ready-for-night"
   | "finished";
-export type WinningTeam = "werewolves" | "villagers";
+export type WinningTeam = "werewolves" | "villagers" | "tanner";
 
 export interface MatchPlayer {
   id: string;

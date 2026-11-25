@@ -446,6 +446,43 @@ describe("match persistence", () => {
     await deleteGame(game.id);
   });
 
+  it("round-trips a Depressivo role and victory through a backup", async () => {
+    const players = Array.from({ length: 5 }, (_, index) => ({
+      id: `tanner-backup-player-${index + 1}`,
+      name: `Participante ${index + 1}`,
+    }));
+    const game = createGame({
+      id: "tanner-backup",
+      name: "Partida com Depressivo",
+      players,
+      createdAt: "2026-01-07T00:00:00.000Z",
+    });
+    const prepared = createMatch({
+      id: game.id,
+      name: game.name,
+      players,
+      roleCounts: { werewolf: 1, tanner: 1, villager: 3 },
+      dayDurationMinutes: 1,
+    }, () => 0.5);
+    const match: MatchState = {
+      ...prepared,
+      players: prepared.players.map((player) =>
+        player.role === "tanner"
+          ? { ...player, status: "exiled" as const, eliminationCause: "vote" as const }
+          : player,
+      ),
+      phase: "finished",
+      winner: "tanner",
+    };
+
+    await saveGameAndMatch(game, match);
+    const backup = await createBackup();
+    assert.deepEqual(backup.games.find((entry) => entry.game.id === game.id)?.match, match);
+    assert.equal(await importBackup(backup), 1);
+    assert.deepEqual(await getMatch(game.id), match);
+    await deleteGame(game.id);
+  });
+
   it("does not partially save a game record when progress persistence fails", async () => {
     const players = Array.from({ length: 5 }, (_, index) => ({ id: `${index}`, name: `P${index}` }));
     const game = createGame({ id: "failure", name: "Falha", players, createdAt: "2026-01-01T00:00:00.000Z" });
@@ -585,6 +622,19 @@ describe("match persistence", () => {
       importBackup({
         ...invalidBackup,
         games: [{ game, match: duplicateHookersMatch }],
+      }),
+      /inválidas, duplicadas ou incompatíveis/,
+    );
+    const duplicateTannersMatch: MatchState = {
+      ...validMatch,
+      players: validMatch.players.map((player, index) =>
+        index < 2 ? { ...player, role: "tanner" } : player,
+      ),
+    };
+    await assert.rejects(
+      importBackup({
+        ...invalidBackup,
+        games: [{ game, match: duplicateTannersMatch }],
       }),
       /inválidas, duplicadas ou incompatíveis/,
     );

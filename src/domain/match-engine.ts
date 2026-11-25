@@ -195,7 +195,12 @@ function hasLivingMember(match: MatchState, role: NightRole): boolean {
   return match.players.some((player) => player.role === role && player.status === "alive");
 }
 
-function determineWinner(players: MatchPlayer[]): WinningTeam | undefined {
+function determineWinner(players: MatchPlayer[], exiledPlayerId?: string): WinningTeam | undefined {
+  const exiledPlayer = players.find((player) => player.id === exiledPlayerId);
+  if (exiledPlayer?.role === "tanner" && exiledPlayer.status === "exiled") {
+    return "tanner";
+  }
+
   const living = players.filter((player) => player.status === "alive");
   const werewolves = living.filter((player) => player.role === "werewolf").length;
   const nonWerewolves = living.length - werewolves;
@@ -880,7 +885,7 @@ export function resolveVoting(match: MatchState): VoteResolution {
         return player;
       })
     : match.players;
-  const winner = exiledPlayerId ? determineWinner(players) : undefined;
+  const winner = exiledPlayerId ? determineWinner(players, exiledPlayerId) : undefined;
   const historyEntry: VoteHistoryEntry = {
     type: "vote-resolved",
     round: match.round,

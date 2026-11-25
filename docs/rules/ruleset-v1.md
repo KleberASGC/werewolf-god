@@ -1,13 +1,13 @@
 # Conjunto de regras v1
 
-> **Estado: aprovado para implementação.** As regras do Conjurador (1.5.0), do Denunciador (1.6.0), do Cupido (1.7.0), da Quenga (1.8.0), do Mentalista (1.9.0) e do Padre (1.10.0) foram aprovadas para implementação. Não preencher lacunas sobre papéis futuros ou comportamentos fora do escopo com regras de outras edições.
+> **Estado: aprovado para implementação.** As regras do Conjurador (1.5.0), do Denunciador (1.6.0), do Cupido (1.7.0), da Quenga (1.8.0), do Mentalista (1.9.0), do Padre (1.10.0) e do Depressivo (1.11.0) foram aprovadas para implementação. Não preencher lacunas sobre papéis futuros ou comportamentos fora do escopo com regras de outras edições.
 
 ## 1. Identificação
 
 - **Nome:** Conjunto inicial Werewolf God
-- **Versão:** 1.10.0
+- **Versão:** 1.11.0
 - **Estado:** Aprovado
-- **Papéis cobertos:** Lobisomens, Guarda-costas, Bruxa, Vidente, Denunciador, Lycan, Amaldiçoado, Conjurador, Cupido, Quenga, Mentalista, Padre e Aldeão
+- **Papéis cobertos:** Lobisomens, Guarda-costas, Bruxa, Vidente, Denunciador, Lycan, Amaldiçoado, Conjurador, Cupido, Quenga, Mentalista, Padre, Depressivo e Aldeão
 - **Objetivo:** formalizar o conjunto mínimo de regras necessário para a primeira partida jogável.
 
 A versão 1.1.0 acrescentou o Lycan às composições de novas partidas. A versão
@@ -30,6 +30,12 @@ individual obrigatória depois da Quenga.
 A versão 1.10.0 acrescenta o Padre, limitado a uma carta, com proteção
 individual opcional de uso único, chamada depois do Guarda-costas e antes da
 Bruxa.
+A versão 1.11.0 acrescenta o Depressivo, limitado a uma carta, sem ação ou
+chamada noturna e com vitória independente ao ser exilado por votação. Essa
+condição não bloqueia as vitórias das equipes; para a paridade dos Lobisomens,
+ele conta como não-Lobisomem. Se sua vitória e uma vitória de equipe forem
+atendidas na mesma resolução da votação, vence o Depressivo. As alterações são
+aditivas.
 Partidas e backups anteriores continuam válidos e mantêm seu estado e
 comportamento, sem migração de dados. O identificador do conjunto permanece
 `werewolf-god-v1`.
@@ -42,8 +48,9 @@ comportamento, sem migração de dados. O identificador do conjunto permanece
 - Deve haver ao menos um Lobisomem e menos Lobisomens do que jogadores não Lobisomens.
 - O aplicativo sorteia uma carta por jogador e mostra a associação somente ao mestre, que entrega as cartas físicas.
 - Não há limite individual adicional de cópias dos papéis descritos além do total de cartas e das restrições acima.
-- Todos os papéis não Lobisomem começam no time dos Aldeões. Os Lobisomens formam o outro time; o Amaldiçoado pode mudar de time conforme a regra de conversão abaixo.
+- Todos os papéis não Lobisomem, exceto o Depressivo, começam no time dos Aldeões. Os Lobisomens formam o outro time; o Amaldiçoado pode mudar de time conforme a regra de conversão abaixo. O Depressivo tem uma facção independente.
 - O Lycan pertence ao time dos Aldeões, não age à noite e aparece como Lobisomem somente no resultado da investigação da Vidente.
+- A composição pode incluir no máximo um Depressivo. Ele não age nem é chamado à noite, participa da discussão e votação enquanto estiver vivo e vence exclusivamente quando for exilado.
 - A composição pode incluir no máximo um Amaldiçoado. Ele começa no time dos Aldeões. Se os Lobisomens o atacarem sem proteção e a Bruxa não o atacar na mesma noite, sobrevive e a conversão fica pendente, conhecida somente pelo mestre. Na noite seguinte, antes da chamada dos Lobisomens, o mestre o desperta discretamente; somente nesse momento ele passa ao time dos Lobisomens e fica sabendo da conversão.
 - O Conjurador pertence ao time dos Aldeões e age à noite depois do Denunciador, que age depois da Vidente.
 - O Denunciador pertence ao time dos Aldeões, pode haver no máximo um por partida e sua ação individual e opcional ocorre depois da Vidente e antes do Conjurador.
@@ -89,6 +96,7 @@ Todas as funções incluídas na composição inicial que tenham ação noturna 
 | Cupido | Escolhe um par na primeira noite; não é chamado nas noites seguintes. | Duas pessoas vivas e diferentes; pode incluir o próprio Cupido. No máximo uma cópia por partida. | Se uma das pessoas conectadas for eliminada à noite ou exilada por votação, a outra também é eliminada. Proteções noturnas bloqueiam a eliminação do alvo e, se o par for protegido, ele sobrevive enquanto o alvo não protegido morre. Somente o mestre e o Cupido conhecem o par. |
 | Quenga | A Quenga escolhe individualmente com quem dormir ou opta por não escolher ninguém. | Outro jogador vivo e não exilado, inclusive Lobisomem ou Amaldiçoado. No máximo uma Quenga por partida. | Se escolher um Lobisomem, a Quenga morre, a menos que esteja protegida; o Lobisomem não é eliminado. Se escolher alguém não-Lobisomem, evita o ataque dos Lobisomens quando é o alvo; se o ataque atingir a pessoa escolhida, ambas são alvos de eliminação, cada uma sujeita à própria proteção. Outras ações contra a pessoa escolhida não afetam a Quenga. |
 | Mentalista | A cada noite, compara a facção atual de dois jogadores. | Dois jogadores vivos e não exilados, diferentes entre si e diferentes do próprio Mentalista. No máximo um por partida. | Informa ao Mentalista apenas se os dois pertencem ou não ao mesmo time. Não elimina, protege ou altera nenhuma outra ação. |
+| Depressivo | Nenhuma ação noturna e não é chamado. | No máximo um por partida. | Facção independente; participa da discussão e votação. Vence somente quando exilado por votação. Não bloqueia vitórias de equipe e conta como não-Lobisomem na condição de paridade dos Lobisomens. Se for eliminado à noite ou indiretamente pelo vínculo do Cupido, não vence. |
 | Aldeão | Nenhuma ação noturna. | — | Participa da discussão e vota enquanto estiver vivo e não exilado. |
 
 As ações de Guarda-costas, Vidente, Conjurador, Cupido e Mentalista são obrigatórias a cada chamada quando há participantes vivos da função e alvo válido. Os usos da Bruxa, do Denunciador, da Quenga e do Padre são opcionais, mesmo quando disponíveis.
@@ -138,9 +146,11 @@ As ações de Guarda-costas, Vidente, Conjurador, Cupido e Mentalista são obrig
 
 - **Lobisomens vencem** quando o número de Lobisomens vivos é igual ou maior que o número de jogadores não Lobisomens vivos.
 - **Aldeões vencem** quando todos os Lobisomens foram mortos ou exilados.
+- **Depressivo vence** exclusivamente quando ele próprio é exilado pela votação; morrer à noite ou ser eliminado indiretamente pelo vínculo do Cupido não conta como exílio.
+- O Depressivo não impede as condições de vitória das equipes. Enquanto estiver vivo, conta como não-Lobisomem na comparação de paridade dos Lobisomens.
 - Um Amaldiçoado com conversão pendente continua contando como Aldeão. Só conta como Lobisomem depois que o mestre o desperta discretamente com o grupo.
 - Se não houver nenhum Lobisomem vivo, mas houver um Amaldiçoado vivo com conversão pendente, os Aldeões ainda não vencem: a partida continua até o despertar discreto no início da próxima noite. Nesse momento o Amaldiçoado torna-se o único Lobisomem, salvo se a partida já tiver terminado por outra condição.
-- Verificar vitória imediatamente após a resolução da noite e imediatamente após o exílio do dia.
+- Verificar as condições de vitória após cada resolução noturna e após cada votação concluída. A primeira condição atendida encerra a partida; se o exílio do Depressivo e uma condição de vitória de equipe ocorrerem na mesma resolução da votação, vence o Depressivo.
 - Se não houver vitória, a partida continua. Uma partida encerrada não prossegue para outra fase.
 
 ## 8. Revisão, histórico e persistência
@@ -154,6 +164,7 @@ As ações de Guarda-costas, Vidente, Conjurador, Cupido e Mentalista são obrig
 - A escolha da Quenga é armazenada no histórico noturno existente. A chamada opcional não exige ação registrada quando ela opta por ficar em casa. Partidas e backups anteriores continuam válidos; não há alteração do formato de dados.
 - A comparação do Mentalista é armazenada no histórico noturno existente. As partidas e backups anteriores continuam válidos sem migração ou valores substitutos.
 - A ação opcional do Padre e o consumo do seu único uso são persistidos nas partidas novas e no histórico noturno. O campo de uso ausente em partidas e backups anteriores permanece compatível e não recebe valores substitutos.
+- Partidas novas podem conter um Depressivo e registrar `"tanner"` como vencedor; as validações reconhecem esses valores sem alterar partidas ou backups anteriores, que continuam válidos sem migração.
 
 ## 9. Cenários de aceitação
 
@@ -202,12 +213,16 @@ As ações de Guarda-costas, Vidente, Conjurador, Cupido e Mentalista são obrig
 42. **Amaldiçoado como companheiro:** se a Quenga escolher o Amaldiçoado não convertido e os Lobisomens o atacarem desprotegido, ele sobrevive com conversão pendente e a Quenga desprotegida morre; se o vínculo do Cupido eliminar o Amaldiçoado antes do despertar, a conversão é cancelada.
 43. **Ação e histórico:** permitir revisar ou remover a escolha opcional antes de confirmar a noite e preservar escolhas registradas no histórico de partida, retomada e backup, sem invalidar partidas ou backups anteriores.
 44. **Padre:** permitir no máximo uma carta, distribuí-la como Aldeã e chamá-la depois do Guarda-costas e antes da Bruxa. A ação é opcional, pode proteger a si próprio ou qualquer jogador vivo e consumir uma vez por partida. O alvo protegido sobrevive a todas as eliminações noturnas daquela noite e não é protegido contra exílio diurno.
+45. **Depressivo na composição:** permitir no máximo uma carta, distribuí-la como facção independente e nunca chamá-lo à noite; ele participa normalmente da discussão e votação.
+46. **Vitória do Depressivo:** vencer somente quando for exilado por votação, nunca por morte noturna ou eliminação indireta pelo vínculo do Cupido. Sua presença não bloqueia as vitórias de equipe e ele conta como não-Lobisomem na comparação de paridade.
+47. **Primeira vitória e empate:** encerrar a partida assim que uma condição for atendida; se exilar o Depressivo também satisfizer uma condição de vitória de equipe naquela mesma votação, registrar a vitória do Depressivo. Vitórias de equipe continuam possíveis enquanto ele estiver vivo.
+48. **Persistência e compatibilidade:** salvar, retomar, exportar e importar partidas com Depressivo e sua vitória; manter partidas e backups anteriores válidos sem migração.
 
 Os cenários abaixo são os contratos de aceitação do motor.
 
 ## 10. Pendências fora do motor v1
 
-- Papéis futuros, equipes além de Lobisomens/Aldeões e suas interações.
+- Papéis futuros e facções além de Lobisomens, Aldeões e Depressivo, e suas interações.
 - Correção ou desfazer depois de uma fase confirmada.
 - Comportamento de múltiplas variantes de regras ou editor de conjunto de regras.
 - Exportação/importação e sincronização online, fora do MVP inicial.
