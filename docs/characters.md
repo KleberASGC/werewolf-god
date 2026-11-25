@@ -258,3 +258,23 @@ componente `ROLE_SUMMARIES` do catálogo do aplicativo.
 - **Se o personagem for eliminado:** a chamada continua; sem Mentalista vivo não há escolha nem efeito.
 - **Decisões pendentes:** nenhuma.
 - **Estado no aplicativo:** implementado.
+
+### Padre
+
+- **Identificador estável:** `priest`
+- **Nome exibido:** Padre
+- **Texto impresso na carta:** uma vez por partida, escolha um jogador para ser protegido. Esse jogador não pode ser eliminado durante a noite.
+- **Facção e condição de vitória:** Aldeões
+- **Quantidade permitida na partida:** 1
+- **Tipo de ação:** individual
+- **Ação:** Pode optar por proteger um jogador em uma única noite na partida.
+- **Obrigatoriedade:** Opcional
+- **Alvos válidos:** Qualquer jogador vivo e não exilado
+- **Pode escolher a si mesmo ou alguém do próprio grupo?:** sim
+- **Limite de usos:** 1 vez por partida.
+- **Efeito:** Protege soberanamente um jogador contra todas as eliminações noturnas daquela noite. O alvo não morre por qualquer ação noturna enquanto estiver protegido.
+- **Interações com outros personagens/efeitos:** igual à proteção soberana do Guarda-costas. A proteção impede eliminações dos Lobisomens, da Bruxa, do Denunciador, da Quenga e do vínculo do Cupido. Não impede exílio por votação.
+- **Informação recebida pelo personagem:** nenhuma
+- **Se o personagem for eliminado:** a chamada continua; sem Padre vivo ou após o poder já ter sido usado não há escolha nem efeito.
+- **Decisões pendentes:** nenhuma.
+- **Estado no aplicativo:** implementado.

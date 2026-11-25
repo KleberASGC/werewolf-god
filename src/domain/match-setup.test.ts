@@ -208,6 +208,36 @@ describe("createMatch", () => {
     );
   });
 
+  it("allows one Padre in a role draw and rejects multiple cards", () => {
+    const match = createMatch(
+      {
+        id: "match-priest",
+        name: "Priest game",
+        players: players(5),
+        roleCounts: { werewolf: 1, priest: 1, villager: 3 },
+        dayDurationMinutes: 5,
+      },
+      () => 0,
+    );
+
+    assert.equal(match.players.filter((player) => player.role === "priest").length, 1);
+    assert.equal(match.priestProtectionUsed, false);
+    assert.throws(
+      () =>
+        createMatch(
+          {
+            id: "match-multiple-priests",
+            name: "Multiple Priests",
+            players: players(5),
+            roleCounts: { werewolf: 1, priest: 2, villager: 2 },
+            dayDurationMinutes: 5,
+          },
+          () => 0,
+        ),
+      /no máximo um Padre/,
+    );
+  });
+
   it("allows one Cupido in a role draw and rejects multiple cards", () => {
     const match = createMatch(
       {

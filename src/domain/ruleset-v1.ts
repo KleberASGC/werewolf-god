@@ -5,6 +5,7 @@ export const MAX_PLAYERS = 75;
 export const ROLE_IDS = [
   "werewolf",
   "bodyguard",
+  "priest",
   "witch",
   "seer",
   "revealer",
@@ -22,6 +23,7 @@ export type RoleId = (typeof ROLE_IDS)[number];
 export const NIGHT_ROLE_ORDER = [
   "werewolf",
   "bodyguard",
+  "priest",
   "witch",
   "seer",
   "revealer",
@@ -45,6 +47,7 @@ export const ROLE_LABELS: Record<RoleId, string> = {
   cupid: "Cupido",
   hooker: "Quenga",
   mentalist: "Mentalista",
+  priest: "Padre",
   villager: "Aldeão",
 };
 
@@ -63,6 +66,7 @@ export function hasNightAction(role: RoleId): role is NightRole {
     case "cupid":
     case "hooker":
     case "mentalist":
+    case "priest":
       return true;
     case "lycan":
     case "cursed":

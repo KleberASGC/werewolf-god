@@ -73,6 +73,11 @@ export interface MentalistAction {
   secondTargetId: string;
 }
 
+export interface PriestAction {
+  kind: "priest-protect";
+  targetId: string;
+}
+
 export type NightAction =
   | WerewolfAction
   | BodyguardAction
@@ -82,7 +87,8 @@ export type NightAction =
   | SpellcasterAction
   | CupidAction
   | HookerAction
-  | MentalistAction;
+  | MentalistAction
+  | PriestAction;
 
 export interface NightActionRecord {
   role: NightRole;
@@ -178,6 +184,7 @@ export interface MatchState {
   discussion?: DiscussionTimer;
   voting?: VotingState;
   witchResources: WitchResources;
+  priestProtectionUsed?: boolean;
   lastBodyguardTargetId?: string;
   lastSpellcasterTargetId?: string;
   cupidLinkedPlayerIds?: [string, string];

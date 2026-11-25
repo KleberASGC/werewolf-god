@@ -61,6 +61,7 @@ const INITIAL_ROLE_COUNTS: Record<RoleId, number> = {
   cupid: 0,
   hooker: 0,
   mentalist: 0,
+  priest: 0,
   villager: 1,
 };
 const RELEASE_LABEL = `v${packageVersion} · ${releaseCodename}`;
@@ -75,6 +76,7 @@ const ROLE_DESCRIPTIONS: Record<RoleId, string> = {
   spellcaster: "Silencia um jogador durante todo o dia seguinte, não podendo repetir o alvo em dias consecutivos.",
   hooker: "À noite, pode dormir com outro jogador. Evita o ataque dos Lobisomens quando é o alvo, mas pode morrer junto com quem escolheu.",
   mentalist: "A cada noite, aponta para dois jogadores vivos e descobre se pertencem ao mesmo time.",
+  priest: "Uma vez por partida, protege soberanamente um jogador vivo de todas as eliminações daquela noite.",
   cupid: "Na primeira noite, escolhe dois jogadores conectados. Se um deles for eliminado, o outro também será eliminado.",
   villager: "Não tem ação noturna; participa da discussão e vota para eliminar Lobisomens.",
 };
@@ -89,6 +91,7 @@ const ROLE_SUMMARIES: Record<RoleId, string> = {
   spellcaster: "Todas as noites, escolha um jogador que não poderá falar no dia seguinte.",
   hooker: "Todas as noites, você pode optar por dormir com um jogador. Se esse jogador for um lobisomem, você é eliminada. Se não for: e os lobisomens tentarem te atacar então ninguém morre porque você não estava em casa; se os lobisomens atacarem o jogador que você optou por dormir, morrem vocês dois.",
   mentalist: "Todas as noites, escolha dois jogadores para descobrir se fazem parte do mesmo time.",
+  priest: "Uma vez por partida, escolha um jogador para ser protegido. Esse jogador não pode ser eliminado durante a noite.",
   cupid: "Na primeira noite, escolha dois jogadores para ficarem conectados. Se um deles for eliminado, o outro também será eliminado.",
   villager: "Encontre os Lobisomens e elimine-os.",
 };
@@ -126,6 +129,10 @@ const ROLE_MORE_INFO: Partial<Record<RoleId, readonly string[]>> = {
     "Não pode escolher a si mesmo nem repetir o mesmo jogador duas vezes na ação.",
     "Um Amaldiçoado conta como Aldeão até ser despertado com os Lobisomens; depois conta como Lobisomem.",
   ],
+  priest: [
+    "A proteção é opcional e só pode ser usada uma vez por partida.",
+    "O alvo não morre naquela noite por qualquer eliminação noturna, mas a proteção não impede exílio diurno.",
+  ],
   cupid: [
     "Pode escolher a si próprio uma vez. O Cupido e o mestre conhecem o par; os jogadores conectados não são informados.",
     "Se uma proteção bloquear a eliminação do alvo, nenhum dos dois morre por essa ação. Se o alvo morrer e o par estiver protegido, somente o alvo morre.",
@@ -145,6 +152,7 @@ const ROLE_FACTIONS: Record<RoleId, string> = {
   cupid: "Facção dos Aldeões",
   hooker: "Facção dos Aldeões",
   mentalist: "Facção dos Aldeões",
+  priest: "Facção dos Aldeões",
   villager: "Facção dos Aldeões",
 };
 const ROLE_TEAMS = [
@@ -152,7 +160,7 @@ const ROLE_TEAMS = [
   {
     id: "villagers",
     label: "Time dos Aldeões",
-    roles: ["bodyguard", "witch", "seer", "revealer", "lycan", "cursed", "spellcaster", "cupid", "hooker", "mentalist", "villager"],
+    roles: ["bodyguard", "witch", "seer", "revealer", "lycan", "cursed", "spellcaster", "cupid", "hooker", "mentalist", "priest", "villager"],
   },
 ] as const satisfies readonly { id: string; label: string; roles: readonly RoleId[] }[];
 
@@ -177,7 +185,7 @@ function RoleCountField({
       <input
         id={inputId}
         aria-label={`Quantidade de ${ROLE_LABELS[role]}`}
-        max={role === "cursed" || role === "revealer" || role === "cupid" || role === "hooker" || role === "mentalist" ? 1 : 75}
+        max={role === "cursed" || role === "revealer" || role === "cupid" || role === "hooker" || role === "mentalist" || role === "priest" ? 1 : 75}
         min={0}
         onChange={(event) => onChange(Number(event.target.value))}
         type="number"
@@ -291,6 +299,14 @@ function RoleIllustration({ role }: { role: RoleId }) {
           <path d="M45 77h30" />
         </>
       )}
+      {role === "priest" && (
+        <>
+          <circle cx="60" cy="43" r="20" />
+          <path d="M22 104c3-24 18-37 38-37s35 13 38 37H22Z" />
+          <path d="M60 20v30M45 35h30" />
+          <circle cx="60" cy="35" r="8" />
+        </>
+      )}
     </svg>
   );
 }
@@ -325,6 +341,7 @@ function getRoleCounts(players: MatchPlayer[]): Record<RoleId, number> {
     cupid: 0,
     hooker: 0,
     mentalist: 0,
+    priest: 0,
     villager: 0,
   });
 }
@@ -364,6 +381,8 @@ function formatNightAction(match: MatchState, action: NightAction): string {
       return `Vínculo: ${playerName(match, action.firstTargetId)} e ${playerName(match, action.secondTargetId)}`;
     case "mentalist-compare":
       return `Comparação: ${playerName(match, action.firstTargetId)} e ${playerName(match, action.secondTargetId)}`;
+    case "priest-protect":
+      return `Proteção soberana: ${playerName(match, action.targetId)}`;
     case "witch":
       return [
         action.protectTargetId
@@ -563,6 +582,8 @@ function NightActionForm({
         firstTargetId: targetId,
         secondTargetId,
       };
+    } else if (role === "priest") {
+      nextAction = { kind: "priest-protect", targetId };
     } else {
       nextAction = { kind: "spellcaster-silence", targetId };
     }
@@ -739,7 +760,9 @@ function NightActionForm({
           ? "Pessoa denunciada"
           : role === "spellcaster"
             ? "Pessoa silenciada no dia seguinte"
-            : "Pessoa com quem a Quenga dormirá";
+            : role === "priest"
+              ? "Pessoa protegida pelo Padre"
+              : "Pessoa com quem a Quenga dormirá";
 
   return (
     <form className="action-form" onSubmit={handleSubmit}>
@@ -757,6 +780,11 @@ function NightActionForm({
       {role === "hooker" && (
         <p className="field-hint">
           A escolha é opcional. Se escolher alguém que não seja Lobisomem, o ataque dos Lobisomens contra você é evitado.
+        </p>
+      )}
+      {role === "priest" && (
+        <p className="field-hint">
+          A proteção é opcional e só pode ser usada uma vez por partida. O alvo não pode ser eliminado durante esta noite.
         </p>
       )}
       {allowedTargets.length === 0 && (
@@ -783,6 +811,11 @@ function NightActionForm({
         {role === "hooker" && (
           <button className="secondary-button" onClick={() => submitAction()} type="button">
             Não dormir com ninguém esta noite
+          </button>
+        )}
+        {role === "priest" && (
+          <button className="secondary-button" onClick={() => submitAction()} type="button">
+            Não usar proteção esta noite
           </button>
         )}
         <button className="primary-button" disabled={allowedTargets.length === 0} type="submit">
@@ -1111,7 +1144,9 @@ function MasterConsole({
                     ? "Chame a Quenga para registrar a escolha individual dela. A ação é opcional."
                     : currentRole === "mentalist"
                       ? "Chame o Mentalista para apontar dois jogadores vivos e comparar seus times."
-                : "Oriente o grupo a agir em conjunto e registre uma única escolha final."}
+                      : currentRole === "priest"
+                        ? "Chame o Padre para optar por proteger um jogador vivo nesta noite. O poder só pode ser usado uma vez."
+                        : "Oriente o grupo a agir em conjunto e registre uma única escolha final."}
           </p>
           <div className="called-role-players">
             <p className="detail-label">JOGADORES DESTA FUNÇÃO</p>

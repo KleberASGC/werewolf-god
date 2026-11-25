@@ -200,7 +200,7 @@ it("shows the release label and can redraw roles before the match starts", async
   );
   assert.equal(
     screen.getByRole("group", { name: "Time dos Aldeões" }).querySelectorAll(".role-count").length,
-    11,
+    12,
   );
   await createMatchThroughForm("Novo sorteio");
 
@@ -317,11 +317,11 @@ it("shows concise role summaries with optional interaction details", async () =>
   assert.ok(screen.getByText("Todas as noites, acorde junto com os outros Lobisomens e escolha um jogador para eliminar."));
   assert.equal(screen.queryByRole("link", { name: "Interações" }), null);
   assert.equal(screen.queryByRole("heading", { name: "Interações entre personagens" }), null);
-  for (const role of ["Lobisomem", "Guarda-costas", "Bruxa", "Vidente", "Denunciador", "Lycan", "Amaldiçoado", "Conjurador", "Cupido", "Quenga", "Mentalista", "Aldeão"]) {
+  for (const role of ["Lobisomem", "Guarda-costas", "Bruxa", "Vidente", "Denunciador", "Lycan", "Amaldiçoado", "Conjurador", "Cupido", "Quenga", "Mentalista", "Padre", "Aldeão"]) {
     assert.ok(screen.getByRole("heading", { level: 3, name: role }));
   }
-  assert.equal(document.querySelectorAll(".role-illustration").length, 12);
-  assert.equal(document.querySelectorAll(".role-card-details").length, 9);
+  assert.equal(document.querySelectorAll(".role-illustration").length, 13);
+  assert.equal(document.querySelectorAll(".role-card-details").length, 10);
   for (const role of ["lycan", "cursed", "villager"]) {
     assert.equal(document.querySelector(`.role-card-${role} .role-card-details`), null);
   }
@@ -812,7 +812,7 @@ it("edits a saved game roster by replacing its prepared match and role draw", as
   );
   assert.equal(
     editorVillagerTeam.querySelectorAll(".role-count").length,
-    11,
+    12,
   );
   fillInput("Nome do participante editado 1", "Ana");
   clickButton("Remover participante editado 5");

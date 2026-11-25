@@ -84,6 +84,7 @@ export function createMatch(
     cupid: input.roleCounts.cupid ?? 0,
     hooker: input.roleCounts.hooker ?? 0,
     mentalist: input.roleCounts.mentalist ?? 0,
+    priest: input.roleCounts.priest ?? 0,
     villager: input.roleCounts.villager ?? 0,
   };
 
@@ -116,6 +117,9 @@ export function createMatch(
   if (counts.mentalist > 1) {
     throw new Error("A partida pode ter no máximo um Mentalista.");
   }
+  if (counts.priest > 1) {
+    throw new Error("A partida pode ter no máximo um Padre.");
+  }
   if (
     !Number.isInteger(input.dayDurationMinutes) ||
     input.dayDurationMinutes < 1 ||
@@ -144,6 +148,7 @@ export function createMatch(
       protectionUsed: false,
       eliminationUsed: false,
     },
+    priestProtectionUsed: false,
     history: [],
   };
 }

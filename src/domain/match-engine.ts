@@ -63,6 +63,8 @@ function getNightRoleForAction(action: NightAction): NightRole {
       return "hooker";
     case "mentalist-compare":
       return "mentalist";
+    case "priest-protect":
+      return "priest";
   }
 }
 
@@ -179,6 +181,13 @@ function validateNightAction(
       }
       break;
     }
+    case "priest-protect": {
+      validateLivingTarget(match, action.targetId);
+      if (match.priestProtectionUsed) {
+        throw new Error("O poder de proteção do Padre já foi usado nesta partida.");
+      }
+      break;
+    }
   }
 }
 
@@ -261,6 +270,7 @@ export function submitNightCall(
     role !== "witch" &&
     role !== "revealer" &&
     role !== "hooker" &&
+    role !== "priest" &&
     !action
   ) {
     throw new Error("A função precisa registrar sua ação antes de avançar.");
@@ -341,7 +351,13 @@ export function reviseNightAction(
   if (existingIndex < 0 && !action) {
     throw new Error("Não há ação registrada para remover.");
   }
-  if (role !== "witch" && role !== "revealer" && role !== "hooker" && !action) {
+  if (
+    role !== "witch" &&
+    role !== "revealer" &&
+    role !== "hooker" &&
+    role !== "priest" &&
+    !action
+  ) {
     throw new Error("A ação desta função é obrigatória.");
   }
   if (!hasLivingMember(match, role) && action) {
@@ -390,6 +406,7 @@ export function resolveNight(match: MatchState): NightResolution {
       role !== "witch" &&
       role !== "revealer" &&
       role !== "hooker" &&
+      role !== "priest" &&
       !record
     ) {
       throw new Error("Uma ação noturna obrigatória não foi registrada.");
@@ -422,6 +439,7 @@ export function resolveNight(match: MatchState): NightResolution {
   });
   let witchProtectionUsed = false;
   let witchEliminationUsed = false;
+  let priestProtectionUsed = false;
   let lastBodyguardTargetId = match.lastBodyguardTargetId;
   let lastSpellcasterTargetId = match.lastSpellcasterTargetId;
 
@@ -464,6 +482,10 @@ export function resolveNight(match: MatchState): NightResolution {
       case "hooker-sleep":
       case "cupid-link":
       case "mentalist-compare":
+        break;
+      case "priest-protect":
+        protectionTargetIds.add(action.targetId);
+        priestProtectionUsed = true;
         break;
     }
   }
@@ -573,6 +595,7 @@ export function resolveNight(match: MatchState): NightResolution {
       protectionUsed: match.witchResources.protectionUsed || witchProtectionUsed,
       eliminationUsed: match.witchResources.eliminationUsed || witchEliminationUsed,
     },
+    priestProtectionUsed: match.priestProtectionUsed || priestProtectionUsed,
     lastBodyguardTargetId,
     lastSpellcasterTargetId,
     ...(cupidAction?.kind === "cupid-link" ? { cupidLinkedPlayerIds } : {}),

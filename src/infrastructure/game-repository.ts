@@ -82,6 +82,7 @@ function isAction(value: unknown): boolean {
     "revealer-denounce",
     "spellcaster-silence",
     "hooker-sleep",
+    "priest-protect",
   ]) &&
     typeof value.targetId === "string";
 }
@@ -145,6 +146,8 @@ function isMatch(value: unknown): value is MatchState {
         (player.eliminationCause === undefined || isOneOf(player.eliminationCause, ["night", "vote"]))) ||
       !isRecord(value.witchResources) || typeof value.witchResources.protectionUsed !== "boolean" ||
       typeof value.witchResources.eliminationUsed !== "boolean" ||
+      (value.priestProtectionUsed !== undefined &&
+        typeof value.priestProtectionUsed !== "boolean") ||
       !isOptionalString(value.lastBodyguardTargetId) ||
       !isOptionalString(value.lastSpellcasterTargetId) ||
       (value.cupidLinkedPlayerIds !== undefined &&
@@ -180,6 +183,9 @@ function isMatch(value: unknown): value is MatchState {
     return false;
   }
   if (value.players.filter((player) => isRecord(player) && player.role === "mentalist").length > 1) {
+    return false;
+  }
+  if (value.players.filter((player) => isRecord(player) && player.role === "priest").length > 1) {
     return false;
   }
   if (value.discussion !== undefined && (!isRecord(value.discussion) ||

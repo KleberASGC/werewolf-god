@@ -1,13 +1,13 @@
 # Conjunto de regras v1
 
-> **Estado: aprovado para implementação.** As regras do Conjurador (1.5.0), do Denunciador (1.6.0), do Cupido (1.7.0), da Quenga (1.8.0) e do Mentalista (1.9.0) foram aprovadas para implementação. Não preencher lacunas sobre papéis futuros ou comportamentos fora do escopo com regras de outras edições.
+> **Estado: aprovado para implementação.** As regras do Conjurador (1.5.0), do Denunciador (1.6.0), do Cupido (1.7.0), da Quenga (1.8.0), do Mentalista (1.9.0) e do Padre (1.10.0) foram aprovadas para implementação. Não preencher lacunas sobre papéis futuros ou comportamentos fora do escopo com regras de outras edições.
 
 ## 1. Identificação
 
 - **Nome:** Conjunto inicial Werewolf God
-- **Versão:** 1.9.0
+- **Versão:** 1.10.0
 - **Estado:** Aprovado
-- **Papéis cobertos:** Lobisomens, Guarda-costas, Bruxa, Vidente, Denunciador, Lycan, Amaldiçoado, Conjurador, Cupido, Quenga, Mentalista e Aldeão
+- **Papéis cobertos:** Lobisomens, Guarda-costas, Bruxa, Vidente, Denunciador, Lycan, Amaldiçoado, Conjurador, Cupido, Quenga, Mentalista, Padre e Aldeão
 - **Objetivo:** formalizar o conjunto mínimo de regras necessário para a primeira partida jogável.
 
 A versão 1.1.0 acrescentou o Lycan às composições de novas partidas. A versão
@@ -27,6 +27,9 @@ são aditivas. A versão 1.8.0 acrescenta a Quenga, limitada a uma carta, com
 ação individual opcional depois do Conjurador e do Cupido (quando chamado).
 A versão 1.9.0 acrescenta o Mentalista, limitado a uma carta, com ação
 individual obrigatória depois da Quenga.
+A versão 1.10.0 acrescenta o Padre, limitado a uma carta, com proteção
+individual opcional de uso único, chamada depois do Guarda-costas e antes da
+Bruxa.
 Partidas e backups anteriores continuam válidos e mantêm seu estado e
 comportamento, sem migração de dados. O identificador do conjunto permanece
 `werewolf-god-v1`.
@@ -47,6 +50,7 @@ comportamento, sem migração de dados. O identificador do conjunto permanece
 - O Cupido pertence ao time dos Aldeões, pode haver no máximo um por partida e escolhe duas pessoas diferentes na primeira noite; o par pode incluir o próprio Cupido.
 - A Quenga pertence ao time dos Aldeões e pode haver no máximo uma por partida. Sua escolha individual e opcional ocorre depois do Conjurador e do Cupido na primeira noite.
 - O Mentalista pertence ao time dos Aldeões, pode haver no máximo um por partida e sua ação individual obrigatória ocorre todas as noites depois da Quenga.
+- O Padre pertence ao time dos Aldeões, pode haver no máximo um por partida e sua proteção individual opcional ocorre depois do Guarda-costas e antes da Bruxa.
 
 ### Cópias da mesma função
 
@@ -60,7 +64,7 @@ comportamento, sem migração de dados. O identificador do conjunto permanece
 ## 3. Fases e fluxo
 
 1. **Preparação:** cadastrar jogadores, configurar cartas e duração do dia, validar e sortear os papéis.
-2. **Noite:** o mestre orienta todos a fechar os olhos e chama, na ordem Lobisomens, Guarda-costas, Bruxa, Vidente, Denunciador, Conjurador, Cupido, Quenga e Mentalista, cada função incluída na composição inicial que possui ação noturna; o Cupido só é chamado na primeira noite, e a Quenga e o Mentalista são chamados todas as noites.
+2. **Noite:** o mestre orienta todos a fechar os olhos e chama, na ordem Lobisomens, Guarda-costas, Padre, Bruxa, Vidente, Denunciador, Conjurador, Cupido, Quenga e Mentalista, cada função incluída na composição inicial que possui ação noturna; o Cupido só é chamado na primeira noite, e a Quenga e o Mentalista são chamados todas as noites.
 3. **Amanhecer:** após as chamadas noturnas (incluindo as do Denunciador, Conjurador, Quenga e Mentalista, se estiverem na composição, e a do Cupido na primeira noite), resolver as ações em conjunto, apresentar o resultado privado ao mestre e verificar a vitória.
 4. **Discussão:** se a partida continuar, abrir o dia e iniciar o temporizador configurado.
 5. **Votação:** depois que o mestre encerrar a discussão, registrar um voto por jogador vivo e não exilado na ordem sorteada.
@@ -74,7 +78,8 @@ Todas as funções incluídas na composição inicial que tenham ação noturna 
 | Função | Ação | Alvo e restrições | Efeito / informação |
 |---|---|---|---|
 | Lobisomens | Escolhem por consenso uma vítima. | Outro jogador vivo e não exilado que não seja Lobisomem. | Ataque noturno; a vítima é eliminada se não estiver protegida. |
-| Guarda-costas | Escolhe uma pessoa para proteger a cada noite. | Qualquer jogador vivo e não exilado; pode escolher no máximo um dos próprios membros. Não pode repetir o alvo da noite anterior. | Protege de eliminações noturnas dos Lobisomens ou da Bruxa, mas não do exílio. |
+| Guarda-costas | Escolhe uma pessoa para proteger a cada noite. | Qualquer jogador vivo e não exilado; pode escolher no máximo um dos próprios membros. Não pode repetir o alvo da noite anterior. | Proteção soberana contra todas as eliminações noturnas daquela noite, mas não contra exílio diurno. |
+| Padre | Pode proteger uma pessoa uma única vez por partida. | Qualquer jogador vivo e não exilado, inclusive ele próprio ou alguém do próprio grupo. Uso opcional e não há repetição de alvo. | Proteção soberana daquela noite: o alvo não pode morrer por nenhuma eliminação noturna. Não impede exílio diurno. |
 | Bruxa | O grupo compartilha um uso de proteção e um uso de eliminação durante toda a partida; pode usar nenhum, um ou ambos. | Proteção: qualquer jogador vivo e não exilado, inclusive no máximo uma Bruxa do grupo. Eliminação: outro jogador vivo e não exilado, nunca uma Bruxa do grupo. Se usar ambas na mesma noite, os alvos devem ser diferentes. | Proteção bloqueia ataques noturnos dos Lobisomens ou da Bruxa. Eliminação causa morte se o alvo não estiver protegido. Cada uso escolhido é consumido mesmo quando redundante ou bloqueado. |
 | Vidente | Escolhe uma pessoa para investigar por noite. | Outro jogador vivo e não exilado; não pode escolher uma Vidente do grupo. | Informa somente se o alvo é Lobisomem ou Lycan, sem revelar o papel exato. O mestre sinaliza “L” com a mão para Lobisomem ou Lycan, ou balança o indicador para “não é Lobisomem”. |
 | Lycan | Nenhuma ação noturna. | — | Pertence ao time dos Aldeões e participa da discussão e votação como os demais jogadores vivos; para a Vidente, aparece como Lobisomem. |
@@ -86,12 +91,12 @@ Todas as funções incluídas na composição inicial que tenham ação noturna 
 | Mentalista | A cada noite, compara a facção atual de dois jogadores. | Dois jogadores vivos e não exilados, diferentes entre si e diferentes do próprio Mentalista. No máximo um por partida. | Informa ao Mentalista apenas se os dois pertencem ou não ao mesmo time. Não elimina, protege ou altera nenhuma outra ação. |
 | Aldeão | Nenhuma ação noturna. | — | Participa da discussão e vota enquanto estiver vivo e não exilado. |
 
-As ações de Guarda-costas, Vidente, Conjurador, Cupido e Mentalista são obrigatórias a cada chamada quando há participantes vivos da função e alvo válido. Os usos da Bruxa, do Denunciador e da Quenga são opcionais, mesmo quando disponíveis.
+As ações de Guarda-costas, Vidente, Conjurador, Cupido e Mentalista são obrigatórias a cada chamada quando há participantes vivos da função e alvo válido. Os usos da Bruxa, do Denunciador, da Quenga e do Padre são opcionais, mesmo quando disponíveis.
 
 ## 5. Resolução noturna
 
 - Todas as ações aceitas são resolvidas em conjunto; a ordem de chamada não muda seus efeitos.
-- Uma proteção do Guarda-costas ou da Bruxa bloqueia eliminações noturnas causadas pelos Lobisomens, pela Bruxa ou pelo Denunciador contra a pessoa protegida.
+- A proteção soberana do Guarda-costas ou do Padre impede que o alvo morra por qualquer eliminação noturna naquela noite. A proteção da Bruxa participa da mesma regra de proteção soberana contra eliminações noturnas.
 - Proteções simultâneas no mesmo alvo são redundantes, mas o uso de proteção da Bruxa continua consumido.
 - Se Lobisomens e Bruxa atacarem o mesmo alvo sem proteção, esse jogador é eliminado uma única vez; se protegido, sobrevive aos ataques.
 - Se Lobisomens atacarem o Amaldiçoado sem proteção e a Bruxa não o atacar nessa noite, ele permanece vivo como Aldeão e a conversão fica pendente. O estado pendente não é mostrado ao personagem nem ao grupo; somente o mestre tem essa informação.
@@ -148,6 +153,7 @@ As ações de Guarda-costas, Vidente, Conjurador, Cupido e Mentalista são obrig
 - O par do Cupido é salvo no estado privado da partida, e sua escolha fica no histórico noturno. Partidas e backups anteriores sem esse campo continuam válidos, sem migração ou valores substitutos.
 - A escolha da Quenga é armazenada no histórico noturno existente. A chamada opcional não exige ação registrada quando ela opta por ficar em casa. Partidas e backups anteriores continuam válidos; não há alteração do formato de dados.
 - A comparação do Mentalista é armazenada no histórico noturno existente. As partidas e backups anteriores continuam válidos sem migração ou valores substitutos.
+- A ação opcional do Padre e o consumo do seu único uso são persistidos nas partidas novas e no histórico noturno. O campo de uso ausente em partidas e backups anteriores permanece compatível e não recebe valores substitutos.
 
 ## 9. Cenários de aceitação
 
@@ -155,12 +161,12 @@ As ações de Guarda-costas, Vidente, Conjurador, Cupido e Mentalista são obrig
 2. **Composição inválida:** recusar soma de cartas diferente do total de jogadores, zero Lobisomens ou quantidade de Lobisomens igual/superior à de não Lobisomens.
 3. **Sorteio e sigilo:** atribuir exatamente uma carta a cada jogador, manter a associação visível apenas ao mestre e não alterar a composição.
 4. **Chamadas e ações em grupo:** todas as funções noturnas incluídas na composição são chamadas em todas as noites, inclusive quando não têm participantes vivos, exceto o Cupido, chamado somente na primeira noite; funções ausentes e papéis sem ação não são chamados. Duas ou mais cópias vivas da mesma função geram uma única ação registrada; participantes eliminados não escolhem nem consomem usos.
-5. **Alvo do próprio grupo:** Guarda-costas e proteção da Bruxa podem escolher no máximo um membro vivo do próprio grupo; eliminação da Bruxa e investigação da Vidente não podem escolher nenhum membro do próprio grupo.
-6. **Proteção contra ataques:** alvo protegido sobrevive a ataque dos Lobisomens, da Bruxa ou de ambos; proteções redundantes não causam efeito extra.
+5. **Alvo do próprio grupo:** Guarda-costas, Padre e proteção da Bruxa podem escolher no máximo um membro vivo do próprio grupo; eliminação da Bruxa e investigação da Vidente não podem escolher nenhum membro do próprio grupo.
+6. **Proteção soberana:** alvo protegido pelo Guarda-costas, pelo Padre ou pela Bruxa não morre naquela noite por qualquer eliminação noturna, incluindo Lobisomens, Bruxa, Denunciador, Quenga e vínculo do Cupido; proteções redundantes não causam efeito extra.
 7. **Ataques coincidentes:** dois ataques no mesmo alvo desprotegido produzem uma única eliminação.
 8. **Bruxa com usos compartilhados:** em todo o grupo, há no máximo um uso de proteção e um de eliminação; cada uso pode ser usado independentemente, ambos na mesma noite contra pessoas diferentes, ou não ser usado.
 9. **Uso da Bruxa bloqueado:** eliminar alvo protegido consome o uso de eliminação; proteger pessoa já protegida consome o uso de proteção.
-10. **Guarda-costas:** deve escolher alvo elegível e não pode repetir o alvo da noite anterior; a proteção não evita exílio.
+10. **Guarda-costas:** deve escolher alvo elegível e não pode repetir o alvo da noite anterior; a proteção soberana não evita exílio.
 11. **Vidente:** investigar outro jogador vivo retorna apenas “Lobisomem” ou “não Lobisomem”, sem papel exato; Lobisomem e Lycan retornam “Lobisomem”.
 12. **Ação antes da morte:** se um agente realizar ação válida e morrer na mesma noite, sua ação continua produzindo efeito.
 13. **Amanhecer privado:** o resultado público lista apenas eliminados ou ausência de mortes, nunca as causas, papéis ou proteções.
@@ -195,6 +201,7 @@ As ações de Guarda-costas, Vidente, Conjurador, Cupido e Mentalista são obrig
 41. **Outras eliminações no companheiro:** ações da Bruxa ou do Denunciador contra a pessoa escolhida afetam somente essa pessoa; não causam morte conjunta. Se a Quenga for alvo direto de outra ação, ela é resolvida pelas regras normais dessa ação.
 42. **Amaldiçoado como companheiro:** se a Quenga escolher o Amaldiçoado não convertido e os Lobisomens o atacarem desprotegido, ele sobrevive com conversão pendente e a Quenga desprotegida morre; se o vínculo do Cupido eliminar o Amaldiçoado antes do despertar, a conversão é cancelada.
 43. **Ação e histórico:** permitir revisar ou remover a escolha opcional antes de confirmar a noite e preservar escolhas registradas no histórico de partida, retomada e backup, sem invalidar partidas ou backups anteriores.
+44. **Padre:** permitir no máximo uma carta, distribuí-la como Aldeã e chamá-la depois do Guarda-costas e antes da Bruxa. A ação é opcional, pode proteger a si próprio ou qualquer jogador vivo e consumir uma vez por partida. O alvo protegido sobrevive a todas as eliminações noturnas daquela noite e não é protegido contra exílio diurno.
 
 Os cenários abaixo são os contratos de aceitação do motor.
 

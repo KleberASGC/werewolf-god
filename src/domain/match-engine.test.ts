@@ -127,6 +127,62 @@ function otherPlayerChoice(match: MatchState, voterId: string): VoteChoice {
 }
 
 describe("night flow and resolution", () => {
+  it("calls the Padre after the Guarda-costas and blocks a sovereign night protection once", () => {
+    const fixture = createFixture(["werewolf", "bodyguard", "priest", "witch", "seer", "villager", "cupid"]);
+    const started = startMatch(fixture);
+    assert.deepEqual(started.night?.schedule, [
+      "werewolf",
+      "bodyguard",
+      "priest",
+      "witch",
+      "seer",
+      "cupid",
+    ]);
+
+    const result = resolveNight(recordNight(fixture, {
+      werewolf: { kind: "werewolf-attack", targetId: "player-7" },
+      bodyguard: { kind: "bodyguard-protect", targetId: "player-4" },
+      priest: { kind: "priest-protect", targetId: "player-7" },
+      witch: { kind: "witch", eliminateTargetId: "player-7" },
+      seer: { kind: "seer-investigate", targetId: "player-1" },
+      cupid: {
+        kind: "cupid-link",
+        firstTargetId: "player-7",
+        secondTargetId: "player-4",
+      },
+    })).match;
+
+    assert.equal(result.priestProtectionUsed, true);
+    assert.equal(result.history[0].type === "night-resolved"
+      ? result.history[0].protectedPlayerIds.includes("player-7")
+      : false, true);
+    assert.equal(result.players.find((player) => player.id === "player-7")?.status, "alive");
+  });
+
+  it("does not allow the Padre to protect again after its one-use power is consumed", () => {
+    const fixture = createFixture(["werewolf", "priest", "seer", "villager", "villager"]);
+    const firstNight = resolveNight(recordNight(fixture, {
+      werewolf: { kind: "werewolf-attack", targetId: "player-5" },
+      priest: { kind: "priest-protect", targetId: "player-5" },
+      seer: { kind: "seer-investigate", targetId: "player-1" },
+    })).match;
+
+    assert.equal(firstNight.priestProtectionUsed, true);
+    const discussion = endDiscussion(startDiscussion(firstNight, 0), 0);
+    const nextNight = skipVoting(discussion);
+    const afterWerewolf = submitNightCall(nextNight, "werewolf", {
+      kind: "werewolf-attack",
+      targetId: "player-5",
+    });
+    assert.throws(
+      () => submitNightCall(afterWerewolf, "priest", {
+        kind: "priest-protect",
+        targetId: "player-4",
+      }),
+      /já foi usado/,
+    );
+  });
+
   it("calls Cupido only on the first night and persists a distinct selected pair", () => {
     const fixture = createFixture(["werewolf", "cupid", "bodyguard", "seer", "villager"]);
     const started = startMatch(fixture);
