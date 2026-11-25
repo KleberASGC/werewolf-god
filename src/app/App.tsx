@@ -2,6 +2,7 @@ import { useEffect, useId, useRef, useState, type ChangeEvent, type FormEvent } 
 import { version as packageVersion, codename as releaseCodename } from "../../package.json";
 import {
   awakenCursed,
+  continueAfterMentalistResult,
   continueAfterSeerResult,
   endDiscussion,
   isVotingDecided,
@@ -59,6 +60,7 @@ const INITIAL_ROLE_COUNTS: Record<RoleId, number> = {
   spellcaster: 0,
   cupid: 0,
   hooker: 0,
+  mentalist: 0,
   villager: 1,
 };
 const RELEASE_LABEL = `v${packageVersion} · ${releaseCodename}`;
@@ -72,6 +74,7 @@ const ROLE_DESCRIPTIONS: Record<RoleId, string> = {
   cursed: "Começa como Aldeão. Uma eliminação pelos Lobisomens deixa a conversão pendente; o moderador a efetiva ao despertá-lo discretamente na noite seguinte.",
   spellcaster: "Silencia um jogador durante todo o dia seguinte, não podendo repetir o alvo em dias consecutivos.",
   hooker: "À noite, pode dormir com outro jogador. Evita o ataque dos Lobisomens quando é o alvo, mas pode morrer junto com quem escolheu.",
+  mentalist: "A cada noite, aponta para dois jogadores vivos e descobre se pertencem ao mesmo time.",
   cupid: "Na primeira noite, escolhe dois jogadores conectados. Se um deles for eliminado, o outro também será eliminado.",
   villager: "Não tem ação noturna; participa da discussão e vota para eliminar Lobisomens.",
 };
@@ -85,6 +88,7 @@ const ROLE_SUMMARIES: Record<RoleId, string> = {
   cursed: "Você faz parte da Facção dos Aldeões, a menos que seja alvo de eliminação pelos Lobisomens; nesse caso, você se torna um Lobisomem.",
   spellcaster: "Todas as noites, escolha um jogador que não poderá falar no dia seguinte.",
   hooker: "Todas as noites, você pode optar por dormir com um jogador. Se esse jogador for um lobisomem, você é eliminada. Se não for: e os lobisomens tentarem te atacar então ninguém morre porque você não estava em casa; se os lobisomens atacarem o jogador que você optou por dormir, morrem vocês dois.",
+  mentalist: "Todas as noites, escolha dois jogadores para descobrir se fazem parte do mesmo time.",
   cupid: "Na primeira noite, escolha dois jogadores para ficarem conectados. Se um deles for eliminado, o outro também será eliminado.",
   villager: "Encontre os Lobisomens e elimine-os.",
 };
@@ -118,6 +122,10 @@ const ROLE_MORE_INFO: Partial<Record<RoleId, readonly string[]>> = {
     "Se escolher alguém que não seja Lobisomem, o ataque dos Lobisomens contra a Quenga não elimina ninguém. Se atacarem a pessoa escolhida, ambas são alvos, mas cada uma pode ser protegida independentemente.",
     "Somente ataques dos Lobisomens contra a pessoa escolhida causam morte conjunta. Outras ações contra essa pessoa a afetam normalmente, sem transferir o efeito à Quenga.",
   ],
+  mentalist: [
+    "Não pode escolher a si mesmo nem repetir o mesmo jogador duas vezes na ação.",
+    "Um Amaldiçoado conta como Aldeão até ser despertado com os Lobisomens; depois conta como Lobisomem.",
+  ],
   cupid: [
     "Pode escolher a si próprio uma vez. O Cupido e o mestre conhecem o par; os jogadores conectados não são informados.",
     "Se uma proteção bloquear a eliminação do alvo, nenhum dos dois morre por essa ação. Se o alvo morrer e o par estiver protegido, somente o alvo morre.",
@@ -136,6 +144,7 @@ const ROLE_FACTIONS: Record<RoleId, string> = {
   spellcaster: "Facção dos Aldeões",
   cupid: "Facção dos Aldeões",
   hooker: "Facção dos Aldeões",
+  mentalist: "Facção dos Aldeões",
   villager: "Facção dos Aldeões",
 };
 const ROLE_TEAMS = [
@@ -143,7 +152,7 @@ const ROLE_TEAMS = [
   {
     id: "villagers",
     label: "Time dos Aldeões",
-    roles: ["bodyguard", "witch", "seer", "revealer", "lycan", "cursed", "spellcaster", "cupid", "hooker", "villager"],
+    roles: ["bodyguard", "witch", "seer", "revealer", "lycan", "cursed", "spellcaster", "cupid", "hooker", "mentalist", "villager"],
   },
 ] as const satisfies readonly { id: string; label: string; roles: readonly RoleId[] }[];
 
@@ -168,7 +177,7 @@ function RoleCountField({
       <input
         id={inputId}
         aria-label={`Quantidade de ${ROLE_LABELS[role]}`}
-        max={role === "cursed" || role === "revealer" || role === "cupid" || role === "hooker" ? 1 : 75}
+        max={role === "cursed" || role === "revealer" || role === "cupid" || role === "hooker" || role === "mentalist" ? 1 : 75}
         min={0}
         onChange={(event) => onChange(Number(event.target.value))}
         type="number"
@@ -315,6 +324,7 @@ function getRoleCounts(players: MatchPlayer[]): Record<RoleId, number> {
     spellcaster: 0,
     cupid: 0,
     hooker: 0,
+    mentalist: 0,
     villager: 0,
   });
 }
@@ -352,6 +362,8 @@ function formatNightAction(match: MatchState, action: NightAction): string {
       return `Dormiu com ${playerName(match, action.targetId)}`;
     case "cupid-link":
       return `Vínculo: ${playerName(match, action.firstTargetId)} e ${playerName(match, action.secondTargetId)}`;
+    case "mentalist-compare":
+      return `Comparação: ${playerName(match, action.firstTargetId)} e ${playerName(match, action.secondTargetId)}`;
     case "witch":
       return [
         action.protectTargetId
@@ -441,12 +453,14 @@ function NightActionForm({
 }) {
   const action = initialAction;
   const [targetId, setTargetId] = useState(
-    action?.kind === "cupid-link"
+    action?.kind === "cupid-link" || action?.kind === "mentalist-compare"
       ? action.firstTargetId
       : action && "targetId" in action ? action.targetId : "",
   );
   const [secondTargetId, setSecondTargetId] = useState(
-    action?.kind === "cupid-link" ? action.secondTargetId : "",
+    action?.kind === "cupid-link" || action?.kind === "mentalist-compare"
+      ? action.secondTargetId
+      : "",
   );
   const [protectTargetId, setProtectTargetId] = useState(
     action?.kind === "witch" ? action.protectTargetId ?? "" : "",
@@ -466,6 +480,9 @@ function NightActionForm({
     if (targetRole === "hooker") {
       return player.id !== match.players.find((candidate) => candidate.role === "hooker")?.id;
     }
+    if (targetRole === "mentalist") {
+      return player.id !== match.players.find((candidate) => candidate.role === "mentalist")?.id;
+    }
     if (targetRole === "bodyguard") return player.id !== match.lastBodyguardTargetId;
     if (targetRole === "spellcaster") return player.id !== match.lastSpellcasterTargetId;
     return true;
@@ -477,7 +494,9 @@ function NightActionForm({
     if (player.id === otherTargetId) {
       return targetRole === "cupid"
         ? "Escolha outra pessoa para formar o par"
-        : "Escolha outro alvo para usar os dois poderes";
+        : targetRole === "mentalist"
+          ? "Escolha outro jogador para comparar"
+          : "Escolha outro alvo para usar os dois poderes";
     }
     if (targetRole === "werewolf" && player.role === "werewolf") return "Não pode escolher outro Lobisomem";
     if (targetRole === "seer" && player.role === "seer") return "Não pode investigar alguém do próprio grupo";
@@ -489,6 +508,10 @@ function NightActionForm({
       targetRole === "hooker" &&
       player.id === match.players.find((candidate) => candidate.role === "hooker")?.id
     ) return "A Quenga não pode escolher a si mesma";
+    if (
+      targetRole === "mentalist" &&
+      player.id === match.players.find((candidate) => candidate.role === "mentalist")?.id
+    ) return "O Mentalista não pode escolher a si mesmo";
     if (targetRole === "bodyguard" && player.id === match.lastBodyguardTargetId) return "Protegido na noite anterior";
     if (targetRole === "spellcaster" && player.id === match.lastSpellcasterTargetId) return "Silenciado no dia anterior";
     if (targetRole === "witch" && player.role === "witch") return "Não pode eliminar alguém do próprio grupo";
@@ -534,6 +557,12 @@ function NightActionForm({
       };
     } else if (role === "hooker") {
       nextAction = { kind: "hooker-sleep", targetId };
+    } else if (role === "mentalist") {
+      nextAction = {
+        kind: "mentalist-compare",
+        firstTargetId: targetId,
+        secondTargetId,
+      };
     } else {
       nextAction = { kind: "spellcaster-silence", targetId };
     }
@@ -604,6 +633,51 @@ function NightActionForm({
         {error && <p className="message error-message" role="alert">{error}</p>}
         <div className="button-row">
           <button className="primary-button" type="submit">{submitLabel}</button>
+          {onCancel && <button className="secondary-button" onClick={onCancel} type="button">Cancelar</button>}
+        </div>
+      </form>
+    );
+  }
+
+  if (role === "mentalist") {
+    const secondAllowedTargets = match.players.filter((player) =>
+      isAllowedTarget(player, role, targetId),
+    );
+    return (
+      <form className="action-form" onSubmit={handleSubmit}>
+        <p className="field-hint">
+          Escolha dois jogadores vivos e diferentes. O Mentalista não pode escolher a si mesmo.
+        </p>
+        <PlayerPicker
+          id="mentalist-first-target"
+          label="Primeiro jogador comparado"
+          isAllowed={(player) => isAllowedTarget(player, role, secondTargetId)}
+          onChange={(id) => {
+            setTargetId(id);
+            if (id === secondTargetId) setSecondTargetId("");
+          }}
+          players={match.players}
+          unavailableReason={(player) => unavailableReason(player, role, secondTargetId)}
+          value={targetId}
+        />
+        <PlayerPicker
+          id="mentalist-second-target"
+          label="Segundo jogador comparado"
+          isAllowed={(player) => isAllowedTarget(player, role, targetId)}
+          onChange={setSecondTargetId}
+          players={match.players}
+          unavailableReason={(player) => unavailableReason(player, role, targetId)}
+          value={secondTargetId}
+        />
+        {error && <p className="message error-message" role="alert">{error}</p>}
+        <div className="button-row">
+          <button
+            className="primary-button"
+            disabled={secondAllowedTargets.length === 0}
+            type="submit"
+          >
+            {submitLabel}
+          </button>
           {onCancel && <button className="secondary-button" onClick={onCancel} type="button">Cancelar</button>}
         </div>
       </form>
@@ -893,6 +967,7 @@ function MasterConsole({
     prepared: "Preparação",
     night: "Noite",
     "seer-result": "Resultado da investigação",
+    "mentalist-result": "Resultado da leitura",
     "night-resolution": "Confirmação da noite",
     dawn: "Amanhecer",
     discussion: "Discussão",
@@ -1034,6 +1109,8 @@ function MasterConsole({
                 ? "Chame o Cupido para escolher o par. Ele conhece a escolha; não informe os jogadores conectados."
                   : currentRole === "hooker"
                     ? "Chame a Quenga para registrar a escolha individual dela. A ação é opcional."
+                    : currentRole === "mentalist"
+                      ? "Chame o Mentalista para apontar dois jogadores vivos e comparar seus times."
                 : "Oriente o grupo a agir em conjunto e registre uma única escolha final."}
           </p>
           <div className="called-role-players">
@@ -1130,6 +1207,37 @@ function MasterConsole({
             type="button"
           >
             Vidente pode dormir novamente
+          </button>
+        </section>
+      )}
+
+      {match.phase === "mentalist-result" && match.night && (
+        <section className="phase-panel">
+          <h3>Resultado da leitura</h3>
+          {match.night.actions
+            .filter((record) => record.role === "mentalist" && record.action.kind === "mentalist-compare")
+            .map(({ action }) => {
+              if (action.kind !== "mentalist-compare") return null;
+              const firstTarget = match.players.find((player) => player.id === action.firstTargetId);
+              const secondTarget = match.players.find((player) => player.id === action.secondTargetId);
+              if (!firstTarget || !secondTarget) {
+                return <p className="message error-message" key={action.firstTargetId}>Não foi possível localizar os jogadores comparados.</p>;
+              }
+              const sameTeam = (firstTarget.role === "werewolf") === (secondTarget.role === "werewolf");
+              return (
+                <p key={`${action.firstTargetId}-${action.secondTargetId}`}>
+                  <strong>{firstTarget.name}</strong> e <strong>{secondTarget.name}</strong>{" "}
+                  {sameTeam ? "fazem parte do mesmo time." : "não fazem parte do mesmo time."}
+                </p>
+              );
+            })}
+          <p>Informe o resultado ao Mentalista e peça que durma novamente.</p>
+          <button
+            className="primary-button"
+            onClick={() => transition((current) => continueAfterMentalistResult(current))}
+            type="button"
+          >
+            Confirmar resultado e continuar
           </button>
         </section>
       )}

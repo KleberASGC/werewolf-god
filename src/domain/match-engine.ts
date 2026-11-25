@@ -61,6 +61,8 @@ function getNightRoleForAction(action: NightAction): NightRole {
       return "cupid";
     case "hooker-sleep":
       return "hooker";
+    case "mentalist-compare":
+      return "mentalist";
   }
 }
 
@@ -154,6 +156,18 @@ function validateNightAction(
       }
       break;
     }
+    case "mentalist-compare": {
+      validateLivingTarget(match, action.firstTargetId);
+      validateLivingTarget(match, action.secondTargetId);
+      const mentalist = match.players.find((player) => player.role === "mentalist");
+      if (action.firstTargetId === action.secondTargetId) {
+        throw new Error("O Mentalista deve escolher dois jogadores diferentes.");
+      }
+      if (action.firstTargetId === mentalist?.id || action.secondTargetId === mentalist?.id) {
+        throw new Error("O Mentalista não pode escolher a si mesmo.");
+      }
+      break;
+    }
     case "cupid-link": {
       if (match.round !== 1 || match.cupidLinkedPlayerIds) {
         throw new Error("O Cupido só pode escolher o par na primeira noite.");
@@ -180,6 +194,7 @@ function determineWinner(players: MatchPlayer[]): WinningTeam | undefined {
   if (werewolves === 0 && living.some((player) => player.pendingCursedConversion)) {
     return undefined;
   }
+
   if (werewolves === 0) {
     return "villagers";
   }
@@ -187,6 +202,10 @@ function determineWinner(players: MatchPlayer[]): WinningTeam | undefined {
     return "werewolves";
   }
   return undefined;
+}
+
+function isWerewolfTeam(player: MatchPlayer): boolean {
+  return player.role === "werewolf";
 }
 
 function appendHistory(
@@ -257,7 +276,9 @@ export function submitNightCall(
   const night = { ...match.night, nextCallIndex, actions };
   const phase = action?.kind === "seer-investigate"
     ? "seer-result"
-    : nextCallIndex < match.night.schedule.length ? "night" : "night-resolution";
+    : action?.kind === "mentalist-compare"
+      ? "mentalist-result"
+      : nextCallIndex < match.night.schedule.length ? "night" : "night-resolution";
 
   return {
     ...match,
@@ -274,6 +295,24 @@ export function continueAfterSeerResult(match: MatchState): MatchState {
         (record) => record.role === "seer" && record.action.kind === "seer-investigate",
       )) {
     throw new Error("Não há resultado da Vidente aguardando confirmação.");
+  }
+
+  return {
+    ...match,
+    phase: match.night.nextCallIndex < match.night.schedule.length
+      ? "night"
+      : "night-resolution",
+  };
+}
+
+export function continueAfterMentalistResult(match: MatchState): MatchState {
+  if (match.phase !== "mentalist-result" || !match.night ||
+      match.night.nextCallIndex === 0 ||
+      match.night.schedule[match.night.nextCallIndex - 1] !== "mentalist" ||
+      !match.night.actions.some(
+        (record) => record.role === "mentalist" && record.action.kind === "mentalist-compare",
+      )) {
+    throw new Error("Não há resultado do Mentalista aguardando confirmação.");
   }
 
   return {
@@ -369,6 +408,18 @@ export function resolveNight(match: MatchState): NightResolution {
     }
     return [];
   });
+  const mentalistComparisons = match.night.actions.flatMap((record) => {
+    if (record.action.kind === "mentalist-compare") {
+      const firstTarget = getPlayer(match, record.action.firstTargetId);
+      const secondTarget = getPlayer(match, record.action.secondTargetId);
+      return [{
+        firstTargetId: firstTarget.id,
+        secondTargetId: secondTarget.id,
+        sameTeam: isWerewolfTeam(firstTarget) === isWerewolfTeam(secondTarget),
+      }];
+    }
+    return [];
+  });
   let witchProtectionUsed = false;
   let witchEliminationUsed = false;
   let lastBodyguardTargetId = match.lastBodyguardTargetId;
@@ -412,6 +463,7 @@ export function resolveNight(match: MatchState): NightResolution {
         break;
       case "hooker-sleep":
       case "cupid-link":
+      case "mentalist-compare":
         break;
     }
   }
@@ -511,6 +563,7 @@ export function resolveNight(match: MatchState): NightResolution {
     protectedPlayerIds: [...protectionTargetIds],
     blockedAttackTargetIds,
     investigations,
+    ...(mentalistComparisons.length ? { mentalistComparisons } : {}),
   };
   const nextMatch: MatchState = {
     ...match,

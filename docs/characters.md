@@ -236,3 +236,25 @@ componente `ROLE_SUMMARIES` do catálogo do aplicativo.
   6. Escolhe o Amaldiçoado ainda não convertido e os Lobisomens o atacam sem proteção: o Amaldiçoado sobrevive com conversão pendente e a Quenga desprotegida morre.
 - **Decisões pendentes:** nenhuma sobre os efeitos descritos nesta ficha.
 - **Estado no aplicativo:** implementado.
+
+### Mentalista
+
+- **Identificador estável:** `mentalist`
+- **Nome exibido:** Mentalista
+- **Texto impresso na carta:** A cada noite, você pode apontar para dois jogadores e descobrir se esses jogadores estão ou não na mesma equipe.
+- **Facção e condição de vitória:** Aldeões
+- **Quantidade permitida na partida:** 1
+- **Tipo de ação:** individual
+- **Ação:** Aponta para dois jogadores e descobre se eles fazem parte do mesmo time ou não.
+- **Obrigatoriedade:** Precisa apontar para dois todas as noites.
+- **Alvos válidos:** Excluindo a si mesmo, pode apontar para quaisquer dois jogadores vivos e não-exilados.
+- **Pode escolher a si mesmo ou alguém do próprio grupo?:** não pode escolher a si mesmo; pode apontar para qualquer outro jogador vivo, inclusive alguém da própria facção dos Aldeões.
+- **Limite de usos:** 1x por noite, ilimitado enquanto estiver vivo.
+- **Fase e ordem de ação:** ação individual obrigatória todas as noites, depois da Quenga.
+- **Condições e restrições:** os dois alvos devem ser vivos, não exilados e diferentes; nenhum deles pode ser o Mentalista.
+- **Efeito:** o resultado compara a facção atual dos dois alvos e é informado imediatamente ao Mentalista pelo mestre. Os jogadores permanecem vivos e nenhum outro efeito é aplicado pela ação.
+- **Interações com outros personagens/efeitos:** o Amaldiçoado deve se comportar para o Mentalista da mesma forma que se comporta para o vidente.
+- **Informação recebida pelo personagem:** Se os dois jogadores apontados pertencem ao mesmo time (facção) ou não.
+- **Se o personagem for eliminado:** a chamada continua; sem Mentalista vivo não há escolha nem efeito.
+- **Decisões pendentes:** nenhuma.
+- **Estado no aplicativo:** implementado.

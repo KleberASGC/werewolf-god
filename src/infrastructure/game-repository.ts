@@ -71,6 +71,10 @@ function isAction(value: unknown): boolean {
     return typeof value.firstTargetId === "string" &&
       typeof value.secondTargetId === "string";
   }
+  if (value.kind === "mentalist-compare") {
+    return typeof value.firstTargetId === "string" &&
+      typeof value.secondTargetId === "string";
+  }
   return isOneOf(value.kind, [
     "werewolf-attack",
     "bodyguard-protect",
@@ -96,7 +100,15 @@ function isHistoryEntry(value: unknown): boolean {
         isStringArray(value.pendingCursedConversionPlayerIds)) &&
       isStringArray(value.blockedAttackTargetIds) && Array.isArray(value.investigations) &&
       value.investigations.every((item: unknown) =>
-        isRecord(item) && typeof item.targetId === "string" && typeof item.isWerewolf === "boolean");
+        isRecord(item) && typeof item.targetId === "string" && typeof item.isWerewolf === "boolean") &&
+      (value.mentalistComparisons === undefined || (
+        Array.isArray(value.mentalistComparisons) &&
+        value.mentalistComparisons.every((item: unknown) =>
+          isRecord(item) &&
+          typeof item.firstTargetId === "string" &&
+          typeof item.secondTargetId === "string" &&
+          typeof item.sameTeam === "boolean")
+      ));
   }
   return value.type === "vote-resolved" &&
     isOneOf(value.outcome, ["annulled-majority", "annulled-tie", "annulled-plurality", "exiled"]) &&
@@ -121,7 +133,7 @@ function isMatch(value: unknown): value is MatchState {
   if (!isRecord(value) || value.rulesetId !== RULESET_V1_ID ||
       typeof value.id !== "string" || typeof value.name !== "string" ||
       !Number.isInteger(value.dayDurationMinutes) || !Number.isInteger(value.round) ||
-      !isOneOf(value.phase, ["prepared", "night", "seer-result", "night-resolution", "dawn", "discussion", "voting", "ready-for-night", "finished"]) ||
+      !isOneOf(value.phase, ["prepared", "night", "seer-result", "mentalist-result", "night-resolution", "dawn", "discussion", "voting", "ready-for-night", "finished"]) ||
       !Array.isArray(value.players) || !value.players.every((player: unknown) =>
         isRecord(player) && typeof player.id === "string" && typeof player.name === "string" &&
         isOneOf(player.role, ROLE_IDS) && isOneOf(player.status, ["alive", "dead", "exiled"]) &&
@@ -167,6 +179,9 @@ function isMatch(value: unknown): value is MatchState {
   if (value.players.filter((player) => isRecord(player) && player.role === "cupid").length > 1) {
     return false;
   }
+  if (value.players.filter((player) => isRecord(player) && player.role === "mentalist").length > 1) {
+    return false;
+  }
   if (value.discussion !== undefined && (!isRecord(value.discussion) ||
       !isOneOf(value.discussion.status, ["running", "paused", "ended", "expired"]) ||
       typeof value.discussion.remainingMs !== "number" || !Number.isFinite(value.discussion.remainingMs) ||
@@ -177,12 +192,17 @@ function isMatch(value: unknown): value is MatchState {
       !value.voting.votes.every((vote: unknown) => isRecord(vote) && typeof vote.voterId === "string" &&
         isRecord(vote.choice) && (vote.choice.kind === "annul" ||
           (vote.choice.kind === "player" && typeof vote.choice.playerId === "string"))))) return false;
-  if ((value.phase === "night" || value.phase === "seer-result" || value.phase === "night-resolution") && value.night === undefined) return false;
+  if ((value.phase === "night" || value.phase === "seer-result" || value.phase === "mentalist-result" || value.phase === "night-resolution") && value.night === undefined) return false;
   if (value.phase === "seer-result" &&
       (!isRecord(value.night) || !Array.isArray(value.night.actions) ||
         !value.night.actions.some((record: unknown) =>
           isRecord(record) && record.role === "seer" && isRecord(record.action) &&
           record.action.kind === "seer-investigate"))) return false;
+  if (value.phase === "mentalist-result" &&
+      (!isRecord(value.night) || !Array.isArray(value.night.actions) ||
+        !value.night.actions.some((record: unknown) =>
+          isRecord(record) && record.role === "mentalist" && isRecord(record.action) &&
+          record.action.kind === "mentalist-compare"))) return false;
   if (value.phase === "discussion" && value.discussion === undefined) return false;
   if (value.phase === "voting" && value.voting === undefined) return false;
   if (value.phase === "finished" && value.winner === undefined) return false;

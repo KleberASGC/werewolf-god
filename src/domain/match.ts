@@ -5,6 +5,7 @@ export type MatchPhase =
   | "prepared"
   | "night"
   | "seer-result"
+  | "mentalist-result"
   | "night-resolution"
   | "dawn"
   | "discussion"
@@ -66,6 +67,12 @@ export interface HookerAction {
   targetId: string;
 }
 
+export interface MentalistAction {
+  kind: "mentalist-compare";
+  firstTargetId: string;
+  secondTargetId: string;
+}
+
 export type NightAction =
   | WerewolfAction
   | BodyguardAction
@@ -74,7 +81,8 @@ export type NightAction =
   | RevealerAction
   | SpellcasterAction
   | CupidAction
-  | HookerAction;
+  | HookerAction
+  | MentalistAction;
 
 export interface NightActionRecord {
   role: NightRole;
@@ -127,6 +135,12 @@ export interface InvestigationResult {
   isWerewolf: boolean;
 }
 
+export interface MentalistComparisonResult {
+  firstTargetId: string;
+  secondTargetId: string;
+  sameTeam: boolean;
+}
+
 export interface NightHistoryEntry {
   type: "night-resolved";
   round: number;
@@ -137,6 +151,7 @@ export interface NightHistoryEntry {
   protectedPlayerIds: string[];
   blockedAttackTargetIds: string[];
   investigations: InvestigationResult[];
+  mentalistComparisons?: MentalistComparisonResult[];
 }
 
 export interface VoteHistoryEntry {
