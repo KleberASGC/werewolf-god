@@ -202,6 +202,12 @@ it("shows the release label and can redraw roles before the match starts", async
     screen.getByRole("group", { name: "Time dos Aldeões" }).querySelectorAll(".role-count").length,
     12,
   );
+  assert.equal(
+    screen.getByRole("group", { name: "Facção independente" }).querySelectorAll(".role-count").length,
+    1,
+  );
+  assert.equal(screen.getByRole("heading", { level: 3, name: "Depressivo" }).textContent, "Depressivo");
+  assert.ok(screen.getByText("Você odeia seu trabalho e sua vida"));
   await createMatchThroughForm("Novo sorteio");
 
   const game = (await listGames())[0];
@@ -317,11 +323,11 @@ it("shows concise role summaries with optional interaction details", async () =>
   assert.ok(screen.getByText("Todas as noites, acorde junto com os outros Lobisomens e escolha um jogador para eliminar."));
   assert.equal(screen.queryByRole("link", { name: "Interações" }), null);
   assert.equal(screen.queryByRole("heading", { name: "Interações entre personagens" }), null);
-  for (const role of ["Lobisomem", "Guarda-costas", "Bruxa", "Vidente", "Denunciador", "Lycan", "Amaldiçoado", "Conjurador", "Cupido", "Quenga", "Mentalista", "Padre", "Aldeão"]) {
+  for (const role of ["Lobisomem", "Guarda-costas", "Bruxa", "Vidente", "Denunciador", "Lycan", "Amaldiçoado", "Conjurador", "Cupido", "Quenga", "Mentalista", "Padre", "Depressivo", "Aldeão"]) {
     assert.ok(screen.getByRole("heading", { level: 3, name: role }));
   }
-  assert.equal(document.querySelectorAll(".role-illustration").length, 13);
-  assert.equal(document.querySelectorAll(".role-card-details").length, 10);
+  assert.equal(document.querySelectorAll(".role-illustration").length, 14);
+  assert.equal(document.querySelectorAll(".role-card-details").length, 11);
   for (const role of ["lycan", "cursed", "villager"]) {
     assert.equal(document.querySelector(`.role-card-${role} .role-card-details`), null);
   }
@@ -878,6 +884,35 @@ it("restarts a finished match with the same players", async () => {
     replay?.players.map(({ id }) => id).sort(),
     game.players.map(({ id }) => id).sort(),
   );
+});
+
+it("announces the Depressivo as the winner of a finished match", async () => {
+  const players = Array.from({ length: 5 }, (_, index) => ({
+    id: `tanner-player-${index + 1}`,
+    name: `Jogador ${index + 1}`,
+  }));
+  const game = createGame({
+    id: "tanner-finished",
+    name: "Depressivo",
+    players,
+    createdAt: "2026-01-01T00:00:00.000Z",
+  });
+  const prepared = createMatch({
+    id: game.id,
+    name: game.name,
+    players,
+    roleCounts: { werewolf: 1, tanner: 1, bodyguard: 1, villager: 2 },
+    dayDurationMinutes: 5,
+  });
+  await saveGameAndMatch(game, { ...prepared, phase: "finished", winner: "tanner" });
+  await renderApp();
+
+  await screen.findByRole("button", { name: /Depressivo/ });
+  await clickGameAndWaitForDetails(/Depressivo/, "Retomar partida");
+  clickButton("Retomar partida");
+  await screen.findByRole("heading", { level: 3, name: "Partida encerrada" });
+
+  assert.ok(screen.getByText("vitória do Depressivo."));
 });
 
 it("restarts a finished match after editing its participants", async () => {

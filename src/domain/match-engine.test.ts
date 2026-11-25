@@ -127,6 +127,92 @@ function otherPlayerChoice(match: MatchState, voterId: string): VoteChoice {
 }
 
 describe("night flow and resolution", () => {
+  it("does not call the Depressivo at night or award it for a night death", () => {
+    const fixture = createFixture(["werewolf", "tanner", "bodyguard", "villager", "villager"]);
+    assert.deepEqual(startMatch(fixture).night?.schedule, ["werewolf", "bodyguard"]);
+
+    const pending = recordNight(fixture, {
+      werewolf: { kind: "werewolf-attack", targetId: "player-2" },
+      bodyguard: { kind: "bodyguard-protect", targetId: "player-5" },
+    });
+    const result = resolveNight(pending);
+
+    assert.deepEqual(result.eliminatedPlayerIds, ["player-2"]);
+    assert.equal(result.match.players.find((player) => player.id === "player-2")?.status, "dead");
+    assert.equal(result.winner, undefined);
+  });
+
+  it("awards a Depressivo exiled by vote and prioritizes it over a same-vote team win", () => {
+    const fixture = createFixture(["werewolf", "werewolf", "bodyguard", "tanner", "villager"]);
+    const voting = enterVoting(fixture);
+    const tannerId = fixture.players.find((player) => player.role === "tanner")!.id;
+    const filled = castAllVotes(voting, (voterId) =>
+      voterId === tannerId ? otherPlayerChoice(voting, voterId) : { kind: "player", playerId: tannerId },
+    );
+    const result = resolveVoting(filled);
+
+    assert.equal(result.exiledPlayerId, tannerId);
+    assert.equal(result.winner, "tanner");
+    assert.equal(result.match.phase, "finished");
+  });
+
+  it("does not award the Depressivo when the Cupid bond eliminates it indirectly", () => {
+    const fixture = createFixture(["werewolf", "cupid", "tanner", "bodyguard", "villager", "villager"]);
+    const pending = recordNight(fixture, {
+      werewolf: { kind: "werewolf-attack", targetId: "player-6" },
+      bodyguard: { kind: "bodyguard-protect", targetId: "player-6" },
+      cupid: { kind: "cupid-link", firstTargetId: "player-3", secondTargetId: "player-5" },
+    });
+    const dawn = resolveNight(pending).match;
+    const voting = startVoting(
+      endDiscussion(startDiscussion(dawn, 0), 0),
+      () => 0.5,
+    );
+    const tannerLinkedPlayerId = "player-5";
+    const filled = castAllVotes(voting, (voterId) =>
+      voterId === tannerLinkedPlayerId
+        ? otherPlayerChoice(voting, voterId)
+        : { kind: "player", playerId: tannerLinkedPlayerId },
+    );
+    const result = resolveVoting(filled);
+
+    assert.equal(result.exiledPlayerId, tannerLinkedPlayerId);
+    assert.equal(result.match.players.find((player) => player.id === "player-3")?.status, "dead");
+    assert.equal(result.winner, undefined);
+  });
+
+  it("counts a living Depressivo among non-Werewolves when checking parity", () => {
+    const fixture = createFixture([
+      "werewolf",
+      "werewolf",
+      "bodyguard",
+      "tanner",
+      "villager",
+      "villager",
+    ]);
+    const voting = enterVoting(fixture);
+    const targetId = fixture.players.find((player) => player.role === "villager")!.id;
+    const filled = castAllVotes(voting, (voterId) =>
+      voterId === targetId ? otherPlayerChoice(voting, voterId) : { kind: "player", playerId: targetId },
+    );
+    const result = resolveVoting(filled);
+
+    assert.equal(result.exiledPlayerId, targetId);
+    assert.equal(result.winner, undefined);
+  });
+
+  it("allows the Villagers to win while the Depressivo is still alive", () => {
+    const fixture = createFixture(["werewolf", "revealer", "tanner", "bodyguard", "villager"]);
+    const result = resolveNight(recordNight(fixture, {
+      werewolf: { kind: "werewolf-attack", targetId: "player-5" },
+      bodyguard: { kind: "bodyguard-protect", targetId: "player-5" },
+      revealer: { kind: "revealer-denounce", targetId: "player-1" },
+    }));
+
+    assert.equal(result.match.players.find((player) => player.id === "player-3")?.status, "alive");
+    assert.equal(result.winner, "villagers");
+  });
+
   it("calls the Padre after the Guarda-costas and blocks a sovereign night protection once", () => {
     const fixture = createFixture(["werewolf", "bodyguard", "priest", "witch", "seer", "villager", "cupid"]);
     const started = startMatch(fixture);

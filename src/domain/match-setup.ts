@@ -84,6 +84,7 @@ export function createMatch(
     cupid: input.roleCounts.cupid ?? 0,
     hooker: input.roleCounts.hooker ?? 0,
     mentalist: input.roleCounts.mentalist ?? 0,
+    tanner: input.roleCounts.tanner ?? 0,
     priest: input.roleCounts.priest ?? 0,
     villager: input.roleCounts.villager ?? 0,
   };
@@ -119,6 +120,9 @@ export function createMatch(
   }
   if (counts.priest > 1) {
     throw new Error("A partida pode ter no máximo um Padre.");
+  }
+  if (counts.tanner > 1) {
+    throw new Error("A partida pode ter no máximo um Depressivo.");
   }
   if (
     !Number.isInteger(input.dayDurationMinutes) ||

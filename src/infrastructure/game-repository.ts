@@ -155,7 +155,7 @@ function isMatch(value: unknown): value is MatchState {
           !value.players.some((player: unknown) =>
             isRecord(player) && player.role === "cupid"))) ||
       !Array.isArray(value.history) || !value.history.every(isHistoryEntry) ||
-      (value.winner !== undefined && !isOneOf(value.winner, ["werewolves", "villagers"]))) return false;
+      (value.winner !== undefined && !isOneOf(value.winner, ["werewolves", "villagers", "tanner"]))) return false;
 
   if (value.night !== undefined && (!isRecord(value.night) ||
       !Array.isArray(value.night.schedule) || !value.night.schedule.every((role: unknown) => isOneOf(role, NIGHT_ROLE_ORDER)) ||
@@ -186,6 +186,9 @@ function isMatch(value: unknown): value is MatchState {
     return false;
   }
   if (value.players.filter((player) => isRecord(player) && player.role === "priest").length > 1) {
+    return false;
+  }
+  if (value.players.filter((player) => isRecord(player) && player.role === "tanner").length > 1) {
     return false;
   }
   if (value.discussion !== undefined && (!isRecord(value.discussion) ||

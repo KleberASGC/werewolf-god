@@ -238,6 +238,35 @@ describe("createMatch", () => {
     );
   });
 
+  it("allows only one Depressivo and includes it in the role draw", () => {
+    const match = createMatch(
+      {
+        id: "match-tanner",
+        name: "Tanner game",
+        players: players(5),
+        roleCounts: { werewolf: 1, tanner: 1, villager: 3 },
+        dayDurationMinutes: 5,
+      },
+      () => 0,
+    );
+
+    assert.equal(match.players.filter((player) => player.role === "tanner").length, 1);
+    assert.throws(
+      () =>
+        createMatch(
+          {
+            id: "match-multiple-tanners",
+            name: "Multiple Tanners",
+            players: players(5),
+            roleCounts: { werewolf: 1, tanner: 2, villager: 2 },
+            dayDurationMinutes: 5,
+          },
+          () => 0,
+        ),
+      /no máximo um Depressivo/,
+    );
+  });
+
   it("allows one Cupido in a role draw and rejects multiple cards", () => {
     const match = createMatch(
       {

@@ -62,6 +62,7 @@ const INITIAL_ROLE_COUNTS: Record<RoleId, number> = {
   hooker: 0,
   mentalist: 0,
   priest: 0,
+  tanner: 0,
   villager: 1,
 };
 const RELEASE_LABEL = `v${packageVersion} · ${releaseCodename}`;
@@ -78,6 +79,7 @@ const ROLE_DESCRIPTIONS: Record<RoleId, string> = {
   mentalist: "A cada noite, aponta para dois jogadores vivos e descobre se pertencem ao mesmo time.",
   priest: "Uma vez por partida, protege soberanamente um jogador vivo de todas as eliminações daquela noite.",
   cupid: "Na primeira noite, escolhe dois jogadores conectados. Se um deles for eliminado, o outro também será eliminado.",
+  tanner: "Não tem ação noturna. Vence se for exilado por votação; sua presença não impede as vitórias dos Aldeões ou dos Lobisomens.",
   villager: "Não tem ação noturna; participa da discussão e vota para eliminar Lobisomens.",
 };
 const ROLE_SUMMARIES: Record<RoleId, string> = {
@@ -93,6 +95,7 @@ const ROLE_SUMMARIES: Record<RoleId, string> = {
   mentalist: "Todas as noites, escolha dois jogadores para descobrir se fazem parte do mesmo time.",
   priest: "Uma vez por partida, escolha um jogador para ser protegido. Esse jogador não pode ser eliminado durante a noite.",
   cupid: "Na primeira noite, escolha dois jogadores para ficarem conectados. Se um deles for eliminado, o outro também será eliminado.",
+  tanner: "Você odeia seu trabalho e sua vida",
   villager: "Encontre os Lobisomens e elimine-os.",
 };
 const ROLE_MORE_INFO: Partial<Record<RoleId, readonly string[]>> = {
@@ -139,6 +142,10 @@ const ROLE_MORE_INFO: Partial<Record<RoleId, readonly string[]>> = {
     "O vínculo também elimina o par quando um dos conectados é exilado por votação.",
     "Se o par estiver conectado ao Amaldiçoado, o ataque dos Lobisomens deixa a conversão pendente até o despertar; se o vínculo o eliminar antes disso, a conversão é cancelada.",
   ],
+  tanner: [
+    "Só vence se for exilado pela votação; morrer à noite ou ser eliminado indiretamente pelo vínculo do Cupido não concede a vitória.",
+    "Continua contando como não-Lobisomem na condição de paridade dos Lobisomens. As condições de vitória das equipes são verificadas normalmente enquanto estiver vivo.",
+  ],
 };
 const ROLE_FACTIONS: Record<RoleId, string> = {
   werewolf: "Facção dos Lobisomens",
@@ -153,6 +160,7 @@ const ROLE_FACTIONS: Record<RoleId, string> = {
   hooker: "Facção dos Aldeões",
   mentalist: "Facção dos Aldeões",
   priest: "Facção dos Aldeões",
+  tanner: "Facção independente",
   villager: "Facção dos Aldeões",
 };
 const ROLE_TEAMS = [
@@ -162,6 +170,7 @@ const ROLE_TEAMS = [
     label: "Time dos Aldeões",
     roles: ["bodyguard", "witch", "seer", "revealer", "lycan", "cursed", "spellcaster", "cupid", "hooker", "mentalist", "priest", "villager"],
   },
+  { id: "independent", label: "Facção independente", roles: ["tanner"] },
 ] as const satisfies readonly { id: string; label: string; roles: readonly RoleId[] }[];
 
 function RoleCountField({
@@ -185,7 +194,7 @@ function RoleCountField({
       <input
         id={inputId}
         aria-label={`Quantidade de ${ROLE_LABELS[role]}`}
-        max={role === "cursed" || role === "revealer" || role === "cupid" || role === "hooker" || role === "mentalist" || role === "priest" ? 1 : 75}
+        max={role === "cursed" || role === "revealer" || role === "cupid" || role === "hooker" || role === "mentalist" || role === "priest" || role === "tanner" ? 1 : 75}
         min={0}
         onChange={(event) => onChange(Number(event.target.value))}
         type="number"
@@ -307,6 +316,14 @@ function RoleIllustration({ role }: { role: RoleId }) {
           <circle cx="60" cy="35" r="8" />
         </>
       )}
+      {role === "tanner" && (
+        <>
+          <circle cx="60" cy="60" r="38" />
+          <circle cx="47" cy="51" r="3" />
+          <circle cx="73" cy="51" r="3" />
+          <path d="M43 78c8-12 26-12 34 0" />
+        </>
+      )}
     </svg>
   );
 }
@@ -342,6 +359,7 @@ function getRoleCounts(players: MatchPlayer[]): Record<RoleId, number> {
     hooker: 0,
     mentalist: 0,
     priest: 0,
+    tanner: 0,
     villager: 0,
   });
 }
@@ -1501,7 +1519,10 @@ function MasterConsole({
         <section className="phase-panel">
           <h3>Partida encerrada</h3>
           <p className="public-script">
-            <strong>Para anunciar:</strong> vitória dos {match.winner === "werewolves" ? "Lobisomens" : "Aldeões"}.
+            <strong>Para anunciar:</strong>{" "}
+            {match.winner === "tanner"
+              ? "vitória do Depressivo."
+              : `vitória dos ${match.winner === "werewolves" ? "Lobisomens" : "Aldeões"}.`}
           </p>
           {match.history.at(-1)?.type === "vote-resolved" && latestVote?.outcome === "exiled" && (
             <p className="public-script">

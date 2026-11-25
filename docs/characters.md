@@ -278,3 +278,17 @@ componente `ROLE_SUMMARIES` do catálogo do aplicativo.
 - **Se o personagem for eliminado:** a chamada continua; sem Padre vivo ou após o poder já ter sido usado não há escolha nem efeito.
 - **Decisões pendentes:** nenhuma.
 - **Estado no aplicativo:** implementado.
+
+### Depressivo
+
+- **Identificador estável:** `tanner`
+- **Nome exibido:** Depressivo
+- **Texto impresso na carta:** Você odeia seu trabalho e sua vida
+- **Facção e condição de vitória:** facção independente, joga sozinho e vence somente quando é exilado por votação. Se essa condição ocorrer na mesma resolução que uma vitória de equipe, a vitória do Depressivo prevalece. Caso contrário, a primeira condição de vitória atendida encerra a partida.
+- **Quantidade permitida na partida:** no máximo 1.
+- **Ação e chamada noturna:** nenhuma ação; não é chamado pelo moderador à noite.
+- **Participação:** discute e vota enquanto estiver vivo e não exilado.
+- **Interações com as vitórias das equipes:** sua presença não bloqueia as condições de vitória dos Aldeões ou dos Lobisomens. Para a paridade dos Lobisomens, conta como não-Lobisomem vivo. Se morrer à noite ou for eliminado indiretamente pelo vínculo do Cupido, não vence.
+- **Informação recebida pelo personagem:** nenhuma informação especial.
+- **Decisões pendentes:** nenhuma.
+- **Estado no aplicativo:** implementado.
