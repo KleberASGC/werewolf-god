@@ -445,6 +445,7 @@ it("shows the Mentalista's private team comparison result", async () => {
 
   await screen.findByRole("heading", { level: 3, name: "Resultado da leitura" });
   assert.ok(screen.getByText(/não fazem parte do mesmo time/));
+  await waitForSavedProgress();
   clickButton("Confirmar resultado e continuar");
   await screen.findByRole("heading", { name: "Revisar ações antes de confirmar" });
 });
