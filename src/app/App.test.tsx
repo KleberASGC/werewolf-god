@@ -200,7 +200,7 @@ it("shows the release label and can redraw roles before the match starts", async
   );
   assert.equal(
     screen.getByRole("group", { name: "Time dos Aldeões" }).querySelectorAll(".role-count").length,
-    10,
+    11,
   );
   await createMatchThroughForm("Novo sorteio");
 
@@ -317,11 +317,11 @@ it("shows concise role summaries with optional interaction details", async () =>
   assert.ok(screen.getByText("Todas as noites, acorde junto com os outros Lobisomens e escolha um jogador para eliminar."));
   assert.equal(screen.queryByRole("link", { name: "Interações" }), null);
   assert.equal(screen.queryByRole("heading", { name: "Interações entre personagens" }), null);
-  for (const role of ["Lobisomem", "Guarda-costas", "Bruxa", "Vidente", "Denunciador", "Lycan", "Amaldiçoado", "Conjurador", "Cupido", "Quenga", "Aldeão"]) {
+  for (const role of ["Lobisomem", "Guarda-costas", "Bruxa", "Vidente", "Denunciador", "Lycan", "Amaldiçoado", "Conjurador", "Cupido", "Quenga", "Mentalista", "Aldeão"]) {
     assert.ok(screen.getByRole("heading", { level: 3, name: role }));
   }
-  assert.equal(document.querySelectorAll(".role-illustration").length, 11);
-  assert.equal(document.querySelectorAll(".role-card-details").length, 8);
+  assert.equal(document.querySelectorAll(".role-illustration").length, 12);
+  assert.equal(document.querySelectorAll(".role-card-details").length, 9);
   for (const role of ["lycan", "cursed", "villager"]) {
     assert.equal(document.querySelector(`.role-card-${role} .role-card-details`), null);
   }
@@ -400,6 +400,55 @@ it("records the Quenga's private individual choice and exposes the optional skip
   assert.ok(screen.getByText(/Dormiu com Guarda/));
 });
 
+it("shows the Mentalista's private team comparison result", async () => {
+  await renderApp();
+  await waitFor(() => {
+    const button = screen.getByRole("button", { name: /Sortear papéis e preparar/ }) as HTMLButtonElement;
+    assert.equal(button.disabled, false);
+  });
+
+  fillInput("Nome da partida", "Mentalista");
+  for (let index = 1; index <= 5; index += 1) {
+    fillInput(`Nome do participante ${index}`, `Jogador ${index}`);
+  }
+  for (const [role, count] of [
+    ["Guarda-costas", 0],
+    ["Bruxa", 0],
+    ["Vidente", 0],
+    ["Mentalista", 1],
+    ["Aldeão", 3],
+  ] as const) {
+    fireEvent.change(screen.getByRole("spinbutton", { name: `Quantidade de ${role}` }), {
+      target: { value: String(count) },
+    });
+  }
+  clickButton(/Sortear papéis e preparar/);
+  await screen.findByRole("heading", { name: "Preparação" });
+  await waitForSavedProgress();
+
+  const mentalist = getRoleHolder("Mentalista");
+  const werewolf = getRoleHolder("Lobisomem");
+  clickButton("Iniciar a partida");
+  await screen.findByRole("heading", { name: /Chamar: Lobisomem/ });
+  await waitForSavedProgress();
+  chooseRadio("night-target", (input) => selectedPlayerName(input) !== mentalist);
+  clickButton("Registrar chamada e avançar");
+
+  await screen.findByRole("heading", { name: /Chamar: Mentalista/ });
+  await waitForSavedProgress();
+  chooseRadio("mentalist-first-target", (input) => selectedPlayerName(input) === werewolf);
+  chooseRadio(
+    "mentalist-second-target",
+    (input) => selectedPlayerName(input) !== mentalist && selectedPlayerName(input) !== werewolf,
+  );
+  clickButton("Registrar chamada e avançar");
+
+  await screen.findByRole("heading", { level: 3, name: "Resultado da leitura" });
+  assert.ok(screen.getByText(/não fazem parte do mesmo time/));
+  clickButton("Confirmar resultado e continuar");
+  await screen.findByRole("heading", { name: "Revisar ações antes de confirmar" });
+});
+
 it("registers the private Cupido pair from the moderator interface", async () => {
   await renderApp();
   await waitFor(() => {
@@ -444,6 +493,7 @@ it("registers the private Cupido pair from the moderator interface", async () =>
   clickButton("Registrar chamada e avançar");
   await screen.findByRole("heading", { name: "Revisar ações antes de confirmar" });
   assert.ok(document.body.textContent?.includes(`Vínculo: ${cupid} e ${partner}`));
+  await waitForSavedProgress();
   clickButton("Confirmar resolução da noite");
   await screen.findByRole("heading", { name: "Resultado privado da noite" });
   await waitForSavedProgress();
@@ -761,7 +811,7 @@ it("edits a saved game roster by replacing its prepared match and role draw", as
   );
   assert.equal(
     editorVillagerTeam.querySelectorAll(".role-count").length,
-    10,
+    11,
   );
   fillInput("Nome do participante editado 1", "Ana");
   clickButton("Remover participante editado 5");

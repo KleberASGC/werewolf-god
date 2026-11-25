@@ -179,6 +179,35 @@ describe("createMatch", () => {
     );
   });
 
+  it("allows one Mentalista in a role draw and rejects multiple cards", () => {
+    const match = createMatch(
+      {
+        id: "match-mentalist",
+        name: "Mentalist game",
+        players: players(5),
+        roleCounts: { werewolf: 1, mentalist: 1, villager: 3 },
+        dayDurationMinutes: 5,
+      },
+      () => 0,
+    );
+
+    assert.equal(match.players.filter((player) => player.role === "mentalist").length, 1);
+    assert.throws(
+      () =>
+        createMatch(
+          {
+            id: "match-multiple-mentalists",
+            name: "Multiple Mentalists",
+            players: players(5),
+            roleCounts: { werewolf: 1, mentalist: 2, villager: 2 },
+            dayDurationMinutes: 5,
+          },
+          () => 0,
+        ),
+      /no máximo um Mentalista/,
+    );
+  });
+
   it("allows one Cupido in a role draw and rejects multiple cards", () => {
     const match = createMatch(
       {

@@ -1,13 +1,13 @@
 # Conjunto de regras v1
 
-> **Estado: aprovado para implementação.** As regras do Conjurador (1.5.0), do Denunciador (1.6.0), do Cupido (1.7.0) e da Quenga (1.8.0) foram aprovadas para implementação. Não preencher lacunas sobre papéis futuros ou comportamentos fora do escopo com regras de outras edições.
+> **Estado: aprovado para implementação.** As regras do Conjurador (1.5.0), do Denunciador (1.6.0), do Cupido (1.7.0), da Quenga (1.8.0) e do Mentalista (1.9.0) foram aprovadas para implementação. Não preencher lacunas sobre papéis futuros ou comportamentos fora do escopo com regras de outras edições.
 
 ## 1. Identificação
 
 - **Nome:** Conjunto inicial Werewolf God
-- **Versão:** 1.8.0
+- **Versão:** 1.9.0
 - **Estado:** Aprovado
-- **Papéis cobertos:** Lobisomens, Guarda-costas, Bruxa, Vidente, Denunciador, Lycan, Amaldiçoado, Conjurador, Cupido, Quenga e Aldeão
+- **Papéis cobertos:** Lobisomens, Guarda-costas, Bruxa, Vidente, Denunciador, Lycan, Amaldiçoado, Conjurador, Cupido, Quenga, Mentalista e Aldeão
 - **Objetivo:** formalizar o conjunto mínimo de regras necessário para a primeira partida jogável.
 
 A versão 1.1.0 acrescentou o Lycan às composições de novas partidas. A versão
@@ -25,6 +25,8 @@ um par na primeira noite. O vínculo elimina o par quando uma das pessoas
 conectadas morre ou é exilada, respeitando proteções noturnas. As alterações
 são aditivas. A versão 1.8.0 acrescenta a Quenga, limitada a uma carta, com
 ação individual opcional depois do Conjurador e do Cupido (quando chamado).
+A versão 1.9.0 acrescenta o Mentalista, limitado a uma carta, com ação
+individual obrigatória depois da Quenga.
 Partidas e backups anteriores continuam válidos e mantêm seu estado e
 comportamento, sem migração de dados. O identificador do conjunto permanece
 `werewolf-god-v1`.
@@ -44,6 +46,7 @@ comportamento, sem migração de dados. O identificador do conjunto permanece
 - O Denunciador pertence ao time dos Aldeões, pode haver no máximo um por partida e sua ação individual e opcional ocorre depois da Vidente e antes do Conjurador.
 - O Cupido pertence ao time dos Aldeões, pode haver no máximo um por partida e escolhe duas pessoas diferentes na primeira noite; o par pode incluir o próprio Cupido.
 - A Quenga pertence ao time dos Aldeões e pode haver no máximo uma por partida. Sua escolha individual e opcional ocorre depois do Conjurador e do Cupido na primeira noite.
+- O Mentalista pertence ao time dos Aldeões, pode haver no máximo um por partida e sua ação individual obrigatória ocorre todas as noites depois da Quenga.
 
 ### Cópias da mesma função
 
@@ -57,8 +60,8 @@ comportamento, sem migração de dados. O identificador do conjunto permanece
 ## 3. Fases e fluxo
 
 1. **Preparação:** cadastrar jogadores, configurar cartas e duração do dia, validar e sortear os papéis.
-2. **Noite:** o mestre orienta todos a fechar os olhos e chama, na ordem Lobisomens, Guarda-costas, Bruxa, Vidente, Denunciador, Conjurador, Cupido e Quenga, cada função incluída na composição inicial que possui ação noturna; o Cupido só é chamado na primeira noite, e a Quenga é chamada todas as noites.
-3. **Amanhecer:** após as chamadas noturnas (incluindo as do Denunciador, Conjurador e Quenga, se estiverem na composição, e a do Cupido na primeira noite), resolver as ações em conjunto, apresentar o resultado privado ao mestre e verificar a vitória.
+2. **Noite:** o mestre orienta todos a fechar os olhos e chama, na ordem Lobisomens, Guarda-costas, Bruxa, Vidente, Denunciador, Conjurador, Cupido, Quenga e Mentalista, cada função incluída na composição inicial que possui ação noturna; o Cupido só é chamado na primeira noite, e a Quenga e o Mentalista são chamados todas as noites.
+3. **Amanhecer:** após as chamadas noturnas (incluindo as do Denunciador, Conjurador, Quenga e Mentalista, se estiverem na composição, e a do Cupido na primeira noite), resolver as ações em conjunto, apresentar o resultado privado ao mestre e verificar a vitória.
 4. **Discussão:** se a partida continuar, abrir o dia e iniciar o temporizador configurado.
 5. **Votação:** depois que o mestre encerrar a discussão, registrar um voto por jogador vivo e não exilado na ordem sorteada.
 6. **Resultado:** apurar a votação, aplicar eventual exílio sem revelar o papel e verificar a vitória.
@@ -80,9 +83,10 @@ Todas as funções incluídas na composição inicial que tenham ação noturna 
 | Conjurador | Os Conjuradores vivos escolhem em consenso uma pessoa por noite. | Qualquer jogador vivo, inclusive o próprio Conjurador e integrantes do grupo. Não pode repetir o alvo em dias consecutivos. | O alvo não pode falar do amanhecer até o fim da votação seguinte. Depois de registrar a escolha, o mestre se aproxima sem fazer barulho e toca no ombro do alvo; o alvo continua votando sem falar. |
 | Cupido | Escolhe um par na primeira noite; não é chamado nas noites seguintes. | Duas pessoas vivas e diferentes; pode incluir o próprio Cupido. No máximo uma cópia por partida. | Se uma das pessoas conectadas for eliminada à noite ou exilada por votação, a outra também é eliminada. Proteções noturnas bloqueiam a eliminação do alvo e, se o par for protegido, ele sobrevive enquanto o alvo não protegido morre. Somente o mestre e o Cupido conhecem o par. |
 | Quenga | A Quenga escolhe individualmente com quem dormir ou opta por não escolher ninguém. | Outro jogador vivo e não exilado, inclusive Lobisomem ou Amaldiçoado. No máximo uma Quenga por partida. | Se escolher um Lobisomem, a Quenga morre, a menos que esteja protegida; o Lobisomem não é eliminado. Se escolher alguém não-Lobisomem, evita o ataque dos Lobisomens quando é o alvo; se o ataque atingir a pessoa escolhida, ambas são alvos de eliminação, cada uma sujeita à própria proteção. Outras ações contra a pessoa escolhida não afetam a Quenga. |
+| Mentalista | A cada noite, compara a facção atual de dois jogadores. | Dois jogadores vivos e não exilados, diferentes entre si e diferentes do próprio Mentalista. No máximo um por partida. | Informa ao Mentalista apenas se os dois pertencem ou não ao mesmo time. Não elimina, protege ou altera nenhuma outra ação. |
 | Aldeão | Nenhuma ação noturna. | — | Participa da discussão e vota enquanto estiver vivo e não exilado. |
 
-As ações de Guarda-costas, Vidente, Conjurador e Cupido são obrigatórias a cada chamada quando há participantes vivos da função e alvo válido. Os usos da Bruxa, do Denunciador e da Quenga são opcionais, mesmo quando disponíveis.
+As ações de Guarda-costas, Vidente, Conjurador, Cupido e Mentalista são obrigatórias a cada chamada quando há participantes vivos da função e alvo válido. Os usos da Bruxa, do Denunciador e da Quenga são opcionais, mesmo quando disponíveis.
 
 ## 5. Resolução noturna
 
@@ -104,6 +108,7 @@ As ações de Guarda-costas, Vidente, Conjurador e Cupido são obrigatórias a c
 - Se os Lobisomens atacarem a pessoa não-Lobisomem com quem a Quenga escolheu dormir, tanto essa pessoa quanto a Quenga são alvos de eliminação. Cada uma pode ser protegida independentemente; proteger uma não protege a outra.
 - A morte conjunta da Quenga só ocorre quando os Lobisomens atacam a pessoa escolhida. Bruxa, Denunciador e outras ações contra essa pessoa não transferem seus efeitos para a Quenga. Se outra ação tiver a própria Quenga como alvo, aplica-se normalmente a regra dessa ação e a proteção pertinente.
 - Se a pessoa escolhida for o Amaldiçoado não convertido e os Lobisomens a atacarem, o Amaldiçoado sobrevive com conversão pendente segundo a regra do Amaldiçoado; a Quenga também é eliminada, salvo se estiver protegida. Se o vínculo do Cupido eliminar o Amaldiçoado antes do despertar, a conversão pendente é cancelada.
+- O Mentalista compara a facção atual dos dois alvos. O Lycan conta como Aldeão; o Amaldiçoado conta como Aldeão enquanto a conversão estiver pendente e passa a contar como Lobisomem somente depois de despertado.
 - Depois de registrar a ação do Conjurador, o aplicativo lembra o mestre de se aproximar sem fazer barulho e tocar no ombro do alvo. O mestre mantém a escolha privada e não permite que o alvo fale durante a discussão ou votação. O alvo continua elegível e deve votar sem falar.
 - Ações válidas registradas antes de um agente morrer naquela noite ainda produzem efeito. O agente não pode realizar ações posteriores à eliminação.
 - O mestre vê os alvos, ações e causas privadas. Ao amanhecer, anuncia somente quem foi eliminado ou que ninguém foi eliminado; não revela papéis, ações ou proteções.
@@ -142,6 +147,7 @@ As ações de Guarda-costas, Vidente, Conjurador e Cupido são obrigatórias a c
 - A ação do Denunciador é armazenada no histórico noturno existente. Partidas e backups anteriores continuam válidos, sem migração ou valores substitutos.
 - O par do Cupido é salvo no estado privado da partida, e sua escolha fica no histórico noturno. Partidas e backups anteriores sem esse campo continuam válidos, sem migração ou valores substitutos.
 - A escolha da Quenga é armazenada no histórico noturno existente. A chamada opcional não exige ação registrada quando ela opta por ficar em casa. Partidas e backups anteriores continuam válidos; não há alteração do formato de dados.
+- A comparação do Mentalista é armazenada no histórico noturno existente. As partidas e backups anteriores continuam válidos sem migração ou valores substitutos.
 
 ## 9. Cenários de aceitação
 
@@ -162,6 +168,7 @@ As ações de Guarda-costas, Vidente, Conjurador e Cupido são obrigatórias a c
 15. **Anulação por maioria:** com cinco votantes, três votos de anulação anulam a votação.
 16. **Empate no topo:** empate entre jogadores ou entre jogador e “anular” anula a votação, mesmo sem maioria de anulações.
 17. **Exílio:** sem empate no topo e com menos da metade dos votos anulados, exilar a pessoa com mais votos sem revelar seu papel.
+18. **Mentalista:** deve escolher dois jogadores vivos, diferentes entre si e dele próprio; informa somente se estão no mesmo time. Lycan conta como Aldeão; Amaldiçoado conta como Aldeão até ser despertado e Lobisomem depois.
 18. **Vitória:** encerrar após resolução noturna ou exílio diurno quando uma das condições de vitória for satisfeita; não iniciar fase seguinte.
 19. **Anulação sem maioria:** com quatro votantes, duas anulações e votos divididos entre dois jogadores, ninguém é exilado; registrar anulação sem maioria.
 20. **Retomada local:** salvar a fase e o estado corrente e restaurá-los ao reabrir a aplicação no mesmo navegador.

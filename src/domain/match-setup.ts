@@ -83,6 +83,7 @@ export function createMatch(
     spellcaster: input.roleCounts.spellcaster ?? 0,
     cupid: input.roleCounts.cupid ?? 0,
     hooker: input.roleCounts.hooker ?? 0,
+    mentalist: input.roleCounts.mentalist ?? 0,
     villager: input.roleCounts.villager ?? 0,
   };
 
@@ -111,6 +112,9 @@ export function createMatch(
   }
   if (counts.hooker > 1) {
     throw new Error("A partida pode ter no máximo uma Quenga.");
+  }
+  if (counts.mentalist > 1) {
+    throw new Error("A partida pode ter no máximo um Mentalista.");
   }
   if (
     !Number.isInteger(input.dayDurationMinutes) ||

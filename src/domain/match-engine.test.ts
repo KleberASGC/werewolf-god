@@ -3,6 +3,7 @@ import { describe, it } from "node:test";
 import { createMatch } from "./match-setup";
 import {
   awakenCursed,
+  continueAfterMentalistResult,
   continueAfterSeerResult,
   endDiscussion,
   isVotingDecided,
@@ -1004,6 +1005,79 @@ describe("night flow and resolution", () => {
       player.status === "alive" && player.role === "werewolf",
     ).length, 1);
     assert.equal(awakened.phase, "night");
+  });
+
+  it("calls the Mentalista and compares the current teams of two targets", () => {
+    const fixture = createFixture([
+      "werewolf",
+      "lycan",
+      "villager",
+      "mentalist",
+      "villager",
+    ]);
+    let match = startMatch(fixture);
+    assert.deepEqual(match.night?.schedule, ["werewolf", "mentalist"]);
+
+    match = submitNightCall(match, "werewolf", {
+      kind: "werewolf-attack",
+      targetId: "player-3",
+    });
+    match = submitNightCall(match, "mentalist", {
+      kind: "mentalist-compare",
+      firstTargetId: "player-2",
+      secondTargetId: "player-3",
+    });
+    assert.equal(match.phase, "mentalist-result");
+    match = continueAfterMentalistResult(match);
+
+    assert.throws(
+      () => reviseNightAction(match, "mentalist", {
+        kind: "mentalist-compare",
+        firstTargetId: "player-4",
+        secondTargetId: "player-4",
+      }),
+      /deve escolher dois jogadores diferentes/,
+    );
+
+    const resolved = resolveNight(match);
+    const comparison = resolved.match.history
+      .filter((entry) => entry.type === "night-resolved")
+      .at(-1);
+    assert.equal(comparison?.type, "night-resolved");
+    if (comparison?.type === "night-resolved") {
+      assert.deepEqual(comparison.mentalistComparisons, [{
+        firstTargetId: "player-2",
+        secondTargetId: "player-3",
+        sameTeam: true,
+      }]);
+    }
+
+    let cursedMatch = createFixture([
+      "werewolf",
+      "cursed",
+      "villager",
+      "mentalist",
+      "villager",
+    ]);
+    cursedMatch = startMatch(cursedMatch);
+    cursedMatch = submitNightCall(cursedMatch, "werewolf", {
+      kind: "werewolf-attack",
+      targetId: "player-3",
+    });
+    cursedMatch = submitNightCall(cursedMatch, "mentalist", {
+      kind: "mentalist-compare",
+      firstTargetId: "player-1",
+      secondTargetId: "player-2",
+    });
+    cursedMatch = continueAfterMentalistResult(cursedMatch);
+    const cursedResolution = resolveNight(cursedMatch).match;
+    const cursedComparison = [...cursedResolution.history].reverse().find(
+      (entry) => entry.type === "night-resolved",
+    );
+    assert.equal(cursedComparison?.type, "night-resolved");
+    if (cursedComparison?.type === "night-resolved") {
+      assert.equal(cursedComparison.mentalistComparisons?.[0].sameTeam, false);
+    }
   });
 
   it("calls the Conjurador after the Seer and prevents consecutive targets", () => {
