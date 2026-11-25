@@ -1,8 +1,8 @@
 {
   "name": "werewolf-god",
   "private": true,
-  "version": "1.7.0",
-  "codename": "Darkwood Whisper",
+  "version": "1.8.0",
+  "codename": "Wolf's Oath",
   "type": "module",
   "scripts": {
     "dev": "vite",
